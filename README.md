@@ -106,31 +106,40 @@ qaytadi.
 > (reply-klaviatura) orqali ochilishi kerak. BotFather'dagi «menu button»
 > orqali ochilsa, buyurtma yuborish `sendData` ishlamaydi (Telegram cheklovi).
 
-### 🌐 Botni doimiy ishlatish — Vercel (tavsiya, bepul)
+### 🌐 Doimiy ishlash — Vercel (joriy holat)
 
-`bot/bot.py` (polling) faqat kompyuter yoqiq bo'lganda ishlaydi. Doimiy
-ishlashi uchun **Vercel** webhook versiyasidan foydalaniladi —
-`api/webhook.py`:
+Loyiha **Vercel**'da joylashtirilgan: Mini App ham, bot ham bitta manzilda.
 
-1. [vercel.com](https://vercel.com) → **Continue with GitHub** bilan kiring.
-2. **Add New → Project** → `DonDoner-menu` repozitoriyni import qiling.
-3. **Environment Variables** bo'limida kiriting:
-   - `BOT_TOKEN` — BotFather tokeni
-   - `ADMIN_CHAT_ID` — buyurtmalar boradigan chat ID
-   - `WEBHOOK_SECRET` — ixtiyoriy maxfiy kalit (xavfsizlik uchun)
-4. **Deploy** bosing. Manzil chiqadi: `https://<loyiha>.vercel.app`
-5. Telegram webhook'ni ulang (bir marta):
+- **Mini App:** https://dondoner-blush.vercel.app/
+- **Bot webhook:** https://dondoner-blush.vercel.app/api/webhook
 
-   ```bash
-   curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-     -d "url=https://<loyiha>.vercel.app/api/webhook" \
-     -d "secret_token=<WEBHOOK_SECRET>"
-   ```
+Vercel sozlamalari (Settings → Environment Variables):
 
-Shundan so'ng har `git push` avtomatik qayta deploy qilinadi. Polling
-(`bot.py`) va webhook bir vaqtda ishlamaydi — webhook yoqilgach, `bot.py`ni
-to'xtating (yoki `deleteWebhook` bilan pollingga qaytish mumkin).
+| O'zgaruvchi | Vazifasi |
+|---|---|
+| `BOT_TOKEN` | BotFather tokeni |
+| `ADMIN_CHAT_ID` | buyurtma va fikrlar boradigan chat |
+| `WEBHOOK_SECRET` | webhook himoyasi (Telegram shu kalitni yuboradi) |
+| `WEBAPP_URL` | «Открыть» tugmasi ochadigan manzil |
 
+Qayta deploy qilish:
+
+```bash
+vercel deploy --prod
+```
+
+Webhook'ni qayta ulash (odatda kerak emas):
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -d "url=https://dondoner-blush.vercel.app/api/webhook" \
+  -d "secret_token=<WEBHOOK_SECRET>"
+```
+
+> ⚠️ Polling (`bot/bot.py`) va webhook bir vaqtda ishlamaydi. Webhook
+> yoqilgan — `bot.py` faqat lokal sinov uchun qoldirilgan. Unga qaytish
+> uchun avval `deleteWebhook` chaqiring.
+>
 > Eslatma: serverless muhitda 45 daqiqalik "eslatma" xabari ishlamaydi
 > (doimiy jarayon yo'q) — qolgan hamma funksiya to'liq ishlaydi.
 

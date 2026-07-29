@@ -1,0 +1,6 @@
+# Vercel'ga yuborilmaydigan fayllar
+bot/
+node_modules/
+__pycache__/
+*.pyc
+README.md

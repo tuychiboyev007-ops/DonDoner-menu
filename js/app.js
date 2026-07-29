@@ -15,6 +15,8 @@
   const CURRENCY = (window.MENU && window.MENU.restaurant.currency) || "so'm";
   const LS_CART = "dondoner_cart";
   const LS_ORDERS = "dondoner_orders";
+  const LS_ADDR = "dondoner_addr";
+  const LS_GEO = "dondoner_geo";
 
   /* ============ Holat ============ */
   let cart = load(LS_CART, {}); // { itemId: qty }
@@ -22,10 +24,19 @@
   let mode = "delivery"; // delivery | pickup
   let activeItem = null; // sheet uchun
   let selectedBranch = 0; // tanlangan filial indeksi (birinchisi standart)
-  let geo = null; // aniqlangan joylashuv: { lat, lng }
-  let geoLabel = ""; // joylashuvning matnli manzili (Nominatim)
-  let mapObj = null; // Leaflet xarita nusxasi
-  let markerObj = null; // xaritadagi nuqta
+  let geo = null; // tanlangan joylashuv: { lat, lng }
+  let geoLabel = ""; // joylashuvning matnli manzili
+  let pickerMap = null; // manzil tanlash xaritasi
+  let pickerGeo = null; // tanlash jarayonidagi vaqtinchalik nuqta
+  let pickerLabel = "";
+  let skipNextLookup = false; // qidiruvdan tanlangan nom saqlanib qolsin
+  // Tuzilmali manzil maydonlari (saqlanadi)
+  let addrParts = load(LS_ADDR, { house: "", flat: "", floor: "", entrance: "", note: "" });
+  const savedGeo = load(LS_GEO, null);
+  if (savedGeo && savedGeo.lat) {
+    geo = { lat: savedGeo.lat, lng: savedGeo.lng };
+    geoLabel = savedGeo.label || "";
+  }
 
   /* ============ Yordamchilar ============ */
   function load(key, fallback) {
@@ -403,15 +414,54 @@
 
     // Checkout forma
     cartRoot.appendChild(buildCheckout());
+
+    // Pastda yopishib turadigan panel: jami + buyurtma tugmasi
+    const bar = el("div", "checkout-bar");
+    bar.innerHTML = `<span class="checkout-bar__total">${formatPrice(cartTotal())}</span>`;
+    const goBtn = el("button", "btn btn--primary checkout-bar__btn", "Buyurtma berish");
+    goBtn.addEventListener("click", submitOrder);
+    bar.appendChild(goBtn);
+    cartRoot.appendChild(bar);
   }
 
   function buildCheckout() {
     const wrap = el("div", "checkout");
     const user = tgUser();
-    const defaultName = user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "";
-
-    // Filial tanlash tugmalari
+    const defaultName = user
+      ? [user.first_name, user.last_name].filter(Boolean).join(" ")
+      : "";
     const branches = window.MENU.restaurant.branches || [];
+
+    /* --- Yetkazish turi (kartochkalar) --- */
+    const modeHtml =
+      '<div class="mode-cards" id="modeCards">' +
+      `<button type="button" class="mode-card${mode === "delivery" ? " is-active" : ""}" data-mode="delivery">` +
+      '<span class="mode-card__tick"></span>Yetkazish</button>' +
+      `<button type="button" class="mode-card${mode === "pickup" ? " is-active" : ""}" data-mode="pickup">` +
+      '<span class="mode-card__tick"></span>Olib ketish</button>' +
+      "</div>";
+
+    /* --- Qayerga: manzil + tuzilmali maydonlar --- */
+    const addrRowHtml =
+      '<button type="button" class="addr-row" id="addrRow">' +
+      '<span class="addr-row__icon">🏠</span>' +
+      '<span class="addr-row__body">' +
+      '<span class="addr-row__label">Yetkazish manzili</span>' +
+      `<span class="addr-row__value${geoLabel ? "" : " is-empty"}" id="addrValue">` +
+      escapeHtml(geoLabel || "Xaritadan tanlang") +
+      "</span></span>" +
+      '<span class="addr-row__arrow">›</span></button>';
+
+    const gridHtml =
+      '<div class="addr-grid">' +
+      `<input id="coHouse" type="text" placeholder="Uy" value="${escapeHtml(addrParts.house)}" />` +
+      `<input id="coFlat" type="text" placeholder="Xonadon" value="${escapeHtml(addrParts.flat)}" />` +
+      `<input id="coFloor" type="text" placeholder="Qavat" value="${escapeHtml(addrParts.floor)}" />` +
+      `<input id="coEntrance" type="text" placeholder="Podyezd" value="${escapeHtml(addrParts.entrance)}" />` +
+      "</div>" +
+      `<textarea id="coCourier" class="addr-note" placeholder="Kuryerga izoh">${escapeHtml(addrParts.note)}</textarea>`;
+
+    /* --- Filial --- */
     const branchHtml = branches
       .map(function (b, i) {
         return (
@@ -422,50 +472,62 @@
       .join("");
 
     wrap.innerHTML =
+      '<h3 class="co-title">Yetkazish</h3>' +
+      modeHtml +
+      '<div id="whereBlock">' +
+      '<h3 class="co-title">Qayerga</h3>' +
+      addrRowHtml +
+      gridHtml +
+      "</div>" +
       (branches.length
-        ? `<div class="field"><label>Filialni tanlang</label><div class="branch-select">${branchHtml}</div></div>`
+        ? '<h3 class="co-title">Filial</h3><div class="branch-select">' + branchHtml + "</div>"
         : "") +
+      '<h3 class="co-title">Mijoz</h3>' +
       '<div class="field"><label>Ismingiz</label>' +
       `<input id="coName" type="text" placeholder="Ism" value="${escapeHtml(defaultName)}" /></div>` +
       '<div class="field"><label>Telefon raqam</label>' +
-      `<input id="coPhone" type="tel" inputmode="numeric" value="${PHONE_PREFIX}" /></div>` +
-      '<div class="field" id="coAddrField"><label>Yetkazish manzili</label>' +
-      '<textarea id="coAddr" placeholder="Ko\'cha, uy, xonadon…"></textarea>' +
-      '<button type="button" class="geo-btn" id="geoBtn">📍 Joylashuvimni aniqlash</button>' +
-      '<div class="geo-box" id="geoBox" hidden>' +
-      '<div class="geo-map" id="geoMap"></div>' +
-      '<div class="geo-hint">Nuqtani surib aniq joyni belgilashingiz mumkin</div>' +
-      '<div class="geo-addr" id="geoAddr"></div>' +
-      "</div></div>" +
-      '<div class="field"><label>Izoh (ixtiyoriy)</label>' +
+      '<div class="phone-input"><span class="phone-input__prefix">+998</span>' +
+      '<input id="coPhone" type="tel" inputmode="numeric" placeholder="__ ___ __ __" /></div></div>' +
+      '<div class="field"><label>Buyurtmaga izoh</label>' +
       '<textarea id="coNote" placeholder="Qo\'shimcha izoh"></textarea></div>';
 
-    // Telefon maydoni — har doim +998 bilan boshlanadi
+    /* --- Hodisalar --- */
+    wrap.querySelector("#modeCards").addEventListener("click", function (e) {
+      const b = e.target.closest(".mode-card");
+      if (!b) return;
+      mode = b.dataset.mode;
+      haptic("light");
+      renderCart();
+    });
+
+    wrap.querySelector("#addrRow").addEventListener("click", openPicker);
+
+    // Manzil maydonlari saqlanadi
+    ["coHouse", "coFlat", "coFloor", "coEntrance", "coCourier"].forEach(function (id) {
+      const input = wrap.querySelector("#" + id);
+      input.addEventListener("input", function () {
+        addrParts = {
+          house: wrap.querySelector("#coHouse").value.trim(),
+          flat: wrap.querySelector("#coFlat").value.trim(),
+          floor: wrap.querySelector("#coFloor").value.trim(),
+          entrance: wrap.querySelector("#coEntrance").value.trim(),
+          note: wrap.querySelector("#coCourier").value.trim(),
+        };
+        save(LS_ADDR, addrParts);
+      });
+    });
+
+    // Telefon — faqat raqamlar, +998 alohida turadi
     const phoneInput = wrap.querySelector("#coPhone");
     phoneInput.addEventListener("input", function () {
-      phoneInput.value = formatPhone(phoneInput.value);
-    });
-    phoneInput.addEventListener("focus", function () {
-      if (!phoneInput.value.trim()) phoneInput.value = PHONE_PREFIX;
-      // Kursorni oxiriga qo'yamiz (prefiksni o'chirib yubormasin)
-      setTimeout(function () {
-        const end = phoneInput.value.length;
-        phoneInput.setSelectionRange(end, end);
-      }, 0);
+      let d = phoneInput.value.replace(/\D/g, "").slice(0, 9);
+      let out = d.slice(0, 2);
+      if (d.length > 2) out += " " + d.slice(2, 5);
+      if (d.length > 5) out += " " + d.slice(5, 7);
+      if (d.length > 7) out += " " + d.slice(7, 9);
+      phoneInput.value = out;
     });
 
-    // Joylashuvni aniqlash
-    const geoBtn = wrap.querySelector("#geoBtn");
-    geoBtn.addEventListener("click", function () {
-      requestGeo(geoBtn);
-    });
-    if (geo) {
-      geoBtn.textContent = "📍 Joylashuvni yangilash";
-      // DOM'ga qo'shilgandan keyin xaritani chizamiz
-      setTimeout(showGeoMap, 0);
-    }
-
-    // Filial tanlash bosilganda
     wrap.querySelectorAll(".branch-opt").forEach(function (b) {
       b.addEventListener("click", function () {
         selectedBranch = parseInt(b.dataset.idx, 10) || 0;
@@ -476,141 +538,176 @@
       });
     });
 
-    const btn = el("button", "btn btn--primary", "Buyurtma berish");
-    btn.addEventListener("click", submitOrder);
-    wrap.appendChild(btn);
-
-    // Olib ketish rejimida manzil kerak emas
+    // Olib ketishda manzil bloki kerak emas
     if (mode === "pickup") {
-      const af = wrap.querySelector("#coAddrField");
-      if (af) af.style.display = "none";
+      wrap.querySelector("#whereBlock").style.display = "none";
     }
     return wrap;
   }
+  /* ============ Manzil tanlash ekrani ============ */
+  const TASHKENT = { lat: 41.311081, lng: 69.240562 };
 
-  /* ============ Joylashuv ============ */
   function mapsLink(g) {
     return "https://maps.google.com/?q=" + g.lat + "," + g.lng;
   }
 
-  // Manzil nomini aniqlash (OpenStreetMap Nominatim — bepul)
-  function lookupAddress(g) {
-    const addrEl = document.getElementById("geoAddr");
-    if (addrEl) addrEl.textContent = "Manzil aniqlanmoqda…";
+  // Koordinatadan matnli manzil (server orqali — CORS muammosi yo'q)
+  function reverseGeocode(g, done) {
     fetch("/api/geocode?lat=" + g.lat + "&lng=" + g.lng)
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (d) {
-        geoLabel = (d && d.address) || "";
-        const el = document.getElementById("geoAddr");
-        if (el) el.textContent = geoLabel ? "📍 " + geoLabel : "";
-      })
-      .catch(function () {
-        geoLabel = "";
-        const el = document.getElementById("geoAddr");
-        if (el) el.textContent = "";
-      });
+      .then(function (r) { return r.json(); })
+      .then(function (d) { done((d && d.address) || ""); })
+      .catch(function () { done(""); });
   }
 
-  // Xaritani ko'rsatish (nuqtani surish mumkin)
-  function showGeoMap() {
-    const box = document.getElementById("geoBox");
-    const mapEl = document.getElementById("geoMap");
-    if (!box || !mapEl || !geo) return;
-    box.hidden = false;
-
-    if (typeof L === "undefined") {
-      // Leaflet yuklanmasa — oddiy havola bilan cheklanamiz
-      mapEl.innerHTML =
-        '<a class="geo-fallback" href="' +
-        mapsLink(geo) +
-        '" target="_blank" rel="noopener">🗺 Xaritada ko\'rish</a>';
-      return;
-    }
-
-    const pos = [parseFloat(geo.lat), parseFloat(geo.lng)];
-    if (mapObj) {
-      mapObj.remove();
-      mapObj = null;
-    }
-    mapObj = L.map(mapEl, { attributionControl: false }).setView(pos, 17);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-    }).addTo(mapObj);
-
-    markerObj = L.marker(pos, { draggable: true }).addTo(mapObj);
-    markerObj.on("dragend", function () {
-      const p = markerObj.getLatLng();
-      geo = { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) };
-      haptic("light");
-      lookupAddress(geo);
-    });
-    mapObj.on("click", function (e) {
-      markerObj.setLatLng(e.latlng);
-      geo = { lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6) };
-      haptic("light");
-      lookupAddress(geo);
-    });
-
-    // Yashirin holatda chizilgani uchun o'lchamni yangilaymiz
-    setTimeout(function () {
-      if (mapObj) mapObj.invalidateSize();
-    }, 120);
-
-    // Plitkalar yuklanmasa (internet sekin/bloklangan) — havola ko'rsatamiz
-    setTimeout(function () {
-      const tiles = mapEl.querySelectorAll("img.leaflet-tile");
-      let ok = 0;
-      tiles.forEach(function (t) {
-        if (t.naturalWidth > 0) ok++;
-      });
-      if (ok === 0) {
-        const hint = document.querySelector(".geo-hint");
-        if (hint) {
-          hint.innerHTML =
-            'Xarita yuklanmadi — <a href="' +
-            mapsLink(geo) +
-            '" target="_blank" rel="noopener">xaritada ochish</a>';
-        }
-      }
-    }, 5000);
-
-    lookupAddress(geo);
-  }
-
-  function requestGeo(btn) {
-    if (!navigator.geolocation) {
-      toast("Qurilma joylashuvni qo'llab-quvvatlamaydi");
-      return;
-    }
+  function openPicker() {
+    const el = document.getElementById("picker");
+    el.hidden = false;
+    document.body.style.overflow = "hidden";
     haptic("light");
-    btn.disabled = true;
-    btn.textContent = "⏳ Aniqlanmoqda…";
 
+    const start = geo || TASHKENT;
+    pickerGeo = { lat: start.lat, lng: start.lng };
+    pickerLabel = geo ? geoLabel : "";
+
+    const mapEl = document.getElementById("pickerMap");
+    if (typeof L === "undefined") {
+      document.getElementById("pickerAddr").textContent =
+        "Xarita yuklanmadi — manzilni qidiruvdan tanlang";
+      return;
+    }
+
+    if (pickerMap) { pickerMap.remove(); pickerMap = null; }
+    pickerMap = L.map(mapEl, {
+      attributionControl: false,
+      zoomControl: false,
+    }).setView([parseFloat(start.lat), parseFloat(start.lng)], 17);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 })
+      .addTo(pickerMap);
+
+    // Xarita surilganda markazdagi nuqta yangi joyni ko'rsatadi
+    pickerMap.on("movestart", function () {
+      document.getElementById("picker").classList.add("is-moving");
+    });
+    pickerMap.on("moveend", function () {
+      document.getElementById("picker").classList.remove("is-moving");
+      const c = pickerMap.getCenter();
+      pickerGeo = { lat: c.lat.toFixed(6), lng: c.lng.toFixed(6) };
+      if (skipNextLookup) {
+        skipNextLookup = false;
+        return;
+      }
+      updatePickerAddr();
+    });
+
+    setTimeout(function () {
+      if (pickerMap) pickerMap.invalidateSize();
+      updatePickerAddr();
+    }, 150);
+  }
+
+  function closePicker() {
+    document.getElementById("picker").hidden = true;
+    document.body.style.overflow = "";
+    hidePickerResults();
+  }
+
+  function updatePickerAddr() {
+    const el = document.getElementById("pickerAddr");
+    if (!pickerGeo) return;
+    el.textContent = "Manzil aniqlanmoqda…";
+    reverseGeocode(pickerGeo, function (addr) {
+      pickerLabel = addr;
+      el.textContent = addr || "Manzil aniqlanmadi — nuqtani surib ko'ring";
+    });
+  }
+
+  function hidePickerResults() {
+    const box = document.getElementById("pickerResults");
+    box.hidden = true;
+    box.innerHTML = "";
+  }
+
+  // Qidiruv (server orqali)
+  let searchTimer = null;
+  function pickerSearch(query) {
+    clearTimeout(searchTimer);
+    if (query.trim().length < 3) return hidePickerResults();
+    searchTimer = setTimeout(function () {
+      fetch("/api/geocode?q=" + encodeURIComponent(query))
+        .then(function (r) { return r.json(); })
+        .then(function (d) { renderPickerResults((d && d.results) || []); })
+        .catch(hidePickerResults);
+    }, 400);
+  }
+
+  function renderPickerResults(items) {
+    const box = document.getElementById("pickerResults");
+    if (!items.length) return hidePickerResults();
+    box.innerHTML = "";
+    items.forEach(function (it) {
+      const li = el("li", "picker__result");
+      li.innerHTML =
+        "<strong>" + escapeHtml(it.title) + "</strong>" +
+        "<small>" + escapeHtml(it.full) + "</small>";
+      li.addEventListener("click", function () {
+        pickerGeo = { lat: parseFloat(it.lat).toFixed(6), lng: parseFloat(it.lng).toFixed(6) };
+        pickerLabel = it.title;
+        document.getElementById("pickerAddr").textContent = it.title;
+        document.getElementById("pickerInput").value = "";
+        hidePickerResults();
+        if (pickerMap) {
+          skipNextLookup = true;
+          pickerMap.setView([parseFloat(pickerGeo.lat), parseFloat(pickerGeo.lng)], 17);
+        }
+        haptic("light");
+      });
+      box.appendChild(li);
+    });
+    box.hidden = false;
+  }
+
+  // «Meni topish»
+  function pickerLocateMe() {
+    if (!navigator.geolocation) return toast("Qurilma joylashuvni qo'llamaydi");
+    const btn = document.getElementById("pickerLocate");
+    btn.disabled = true;
     navigator.geolocation.getCurrentPosition(
       function (pos) {
-        geo = {
+        btn.disabled = false;
+        const g = {
           lat: pos.coords.latitude.toFixed(6),
           lng: pos.coords.longitude.toFixed(6),
         };
-        btn.disabled = false;
-        btn.textContent = "📍 Joylashuvni yangilash";
-        showGeoMap();
-        toast("Joylashuv aniqlandi ✅");
+        pickerGeo = g;
+        if (pickerMap) pickerMap.setView([parseFloat(g.lat), parseFloat(g.lng)], 17);
+        else updatePickerAddr();
         haptic("medium");
       },
       function (err) {
         btn.disabled = false;
-        btn.textContent = "📍 Joylashuvimni aniqlash";
-        const msg =
-          err && err.code === 1
-            ? "Joylashuvga ruxsat berilmadi"
-            : "Joylashuv aniqlanmadi";
-        toast(msg + " — manzilni qo'lda yozing");
+        toast(err && err.code === 1 ? "Joylashuvga ruxsat berilmadi" : "Joylashuv aniqlanmadi");
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     );
+  }
+
+  function confirmPicker() {
+    if (!pickerGeo) return toast("Xaritadan joyni tanlang");
+    geo = pickerGeo;
+    geoLabel = pickerLabel;
+    save(LS_GEO, { lat: geo.lat, lng: geo.lng, label: geoLabel });
+    closePicker();
+    haptic("medium");
+    if (currentPage === "cart") renderCart();
+  }
+
+  function setupPicker() {
+    document.getElementById("pickerBack").addEventListener("click", closePicker);
+    document.getElementById("pickerDone").addEventListener("click", confirmPicker);
+    document.getElementById("pickerLocate").addEventListener("click", pickerLocateMe);
+    document.getElementById("pickerInput").addEventListener("input", function (e) {
+      pickerSearch(e.target.value);
+    });
   }
 
   /* ============ Buyurtma yuborish ============ */
@@ -635,8 +732,17 @@
       L.push("🏬 " + order.branch.label + " — " + order.branch.address);
     }
     L.push("🚚 " + (order.mode === "pickup" ? "Olib ketish" : "Yetkazish"));
-    if (order.mode !== "pickup" && order.address) L.push("📍 " + order.address);
-    if (order.geoLabel) L.push("📌 " + order.geoLabel);
+    if (order.geoLabel) L.push("📍 " + order.geoLabel);
+    const a = order.addrParts;
+    if (a) {
+      const bits = [];
+      if (a.house) bits.push(a.house + "-uy");
+      if (a.entrance) bits.push(a.entrance + "-podyezd");
+      if (a.floor) bits.push(a.floor + "-qavat");
+      if (a.flat) bits.push(a.flat + "-xonadon");
+      if (bits.length) L.push("🏠 " + bits.join(", "));
+      if (a.note) L.push("🛵 Kuryerga: " + a.note);
+    }
     if (order.geo) L.push("🗺 " + mapsLink(order.geo));
     L.push("");
     L.push("👤 " + order.name);
@@ -647,16 +753,16 @@
 
   function submitOrder() {
     const name = (document.getElementById("coName").value || "").trim();
-    const phone = (document.getElementById("coPhone").value || "").trim();
-    const addr = (document.getElementById("coAddr") || {}).value || "";
+    const phoneRaw = (document.getElementById("coPhone").value || "").trim();
     const note = (document.getElementById("coNote") || {}).value || "";
 
     if (!name) return toast("Ismingizni kiriting");
-    if (phoneDigits(phone).length !== 9) {
-      return toast("Telefon raqamni to'liq kiriting");
-    }
-    if (mode === "delivery" && !addr.trim() && !geo) {
-      return toast("Manzilni yozing yoki joylashuvni aniqlang");
+    const digits = phoneRaw.replace(/\D/g, "").slice(0, 9);
+    if (digits.length !== 9) return toast("Telefon raqamni to'liq kiriting");
+    const phone = formatPhone(digits);
+
+    if (mode === "delivery" && !geo) {
+      return toast("Yetkazish manzilini xaritadan tanlang");
     }
 
     const items = Object.keys(cart).map(function (id) {
@@ -676,7 +782,7 @@
         : null,
       name: name,
       phone: phone,
-      address: addr.trim(),
+      addrParts: mode === "delivery" ? addrParts : null,
       geo: mode === "delivery" ? geo : null,
       geoLabel: mode === "delivery" ? geoLabel : "",
       note: note.trim(),
@@ -876,6 +982,7 @@
     renderMenu();
     setupTabbar();
     setupControls();
+    setupPicker();
     refreshCartUI();
   }
 

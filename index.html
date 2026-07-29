@@ -9,7 +9,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- ?v= raqamini har yangilanishda oshiring — kesh muammosini oldini oladi -->
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-  <link rel="stylesheet" href="css/style.css?v=7" />
+  <link rel="stylesheet" href="css/style.css?v=8" />
 </head>
 <body>
   <!-- ======== BOSH SAHIFA ======== -->
@@ -102,11 +102,40 @@
     </div>
   </div>
 
+  <!-- ======== MANZIL TANLASH (to'liq ekran) ======== -->
+  <section class="picker" id="picker" hidden>
+    <header class="picker__head">
+      <button class="picker__back" id="pickerBack" aria-label="Orqaga">←</button>
+      <h2 class="picker__title">Yangi manzil</h2>
+    </header>
+
+    <div class="picker__search">
+      <input
+        type="search"
+        id="pickerInput"
+        placeholder="Manzilni kiriting"
+        autocomplete="off"
+      />
+      <ul class="picker__results" id="pickerResults" hidden></ul>
+    </div>
+
+    <div class="picker__map" id="pickerMap">
+      <!-- Markazdagi qo'zg'almas nuqta: xaritani surasiz, nuqta joyida qoladi -->
+      <div class="picker__pin" aria-hidden="true"></div>
+      <button class="picker__locate" id="pickerLocate" aria-label="Meni topish">➤</button>
+    </div>
+
+    <div class="picker__foot">
+      <div class="picker__addr" id="pickerAddr">Manzil aniqlanmoqda…</div>
+      <button class="btn btn--primary" id="pickerDone">Davom etish</button>
+    </div>
+  </section>
+
   <!-- ======== TOAST ======== -->
   <div class="toast" id="toast" hidden></div>
 
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="data/menu.js?v=7"></script>
-  <script src="js/app.js?v=7"></script>
+  <script src="data/menu.js?v=8"></script>
+  <script src="js/app.js?v=8"></script>
 </body>
 </html>

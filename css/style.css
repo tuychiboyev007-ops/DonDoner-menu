@@ -548,73 +548,379 @@ button {
   min-height: 60px;
 }
 
-/* ---------- Joylashuv tugmasi ---------- */
-.geo-btn {
-  width: 100%;
-  margin-top: 8px;
-  border: 1.5px dashed var(--line);
-  background: transparent;
-  color: var(--brand);
-  border-radius: 12px;
-  padding: 11px;
-  font-size: 14px;
+/* ---------- Checkout: sarlavhalar ---------- */
+.co-title {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 20px 0 10px;
+}
+
+/* Yetkazish / olib ketish kartochkalari */
+.mode-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mode-card {
+  position: relative;
+  text-align: left;
+  border: none;
+  background: var(--card);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  box-shadow: var(--shadow);
 }
 
-.geo-btn:active {
-  background: rgba(216, 19, 39, 0.06);
+.mode-card__tick {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(142, 142, 152, 0.28);
+  margin-bottom: 10px;
+  transition: background 0.15s;
 }
 
-.geo-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
+.mode-card.is-active .mode-card__tick {
+  background: var(--brand);
 }
 
-/* Xarita ko'rsatiladigan quti */
-.geo-box {
+.mode-card.is-active .mode-card__tick::after {
+  content: "✓";
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+
+/* Manzil qatori (bosilsa xarita ochiladi) */
+.addr-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: var(--card);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.addr-row__icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.addr-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.addr-row__label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.addr-row__value {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.addr-row__value.is-empty {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.addr-row__arrow {
+  color: var(--muted);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+/* Uy / xonadon / qavat / podyezd */
+.addr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   margin-top: 10px;
 }
 
-.geo-box[hidden] {
+.addr-grid input,
+.addr-note {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+}
+
+.addr-note {
+  margin-top: 10px;
+  min-height: 52px;
+  resize: vertical;
+}
+
+.addr-grid input:focus,
+.addr-note:focus {
+  border-color: var(--brand);
+}
+
+/* Telefon: +998 alohida turadi */
+.phone-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.phone-input:focus-within {
+  border-color: var(--brand);
+}
+
+.phone-input__prefix {
+  padding: 12px 12px 12px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  border-right: 1px solid var(--line);
+}
+
+.phone-input input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 12px 14px;
+  font-size: 15px;
+  outline: none;
+  min-width: 0;
+}
+
+/* Pastdagi yopishgan panel */
+.checkout-bar {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px -16px 0;
+  padding: 12px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+
+.checkout-bar__total {
+  font-size: 18px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.checkout-bar__btn {
+  flex: 1;
+  width: auto;
+  padding: 14px;
+}
+
+/* ---------- Manzil tanlash ekrani ---------- */
+.picker {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.picker[hidden] {
   display: none;
 }
 
-.geo-map {
-  height: 220px;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: rgba(142, 142, 152, 0.14);
-  display: grid;
-  place-items: center;
+.picker__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
 }
 
-/* Leaflet ustidagi elementlar tabbar ostida qolsin */
-.geo-map .leaflet-pane,
-.geo-map .leaflet-control {
+.picker__back {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.picker__title {
+  flex: 1;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  text-align: center;
+  padding-right: 40px;
+}
+
+.picker__search {
+  position: relative;
+  padding: 0 16px 12px;
+}
+
+.picker__search input {
+  width: 100%;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-size: 15px;
+  outline: none;
+}
+
+.picker__search input:focus {
+  border-color: var(--brand);
+}
+
+.picker__results {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 100%;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.picker__results[hidden] {
+  display: none;
+}
+
+.picker__result {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.picker__result:last-child {
+  border-bottom: none;
+}
+
+.picker__result strong {
+  display: block;
+  font-size: 15px;
+}
+
+.picker__result small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Xarita va markazdagi qo'zg'almas nuqta */
+.picker__map {
+  position: relative;
+  flex: 1;
+  background: rgba(142, 142, 152, 0.14);
+}
+
+.picker__map .leaflet-pane,
+.picker__map .leaflet-control {
   z-index: 1;
 }
 
-.geo-hint {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--muted);
-  text-align: center;
+.picker__pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  width: 34px;
+  height: 34px;
+  margin: -44px 0 0 -17px;
+  border-radius: 50%;
+  background: var(--brand);
+  border: 7px solid #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  transition: transform 0.15s;
 }
 
-.geo-addr {
-  margin-top: 6px;
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.4;
+.picker__pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 3px;
+  height: 16px;
+  margin-left: -1.5px;
+  background: var(--brand);
+  border-radius: 2px;
 }
 
-.geo-fallback {
-  color: var(--link);
+/* Xarita surilayotganda nuqta biroz ko'tariladi */
+.picker.is-moving .picker__pin {
+  transform: translateY(-8px);
+}
+
+.picker__locate {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 6;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--brand);
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+}
+
+.picker__foot {
+  padding: 14px 16px calc(env(safe-area-inset-bottom) + 16px);
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+
+.picker__addr {
+  font-size: 15px;
   font-weight: 600;
-  text-decoration: none;
+  margin-bottom: 12px;
+  min-height: 20px;
+  line-height: 1.4;
 }
 
 /* ---------- Filial tanlash ---------- */

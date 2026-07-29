@@ -26,6 +26,9 @@ const I18N = {
 
     // Taom
     addToCart: "Savatga qo'shish",
+    choose: "Tanlash",
+    from: "dan",
+    size: "O'lcham",
     addedToCart: "savatga qo'shildi",
 
     // Savat
@@ -114,6 +117,9 @@ const I18N = {
     nothingFound: "Ничего не найдено",
 
     addToCart: "Добавить в корзину",
+    choose: "Выбрать",
+    from: "от",
+    size: "Размер",
     addedToCart: "добавлено в корзину",
 
     cartEmpty: "Корзина пуста.<br>Выберите блюдо из меню.",

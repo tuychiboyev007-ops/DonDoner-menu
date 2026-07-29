@@ -113,11 +113,56 @@
       });
     });
   }
-  function findItem(id) {
+  // Savat kaliti "id" yoki "id::O'lcham" ko'rinishida bo'ladi
+  function splitKey(key) {
+    const i = String(key).indexOf("::");
+    return i === -1
+      ? { id: key, variant: "" }
+      : { id: key.slice(0, i), variant: key.slice(i + 2) };
+  }
+
+  function findItem(key) {
+    const { id } = splitKey(key);
     return itemIndex[id] ? itemIndex[id].item : null;
   }
-  function findIcon(id) {
+  function findIcon(key) {
+    const { id } = splitKey(key);
     return itemIndex[id] ? itemIndex[id].icon : "🍽️";
+  }
+
+  // Kalit bo'yicha narx (o'lcham hisobga olinadi)
+  function keyPrice(key) {
+    const it = findItem(key);
+    if (!it) return 0;
+    const { variant } = splitKey(key);
+    if (it.variants && it.variants.length) {
+      const v = it.variants.filter(function (x) {
+        return x.label === variant;
+      })[0];
+      return (v || it.variants[0]).price;
+    }
+    return it.price || 0;
+  }
+
+  // Kalit bo'yicha to'liq nom ("Pepperoni (Katta)")
+  function keyName(key) {
+    const it = findItem(key);
+    if (!it) return "-";
+    const { variant } = splitKey(key);
+    return variant ? it.name + " (" + variant + ")" : it.name;
+  }
+
+  // Eng arzon narx — kartochkada "60 000 so'm dan" uchun
+  function minPrice(item) {
+    if (item.variants && item.variants.length) {
+      return Math.min.apply(
+        null,
+        item.variants.map(function (v) {
+          return v.price;
+        })
+      );
+    }
+    return item.price || 0;
   }
 
   function haptic(type) {
@@ -215,9 +260,8 @@
     }, 0);
   }
   function cartTotal() {
-    return Object.keys(cart).reduce(function (sum, id) {
-      const it = findItem(id);
-      return sum + (it ? it.price * cart[id] : 0);
+    return Object.keys(cart).reduce(function (sum, key) {
+      return sum + keyPrice(key) * cart[key];
     }, 0);
   }
 
@@ -336,20 +380,43 @@
     });
 
     const body = el("div", "product__body");
-    body.appendChild(el("div", "product__price", formatPrice(item.price)));
-    body.appendChild(el("div", "product__name", escapeHtml(item.name)));
-    body.appendChild(el("div", "product__weight", escapeHtml(item.weight || "")));
+    const hasVariants = !!(item.variants && item.variants.length > 1);
 
-    const qty = cart[item.id] || 0;
+    // Narx: o'lchamli bo'lsa "dan", chegirma bo'lsa eski narx chizilgan holda
+    let priceHtml = formatPrice(minPrice(item));
+    if (hasVariants) priceHtml += ' <small class="product__from">' + t("from") + "</small>";
+    if (item.oldPrice) {
+      priceHtml += ` <s class="product__old">${formatPrice(item.oldPrice)}</s>`;
+    }
+    body.appendChild(el("div", "product__price", priceHtml));
+    body.appendChild(el("div", "product__name", escapeHtml(item.name)));
+    body.appendChild(
+      el("div", "product__weight", escapeHtml(item.weight || item.desc || ""))
+    );
+
+    // O'lchamli taomlar: avval tanlash oynasi ochiladi
+    if (hasVariants) {
+      const pick = el("button", "product__add product__add--pick", t("choose"));
+      pick.addEventListener("click", function () {
+        openSheet(item, catIcon);
+      });
+      body.appendChild(pick);
+      card.appendChild(media);
+      card.appendChild(body);
+      return card;
+    }
+
+    const key = item.id;
+    const qty = cart[key] || 0;
     if (qty > 0) {
       const stepper = el("div", "stepper");
       const minus = el("button", null, "−");
       const plus = el("button", null, "+");
       minus.addEventListener("click", function () {
-        decFromCart(item.id);
+        decFromCart(key);
       });
       plus.addEventListener("click", function () {
-        addToCart(item.id);
+        addToCart(key);
       });
       stepper.appendChild(minus);
       stepper.appendChild(el("span", null, String(qty)));
@@ -358,8 +425,8 @@
     } else {
       const add = el("button", "product__add", "+");
       add.addEventListener("click", function () {
-        addToCart(item.id);
-        toast(item.name + " savatga qo'shildi");
+        addToCart(key);
+        toast(item.name + " " + t("addedToCart"));
       });
       body.appendChild(add);
     }
@@ -372,15 +439,63 @@
   /* ============ Tafsilot oynasi ============ */
   const sheet = document.getElementById("sheet");
 
+  let activeVariant = ""; // oynada tanlangan o'lcham
+
   function openSheet(item, catIcon) {
     activeItem = item;
+    const hasVariants = !!(item.variants && item.variants.length);
+    activeVariant = hasVariants ? item.variants[0].label : "";
+
     document.getElementById("sheetMedia").innerHTML = mediaContent(item, catIcon);
     document.getElementById("sheetTitle").textContent = item.name;
-    document.getElementById("sheetPrice").textContent = formatPrice(item.price);
     document.getElementById("sheetWeight").textContent = item.weight || "";
     document.getElementById("sheetDesc").textContent = item.desc || "";
+
+    // O'lcham tugmalari
+    const box = document.getElementById("sheetVariants");
+    if (hasVariants && item.variants.length > 1) {
+      box.hidden = false;
+      box.innerHTML = item.variants
+        .map(function (v, i) {
+          return (
+            `<button type="button" class="vopt${i === 0 ? " is-active" : ""}" data-label="${escapeHtml(v.label)}">` +
+            `<span class="vopt__label">${escapeHtml(v.label)}</span>` +
+            `<span class="vopt__price">${formatPrice(v.price)}</span></button>`
+          );
+        })
+        .join("");
+      box.querySelectorAll(".vopt").forEach(function (b) {
+        b.addEventListener("click", function () {
+          activeVariant = b.dataset.label;
+          box.querySelectorAll(".vopt").forEach(function (x) {
+            x.classList.toggle("is-active", x === b);
+          });
+          updateSheetPrice();
+          haptic("light");
+        });
+      });
+    } else {
+      box.hidden = true;
+      box.innerHTML = "";
+    }
+
+    updateSheetPrice();
     sheet.hidden = false;
     document.body.style.overflow = "hidden";
+  }
+
+  function sheetKey() {
+    if (!activeItem) return "";
+    return activeVariant ? activeItem.id + "::" + activeVariant : activeItem.id;
+  }
+
+  function updateSheetPrice() {
+    const priceEl = document.getElementById("sheetPrice");
+    let html = formatPrice(keyPrice(sheetKey()));
+    if (activeItem && activeItem.oldPrice) {
+      html += ` <s class="sheet__old">${formatPrice(activeItem.oldPrice)}</s>`;
+    }
+    priceEl.innerHTML = html;
   }
   function closeSheet() {
     sheet.hidden = true;
@@ -390,11 +505,11 @@
     if (e.target.hasAttribute("data-close")) closeSheet();
   });
   document.getElementById("sheetAdd").addEventListener("click", function () {
-    if (activeItem) {
-      addToCart(activeItem.id);
-      toast(activeItem.name + " savatga qo'shildi");
-      closeSheet();
-    }
+    if (!activeItem) return;
+    const key = sheetKey();
+    addToCart(key);
+    toast(keyName(key) + " " + t("addedToCart"));
+    closeSheet();
   });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !sheet.hidden) closeSheet();
@@ -425,8 +540,10 @@
       row.appendChild(el("div", "cart-item__media", mediaContent(it, findIcon(id))));
 
       const body = el("div", "cart-item__body");
-      body.appendChild(el("div", "cart-item__name", escapeHtml(it.name)));
-      body.appendChild(el("div", "cart-item__price", formatPrice(it.price * cart[id])));
+      body.appendChild(el("div", "cart-item__name", escapeHtml(keyName(id))));
+      body.appendChild(
+        el("div", "cart-item__price", formatPrice(keyPrice(id) * cart[id]))
+      );
       row.appendChild(body);
 
       const stepper = el("div", "cart-item__stepper");
@@ -939,9 +1056,13 @@
       return toast(t("addMore") + " " + formatPrice(minShortfall()));
     }
 
-    const items = Object.keys(cart).map(function (id) {
-      const it = findItem(id);
-      return { id: id, name: it.name, price: it.price, qty: cart[id] };
+    const items = Object.keys(cart).map(function (key) {
+      return {
+        id: key,
+        name: keyName(key),
+        price: keyPrice(key),
+        qty: cart[key],
+      };
     });
 
     const branches = window.MENU.restaurant.branches || [];

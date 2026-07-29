@@ -1,14 +1,15 @@
 /*
- * DonDoner — menyu ma'lumotlari
+ * DonDöner — menyu ma'lumotlari
  * ------------------------------------------------------------
  * Bu yagona fayl orqali butun menyuni boshqarasiz.
- * Yangi taom qo'shish uchun kerakli kategoriya "items" ro'yxatiga
- * yangi obyekt qo'shing.
  *
- * price  — so'mda (butun son)
- * weight — gramm/hajm matni ("883 g", "0.5 L") — ixtiyoriy
- * badge  — ixtiyoriy yorliq: "Hit" | "Yangi" | "Achchiq"
- * image  — rasm manzili (images/... yoki URL). Bo'sh bo'lsa emoji chiqadi.
+ * price     — so'mda (butun son)
+ * oldPrice  — chegirmadan oldingi narx (ixtiyoriy, ustidan chizib ko'rsatiladi)
+ * variants  — o'lcham/turlar: [{ label: "Katta", price: 80000 }, ...]
+ *             variants bo'lsa, price o'rniga shular ishlatiladi
+ * desc      — tarkibi
+ * badge     — "Hit" | "Yangi" | "Achchiq"
+ * image     — rasm manzili (images/...). Bo'sh bo'lsa emoji chiqadi.
  */
 
 const MENU = {
@@ -17,12 +18,11 @@ const MENU = {
     tagline: "Turkcha ishtaha — O'zbekona mehmondo'stlik",
     botUsername: "DonDoner_bot",
     currency: "so'm",
-    delivery: "🚗 Yetkazib berish — BEPUL",
-    // Ish vaqti (Toshkent vaqti). Yopiq bo'lsa buyurtma qabul qilinmaydi.
-    hours: { open: "10:00", close: "23:00" },
-    // Yetkazish shartlari
-    minOrder: 50000, // minimal buyurtma summasi (so'm), 0 = cheklov yo'q
-    deliveryFee: 0, // yetkazish narxi (so'm), 0 = bepul
+    delivery: "🚗 Shahar bo'ylab yetkazib berish BEPUL",
+    // Ish vaqti (Toshkent). 08:00 dan tunki 02:00 gacha.
+    hours: { open: "08:00", close: "02:00" },
+    minOrder: 0, // minimal buyurtma yo'q
+    deliveryFee: 0, // yetkazish bepul
     instagram: "dondoner.uz",
     telegramChannel: "dondoner_uz",
     branches: [
@@ -40,202 +40,328 @@ const MENU = {
   },
 
   categories: [
+    /* ---------------- SETLAR ---------------- */
     {
       id: "sets",
       name: "Setlar",
       icon: "🍱",
       items: [
         {
-          id: "set-tombik",
-          name: "Tombik doner seti",
-          desc: "Tombik doner, fri, salat, sho'rva, ayron, sous",
-          price: 99000,
-          weight: "883 g",
+          id: "set-donerli",
+          name: "Donerli SET",
+          desc: "Doner, ekmek, choban salat, tuzlama, adjika, ayron yoki cola",
+          price: 75000,
+          image: "",
+        },
+        {
+          id: "set-kofteli",
+          name: "Kofteli SET",
+          desc: "Kofte, ekmek, choban salat, tuzlama, adjika, ayron yoki cola",
+          price: 75000,
+          image: "",
+        },
+        {
+          id: "set-burger",
+          name: "Burger SET",
+          desc: "Burger, fri, cola 0.25l",
+          price: 42000,
+          oldPrice: 55000,
+          image: "",
+        },
+        {
+          id: "set-dondoner",
+          name: "DonDoner SET",
+          desc: "DonDoner, ayron, simit",
+          price: 46000,
+          oldPrice: 56000,
+          image: "",
+        },
+        {
+          id: "set-lavash",
+          name: "Lavash SET",
+          desc: "Lavash, fri, cola 0.25l",
+          price: 48000,
+          oldPrice: 57000,
+          image: "",
+        },
+        {
+          id: "set-durum",
+          name: "Durum SET",
+          desc: "Durum, fri, ayron",
+          price: 55000,
+          oldPrice: 68000,
+          image: "",
+        },
+        {
+          id: "set-arkadash",
+          name: "Arkadash SET",
+          desc: "DonBurger, durum, 2 ta cola 0.25l, fri",
+          price: 84000,
+          oldPrice: 99000,
           badge: "Hit",
           image: "",
         },
         {
-          id: "set-porsion",
-          name: "Porsion doner seti",
-          desc: "Porsion doner, fri, lavash, sho'rva, ayron, sous",
-          price: 109000,
-          weight: "820 g",
+          id: "set-abi",
+          name: "Abi SET",
+          desc: "Doner, durum, 2 ta cola 0.25l, simit",
+          price: 82000,
+          oldPrice: 94000,
           image: "",
         },
         {
-          id: "set-family",
-          name: "Oilaviy set",
-          desc: "2 doner, 2 lavash, fri, 2 ichimlik — 3-4 kishiga",
-          price: 189000,
-          weight: "1650 g",
+          id: "set-bebek",
+          name: "Bebek SET",
+          desc: "Mini doner, fri, sok",
+          price: 37000,
+          oldPrice: 50000,
+          image: "",
+        },
+      ],
+    },
+
+    /* ---------------- ASOSIY TAOMLAR ---------------- */
+    {
+      id: "main",
+      name: "Asosiy taomlar",
+      icon: "🍽",
+      items: [
+        {
+          id: "doner-plate",
+          name: "Doner",
+          desc: "Set tarkibi: choban salat, tuzlama, achchiq sous, ayron yoki cola 0,25L",
+          variants: [
+            { label: "Oddiy", price: 60000 },
+            { label: "Set", price: 75000 },
+          ],
+          image: "",
+        },
+        {
+          id: "kofte",
+          name: "Kofte",
+          desc: "Set tarkibi: choban salat, tuzlama, achchiq sous, ayron yoki cola 0,25L",
+          variants: [
+            { label: "Oddiy", price: 60000 },
+            { label: "Set", price: 75000 },
+          ],
+          badge: "Hit",
+          image: "",
+        },
+        {
+          id: "iskender",
+          name: "Iskender Kebab",
+          desc: "Set tarkibi: choban salat, tuzlama, achchiq sous, ayron yoki cola 0,25L",
+          variants: [
+            { label: "Oddiy", price: 60000 },
+            { label: "Set", price: 75000 },
+          ],
           badge: "Yangi",
           image: "",
         },
       ],
     },
+
+    /* ---------------- DONERLAR ---------------- */
     {
       id: "doner",
       name: "Donerlar",
       icon: "🥙",
       items: [
+        { id: "dondoner-mini", name: "DonDoner mini", price: 27000, image: "" },
+        { id: "dondoner", name: "DonDoner", price: 38000, image: "" },
+        { id: "doner-cheese", name: "Doner cheese", price: 42000, image: "" },
+        { id: "doner-burger", name: "Doner burger", price: 35000, image: "" },
+      ],
+    },
+
+    /* ---------------- PITSALAR ---------------- */
+    {
+      id: "pizza",
+      name: "Pitsalar",
+      icon: "🍕",
+      items: [
         {
-          id: "doner-tombik",
-          name: "Tombik doner",
-          desc: "Maxsus tombik nonda, tovuq go'shti, sabzavot, sous",
-          price: 42000,
-          weight: "420 g",
+          id: "pizza-pepperoni",
+          name: "Pepperoni",
+          variants: [
+            { label: "Kichik", price: 60000 },
+            { label: "O'rta", price: 70000 },
+            { label: "Katta", price: 80000 },
+          ],
+          image: "",
+        },
+        {
+          id: "pizza-qazili",
+          name: "Qazili",
+          variants: [
+            { label: "Kichik", price: 85000 },
+            { label: "O'rta", price: 105000 },
+            { label: "Katta", price: 120000 },
+          ],
+          image: "",
+        },
+        {
+          id: "pizza-barbeque",
+          name: "Barbeque",
+          variants: [
+            { label: "Kichik", price: 60000 },
+            { label: "O'rta", price: 80000 },
+            { label: "Katta", price: 100000 },
+          ],
           badge: "Hit",
           image: "",
         },
         {
-          id: "doner-porsion",
-          name: "Porsion doner",
-          desc: "Tovuq go'shti, fri, sabzavot, ikki xil sous — laganda",
-          price: 49000,
-          weight: "450 g",
+          id: "pizza-4sezon",
+          name: "4 sezon",
+          variants: [{ label: "Katta", price: 120000 }],
+          badge: "Hit",
           image: "",
         },
         {
-          id: "doner-beef",
-          name: "Mol doner",
-          desc: "Mol go'shti, yangi sabzavotlar, firmaviy sous",
-          price: 52000,
-          weight: "430 g",
+          id: "pizza-cheese",
+          name: "Cheese",
+          variants: [
+            { label: "Kichik", price: 55000 },
+            { label: "O'rta", price: 65000 },
+            { label: "Katta", price: 75000 },
+          ],
+          image: "",
+        },
+        {
+          id: "pizza-doner",
+          name: "Doner pitsa",
+          variants: [
+            { label: "Kichik", price: 65000 },
+            { label: "O'rta", price: 80000 },
+            { label: "Katta", price: 100000 },
+          ],
+          image: "",
+        },
+        {
+          id: "pizza-assorti",
+          name: "Assorti",
+          variants: [
+            { label: "Kichik", price: 65000 },
+            { label: "O'rta", price: 85000 },
+            { label: "Katta", price: 100000 },
+          ],
+          image: "",
+        },
+        {
+          id: "pizza-tovuqli",
+          name: "Tovuqli",
+          variants: [
+            { label: "Kichik", price: 50000 },
+            { label: "O'rta", price: 60000 },
+            { label: "Katta", price: 70000 },
+          ],
+          image: "",
+        },
+        {
+          id: "pizza-indeyka",
+          name: "Indeyka",
+          variants: [
+            { label: "Kichik", price: 65000 },
+            { label: "O'rta", price: 75000 },
+            { label: "Katta", price: 95000 },
+          ],
           image: "",
         },
       ],
     },
+
+    /* ---------------- BURGERLAR ---------------- */
+    {
+      id: "burger",
+      name: "Burgerlar",
+      icon: "🍔",
+      items: [
+        { id: "gamburger", name: "Gamburger", price: 33000, image: "" },
+        { id: "cheese-burger", name: "Cheese burger", price: 35000, image: "" },
+        { id: "donburger", name: "DonBurger", price: 38000, image: "" },
+        { id: "double-burger", name: "Double burger", price: 40000, image: "" },
+        {
+          id: "muhtasham-burger",
+          name: "Muhtasham Burger",
+          desc: "Doner go'shtidan burger, motsarella sir, qaymoqli slivka va sutli sous",
+          price: 50000,
+          badge: "Hit",
+          image: "",
+        },
+      ],
+    },
+
+    /* ---------------- LAVASHLAR ---------------- */
     {
       id: "lavash",
       name: "Lavashlar",
       icon: "🌯",
       items: [
-        {
-          id: "lavash-classic",
-          name: "Klassik lavash",
-          desc: "Tovuq, fri kartoshka, sabzavot, sous",
-          price: 32000,
-          weight: "380 g",
-          image: "",
-        },
-        {
-          id: "lavash-cheese",
-          name: "Pishloqli lavash",
-          desc: "Tovuq, ikki xil pishloq, sabzavotlar",
-          price: 37000,
-          weight: "400 g",
-          badge: "Hit",
-          image: "",
-        },
-        {
-          id: "lavash-hot",
-          name: "Achchiq lavash",
-          desc: "Tovuq, jalapeño, achchiq sous",
-          price: 35000,
-          weight: "390 g",
-          badge: "Achchiq",
-          image: "",
-        },
+        { id: "lavash", name: "Lavash", price: 35000, image: "" },
+        { id: "lavash-extra", name: "Extra lavash", price: 38000, image: "" },
+        { id: "lavash-cheese", name: "Lavash cheese", price: 38000, image: "" },
+        { id: "lavash-mini", name: "Lavash mini", price: 32000, image: "" },
       ],
     },
+
+    /* ---------------- DURUM ---------------- */
     {
-      id: "soup",
-      name: "Sho'rvalar",
-      icon: "🍲",
+      id: "durum",
+      name: "Durum",
+      icon: "🌮",
       items: [
-        {
-          id: "soup-lentil",
-          name: "Yasmiq sho'rva",
-          desc: "An'anaviy turk yasmiq sho'rvasi, limon bilan",
-          price: 22000,
-          weight: "300 g",
-          image: "",
-        },
-        {
-          id: "soup-chicken",
-          name: "Tovuqli sho'rva",
-          desc: "Tovuq bulyoni, sabzavotlar, ko'katlar",
-          price: 24000,
-          weight: "320 g",
-          image: "",
-        },
+        { id: "durum-adana", name: "Adana dürüm", price: 40000, image: "" },
+        { id: "durum-cheese", name: "Cheese dürüm", price: 45000, image: "" },
       ],
     },
+
+    /* ---------------- HOT-DOGLAR ---------------- */
+    {
+      id: "hotdog",
+      name: "Hot-Doglar",
+      icon: "🌭",
+      items: [
+        { id: "hotdog-kanada", name: "Hot-Dog kanada", price: 13000, image: "" },
+        { id: "hotdog-qovurilgan", name: "Hot-Dog qovurilgan", price: 15000, image: "" },
+        { id: "hotdog-barbeque", name: "Barbeque Hot-Dog", price: 24000, image: "" },
+      ],
+    },
+
+    /* ---------------- TOVUQLI FAST FOOD ---------------- */
+    {
+      id: "chicken",
+      name: "Tovuqli fast food",
+      icon: "🍗",
+      items: [
+        { id: "kfc-1", name: "KFC 1 porsiya", price: 28000, image: "" },
+        { id: "kfc-1kg", name: "KFC 1 kg", price: 100000, image: "" },
+        { id: "longer", name: "Longer", price: 28000, image: "" },
+        { id: "kfc-burger", name: "KFC Burger", price: 28000, image: "" },
+      ],
+    },
+
+    /* ---------------- SALATLAR ---------------- */
     {
       id: "salad",
       name: "Salatlar",
       icon: "🥗",
       items: [
-        {
-          id: "salad-fresh",
-          name: "Yangi sabzavot salati",
-          desc: "Pomidor, bodring, ko'katlar, zaytun moyi",
-          price: 18000,
-          weight: "220 g",
-          image: "",
-        },
-        {
-          id: "salad-coleslaw",
-          name: "Karam salati (coleslaw)",
-          desc: "Maydalangan karam, sabzi, maxsus sous",
-          price: 16000,
-          weight: "200 g",
-          image: "",
-        },
+        { id: "sezar", name: "Sezar", price: 27000, image: "" },
+        { id: "baqlajon", name: "Qarsildoq baqlajon", price: 27000, image: "" },
       ],
     },
+
+    /* ---------------- SNEKLAR ---------------- */
     {
-      id: "sides",
-      name: "Garnirlar",
+      id: "snacks",
+      name: "Sneklar",
       icon: "🍟",
       items: [
-        {
-          id: "fries",
-          name: "Fri kartoshka",
-          desc: "Qarsildoq qovurilgan kartoshka",
-          price: 17000,
-          weight: "150 g",
-          image: "",
-        },
-        {
-          id: "nuggets",
-          name: "Nagets (6 dona)",
-          desc: "Tovuq nagetslari, sous bilan",
-          price: 24000,
-          weight: "180 g",
-          image: "",
-        },
-      ],
-    },
-    {
-      id: "drinks",
-      name: "Ichimliklar",
-      icon: "🥤",
-      items: [
-        {
-          id: "cola",
-          name: "Coca-Cola 0.5L",
-          desc: "Sovuq gazli ichimlik",
-          price: 12000,
-          weight: "0.5 L",
-          image: "",
-        },
-        {
-          id: "ayron",
-          name: "Ayron",
-          desc: "Tabiiy ayron, sovuq",
-          price: 9000,
-          weight: "0.5 L",
-          image: "",
-        },
-        {
-          id: "tea",
-          name: "Choy",
-          desc: "Ko'k yoki qora choy",
-          price: 6000,
-          weight: "0.4 L",
-          image: "",
-        },
+        { id: "fri-standart", name: "Fri standart", price: 18000, image: "" },
+        { id: "derevenskiy", name: "Derevenskiy", price: 18000, image: "" },
+        { id: "simit", name: "Simit", price: 8000, image: "" },
+        { id: "simit-nutella", name: "Simit + Nutella", price: 18000, image: "" },
       ],
     },
   ],

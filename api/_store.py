@@ -120,10 +120,28 @@ def save_order(order, user, number=None, day=None):
             "first_name": user.get("first_name", ""),
         },
     }
-    path = f"orders/{day}/{number:04d}-{uuid.uuid4().hex[:6]}.json"
+    suffix = uuid.uuid4().hex[:6]
+    path = f"orders/{day}/{number:04d}-{suffix}.json"
     record["path"] = path
+    # Mijoz o'z buyurtmalarini tez topishi uchun ikkinchi nusxa
+    uid = user.get("id")
+    record["user_path"] = f"users/{uid}/{day}-{number:04d}-{suffix}.json" if uid else ""
     record["url"] = put_blob(path, record)
+    if record["user_path"]:
+        put_blob(record["user_path"], record)
     return record
+
+
+def load_user_orders(user_id, limit=20):
+    """Bitta mijozning buyurtmalari (yangisidan eskisiga)."""
+    blobs = list_blobs(f"users/{user_id}/")
+    blobs.sort(key=lambda b: b.get("pathname", ""), reverse=True)
+    out = []
+    for b in blobs[:limit]:
+        data = get_blob(b.get("url", ""))
+        if data:
+            out.append(data)
+    return out
 
 
 def load_orders(day=None):
@@ -155,6 +173,9 @@ def update_status(path, status, actor=""):
         }
     )
     put_blob(path, record)
+    # Mijoz nusxasini ham yangilaymiz — ilovada holat ko'rinsin
+    if record.get("user_path"):
+        put_blob(record["user_path"], record)
     return record
 
 

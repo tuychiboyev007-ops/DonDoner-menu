@@ -1519,6 +1519,183 @@ button {
   font-weight: 700;
 }
 
+/* ---------- Buyurtma tafsiloti ---------- */
+.ohead {
+  text-align: center;
+  padding: 8px 0 18px;
+}
+
+.ohead h3 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.ohead p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.ostatus {
+  text-align: center;
+  padding: 8px 0 20px;
+}
+
+.ostatus__icon {
+  font-size: 64px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.ostatus__name {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.ostatus__eta {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+/* Bosqichlar chizig'i */
+.osteps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 18px;
+}
+
+.ostep {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.ostep.is-done {
+  border-color: var(--brand);
+  background: rgba(216, 19, 39, 0.08);
+  opacity: 1;
+}
+
+.ostep__line {
+  height: 2px;
+  width: 18px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+/* Tugma-havolalar */
+.obtn {
+  display: block;
+  text-align: center;
+  background: var(--card);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  margin-bottom: 4px;
+}
+
+.obtn--map {
+  margin-top: 14px;
+  color: var(--brand);
+}
+
+/* Kartochka (taomlar va tafsilotlar) */
+.ocard {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 4px 16px;
+  box-shadow: var(--shadow);
+}
+
+.oitem {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.oitem:last-child {
+  border-bottom: none;
+}
+
+.oitem__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.oitem__name small,
+.oitem__price small {
+  display: block;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.oitem__price {
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.orow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.orow:last-child {
+  border-bottom: none;
+}
+
+.orow span:first-child {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.orow span:last-child {
+  text-align: right;
+}
+
+.orow--total {
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.orow--total span:first-child {
+  color: var(--text);
+}
+
+/* Buyurtma kartochkasi bosiladigan bo'ldi */
+.order-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed;

@@ -29,6 +29,13 @@
       }
     },
     {
+      "src": "api/myorders.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": "api/_store.py"
+      }
+    },
+    {
       "src": "{index.html,css/**,js/**,data/**,images/**,vendor/**}",
       "use": "@vercel/static"
     }
@@ -49,6 +56,10 @@
     {
       "src": "/api/order",
       "dest": "/api/order.py"
+    },
+    {
+      "src": "/api/myorders",
+      "dest": "/api/myorders.py"
     },
     {
       "src": "/",

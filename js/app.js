@@ -989,6 +989,7 @@
 
   function setupPicker() {
     document.getElementById("subBack").addEventListener("click", closeSub);
+    document.getElementById("orderBack").addEventListener("click", closeOrderPage);
     document.getElementById("pickerBack").addEventListener("click", closePicker);
     document.getElementById("pickerDone").addEventListener("click", confirmPicker);
     document.getElementById("pickerLocate").addEventListener("click", pickerLocateMe);
@@ -1168,45 +1169,246 @@
   /* ============ Buyurtmalar sahifasi ============ */
   const ordersRoot = document.getElementById("ordersBody");
 
+  // Holat ma'lumotlari: bosqich raqami, belgisi, nomi
+  const STATUS_INFO = {
+    new: { step: 1, icon: "🕐", key: "statusNew" },
+    accepted: { step: 1, icon: "✅", key: "stAccepted" },
+    cooking: { step: 2, icon: "👨‍🍳", key: "stCooking" },
+    onway: { step: 3, icon: "🛵", key: "stOnway" },
+    done: { step: 4, icon: "🏁", key: "stDone" },
+    cancelled: { step: 0, icon: "❌", key: "stCancelled" },
+  };
+
+  function statusInfo(status) {
+    return STATUS_INFO[status] || STATUS_INFO.new;
+  }
+
+  // Serverdan buyurtmalarni olib kelamiz (Telegram ichida bo'lsa)
+  function fetchOrders(done) {
+    let initData = "";
+    try {
+      initData = (tg && tg.initData) || "";
+    } catch (e) {}
+    if (!initData) return done(null);
+
+    fetch("/api/myorders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: initData }),
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        done(d && d.ok ? d.orders : null);
+      })
+      .catch(function () {
+        done(null);
+      });
+  }
+
   function renderOrders() {
+    ordersRoot.innerHTML = '<div class="empty"><div class="empty__icon">⏳</div></div>';
+
+    fetchOrders(function (serverOrders) {
+      // Server javob bermasa — qurilmadagi tarixni ko'rsatamiz
+      const list = serverOrders || orders.map(localToRecord);
+      drawOrders(list);
+    });
+  }
+
+  // Eski (lokal) yozuvni server formatiga keltiramiz
+  function localToRecord(o) {
+    return {
+      number: String(o.id || "").replace("#", ""),
+      status: "new",
+      created_at: o.date,
+      order: o,
+    };
+  }
+
+  function drawOrders(list) {
     ordersRoot.innerHTML = "";
-    if (orders.length === 0) {
+    if (!list.length) {
       ordersRoot.appendChild(
         el(
           "div",
           "empty",
-          '<div class="empty__icon">📋</div><div class="empty__text">Hozircha buyurtma yo\'q.</div>'
+          '<div class="empty__icon">📋</div><div class="empty__text">' +
+            t("noOrders") +
+            "</div>"
         )
       );
       return;
     }
-    orders.forEach(function (o) {
-      const card = el("div", "order-card");
-      card.appendChild(
-        el(
-          "div",
-          "order-card__head",
-          `<span class="order-card__id">Buyurtma ${escapeHtml(o.id)}</span>` +
-            `<span class="order-card__status">${escapeHtml(o.status)}</span>`
-        )
-      );
-      const d = new Date(o.date);
-      const dateStr = d.toLocaleString("uz-UZ", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
+
+    list.forEach(function (rec) {
+      const o = rec.order || {};
+      const info = statusInfo(rec.status);
+      const card = el("button", "order-card");
+      const when = formatDateTime(rec.created_at);
+
+      card.innerHTML =
+        '<div class="order-card__head">' +
+        `<span class="order-card__id">${t("orderNo")} #${escapeHtml(String(rec.number))}</span>` +
+        `<span class="order-card__status">${info.icon} ${escapeHtml(t(info.key))}</span>` +
+        "</div>" +
+        `<div class="order-card__date">${escapeHtml(when)}</div>` +
+        '<div class="order-card__items">' +
+        (o.items || [])
+          .map(function (i) {
+            return escapeHtml(i.name) + " ×" + i.qty;
+          })
+          .join(", ") +
+        "</div>" +
+        `<div class="order-card__total">${formatPrice(o.total || 0)}</div>`;
+
+      card.addEventListener("click", function () {
+        openOrderPage(rec);
       });
-      card.appendChild(el("div", "order-card__date", dateStr + " · " + (o.mode === "pickup" ? "Olib ketish" : "Yetkazish")));
-      const itemsStr = o.items
-        .map(function (i) {
-          return escapeHtml(i.name) + " ×" + i.qty;
-        })
-        .join(", ");
-      card.appendChild(el("div", "order-card__items", itemsStr));
-      card.appendChild(el("div", "order-card__total", formatPrice(o.total)));
       ordersRoot.appendChild(card);
     });
+  }
+
+  // Vaqtlar har doim Toshkent bo'yicha ko'rsatiladi —
+  // telefon boshqa mintaqada bo'lsa ham to'g'ri chiqadi
+  function tashkentParts(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    const tk = new Date(d.getTime() + (5 * 60 + d.getTimezoneOffset()) * 60000);
+    return {
+      day: tk.getDate(),
+      month: tk.getMonth() + 1,
+      year: tk.getFullYear(),
+      hour: tk.getHours(),
+      minute: tk.getMinutes(),
+      time: tk.getTime(),
+    };
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function formatDateTime(iso) {
+    if (!iso) return "";
+    const p = tashkentParts(iso);
+    if (!p) return iso;
+    return (
+      pad2(p.day) + "." + pad2(p.month) + "." + p.year +
+      " " + pad2(p.hour) + ":" + pad2(p.minute)
+    );
+  }
+
+  // Yetkazish oynasi: yaratilgan vaqt + 45 daqiqa
+  function etaRange(iso) {
+    const p = tashkentParts(iso);
+    if (!p) return "";
+    const end = new Date(p.time + 45 * 60000);
+    return (
+      pad2(p.hour) + ":" + pad2(p.minute) + " – " +
+      pad2(end.getHours()) + ":" + pad2(end.getMinutes())
+    );
+  }
+
+  /* ============ Buyurtma tafsiloti ============ */
+  function openOrderPage(rec) {
+    const o = rec.order || {};
+    const info = statusInfo(rec.status);
+    const r = window.MENU.restaurant;
+    haptic("light");
+
+    document.getElementById("orderTitle").textContent = t("orderDetail");
+
+    // Bosqichlar chizig'i
+    const steps = ["📄", "👨‍🍳", "🛵", "✓"];
+    const stepsHtml = steps
+      .map(function (s, i) {
+        const active = info.step >= i + 1 ? " is-done" : "";
+        return `<span class="ostep${active}">${s}</span>`;
+      })
+      .join('<span class="ostep__line"></span>');
+
+    // Taomlar ro'yxati
+    const itemsHtml = (o.items || [])
+      .map(function (i) {
+        return (
+          '<div class="oitem">' +
+          `<div class="oitem__name">${escapeHtml(i.name)}<small>${i.qty} ${t("pc")}</small></div>` +
+          `<div class="oitem__price">${formatPrice(i.price * i.qty)}` +
+          `<small>${formatPrice(i.price)}/${t("pc")}</small></div>` +
+          "</div>"
+        );
+      })
+      .join("");
+
+    // Manzil
+    const addrBits = [];
+    if (o.geoLabel) addrBits.push(o.geoLabel);
+    const a = o.addrParts || {};
+    const detail = [];
+    if (a.house) detail.push(a.house + "-uy");
+    if (a.entrance) detail.push(a.entrance + "-podyezd");
+    if (a.floor) detail.push(a.floor + "-qavat");
+    if (a.flat) detail.push(a.flat + "-xonadon");
+    if (detail.length) addrBits.push(detail.join(", "));
+
+    const rows = [
+      [t("fromWhere"), (o.branch && o.branch.label) || r.name],
+      [t("toWhere"), o.mode === "pickup" ? t("pickup") : addrBits.join(", ") || "-"],
+      [t("orderType"), o.mode === "pickup" ? t("pickup") : t("delivery")],
+      [t("paymentType"), o.payment === "card" ? t("card") : t("cash")],
+      [t("itemsCost"), formatPrice((o.total || 0) - (o.deliveryFee || 0))],
+      [t("deliveryCost"), o.deliveryFee ? formatPrice(o.deliveryFee) : t("free")],
+    ];
+
+    const rowsHtml = rows
+      .map(function (row) {
+        return (
+          '<div class="orow">' +
+          `<span>${escapeHtml(row[0])}</span><span>${escapeHtml(String(row[1]))}</span>` +
+          "</div>"
+        );
+      })
+      .join("");
+
+    const phone = (r.branches && r.branches[0] && r.branches[0].phone) || "";
+
+    document.getElementById("orderBody").innerHTML =
+      '<div class="ohead">' +
+      `<h3>${t("orderNo")} #${escapeHtml(String(rec.number))}</h3>` +
+      `<p>${escapeHtml(t("createdAt"))} ${escapeHtml(formatDateTime(rec.created_at))}</p>` +
+      "</div>" +
+      '<div class="ostatus">' +
+      `<div class="ostatus__icon">${info.icon}</div>` +
+      `<div class="ostatus__name">${escapeHtml(t(info.key))}</div>` +
+      (rec.status !== "cancelled" && rec.status !== "done"
+        ? `<div class="ostatus__eta">${escapeHtml(t("etaText"))} ${escapeHtml(etaRange(rec.created_at))}</div>`
+        : "") +
+      `<div class="osteps">${stepsHtml}</div>` +
+      "</div>" +
+      (phone
+        ? `<a class="obtn" href="tel:${phone.replace(/\s/g, "")}">💬 ${escapeHtml(t("support"))}</a>`
+        : "") +
+      `<h3 class="co-title">${escapeHtml(t("orderItems"))}</h3>` +
+      `<div class="ocard">${itemsHtml}</div>` +
+      `<h3 class="co-title">${escapeHtml(t("orderDetails"))}</h3>` +
+      `<div class="ocard">${rowsHtml}` +
+      `<div class="orow orow--total"><span>${escapeHtml(t("total"))}</span>` +
+      `<span>${formatPrice(o.total || 0)}</span></div></div>` +
+      (o.geo
+        ? `<a class="obtn obtn--map" target="_blank" rel="noopener" href="https://maps.google.com/?q=${o.geo.lat},${o.geo.lng}">🗺 ${
+            lang === "ru" ? "Открыть на карте" : "Xaritada ochish"
+          }</a>`
+        : "");
+
+    document.getElementById("orderPage").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeOrderPage() {
+    document.getElementById("orderPage").hidden = true;
+    document.body.style.overflow = "";
   }
 
   /* ============ Profil sahifasi ============ */

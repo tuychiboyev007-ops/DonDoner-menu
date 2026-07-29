@@ -3,7 +3,7 @@
  * ------------------------------------------------------------
  * - SPA navigatsiya: Bosh sahifa / Savat / Buyurtmalar / Profil
  * - Savat (localStorage'da saqlanadi)
- * - Checkout: forma to'ldirilib, buyurtma botga yuboriladi (tg.sendData)
+ * - Checkout: forma to'ldirilib, buyurtma /api/order orqali yuboriladi
  * - Buyurtmalar tarixi (localStorage)
  * - Telegram Web App integratsiyasi (tema, expand, haptic, user)
  */
@@ -860,32 +860,71 @@
     refreshCartUI();
     haptic("medium");
 
-    // 1) Asosiy yo'l: chatga tayyor buyurtma matnini qo'yish.
-    //    Ilova yopiladi, mijoz faqat "yuborish"ni bosadi.
+    sendOrderToServer(order);
+  }
+
+  // Buyurtmani serverga yuboramiz — mijoz hech narsa yubormaydi
+  function sendOrderToServer(order) {
+    const text = buildOrderText(order);
+    let initData = "";
+    try {
+      initData = (tg && tg.initData) || "";
+    } catch (e) {}
+
+    // Telegramdan tashqarida (oddiy brauzer) — faqat lokal tasdiq
+    if (!initData) {
+      toast(t("orderAccepted"));
+      renderOrders();
+      switchPage("orders");
+      return;
+    }
+
+    toast(lang === "ru" ? "Отправляем…" : "Yuborilmoqda…");
+
+    fetch("/api/order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: initData, text: text, order: order }),
+    })
+      .then(function (r) {
+        return r.json().then(function (d) {
+          return { ok: r.ok && d.ok, data: d };
+        });
+      })
+      .then(function (res) {
+        if (!res.ok) throw new Error((res.data && res.data.error) || "xato");
+        toast(t("orderAccepted"));
+        haptic("medium");
+        renderOrders();
+        switchPage("orders");
+        // Telegram ilovasi buyurtma tasdig'ini chatda ko'rsatsin
+        setTimeout(function () {
+          try {
+            if (tg && typeof tg.close === "function") tg.close();
+          } catch (e) {}
+        }, 1200);
+      })
+      .catch(function () {
+        // Server javob bermasa — buyurtma yo'qolmasin, chatga havola beramiz
+        orderFallback(text);
+      });
+  }
+
+  // Zaxira yo'l: chatni ochib, matnni nusxalash imkonini beramiz
+  function orderFallback(text) {
     const botUsername = window.MENU.restaurant.botUsername;
+    toast(
+      lang === "ru"
+        ? "Не удалось отправить — позвоните нам"
+        : "Yuborilmadi — bizga qo'ng'iroq qiling"
+    );
     try {
       if (tg && typeof tg.openTelegramLink === "function" && botUsername) {
         tg.openTelegramLink(
-          "https://t.me/" +
-            botUsername +
-            "?text=" +
-            encodeURIComponent(buildOrderText(order))
+          "https://t.me/" + botUsername + "?text=" + encodeURIComponent(text)
         );
-        return;
       }
     } catch (e) {}
-
-    // 2) Zaxira: klaviatura tugmasidan ochilgan bo'lsa — sendData
-    try {
-      if (tg && typeof tg.sendData === "function") {
-        tg.sendData(JSON.stringify({ type: "order", order: order }));
-        toast("Buyurtma yuborildi ✅");
-        return;
-      }
-    } catch (e) {}
-
-    // 3) Oddiy brauzer: tasdiq va Buyurtmalar sahifasi
-    toast(t("orderAccepted"));
     renderOrders();
     switchPage("orders");
   }

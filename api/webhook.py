@@ -23,8 +23,10 @@ holatsiz (stateless) ishlaydi:
   - buyurtma 🧾 belgisi bilan boshlanadigan matndan aniqlanadi
 """
 
+import html
 import os
-from datetime import datetime
+import re
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
 import telebot
@@ -65,8 +67,48 @@ def inline_keyboard():
     return kb
 
 
+# Toshkent vaqti (UTC+5)
+TASHKENT_TZ = timezone(timedelta(hours=5))
+
+
+def esc(text):
+    """HTML uchun xavfsiz qilish — mijoz matni parse'ni buzmasin."""
+    return html.escape(str(text), quote=False)
+
+
 def user_line(user):
     return f"tg id: {user.id}" + (f" (@{user.username})" if user.username else "")
+
+
+def build_order_card(text, user):
+    """Mijozdan kelgan buyurtma matnini professional kartochkaga aylantiradi."""
+    lines = text.split("\n")
+
+    # 1-qator: "🧾 Buyurtma #000002" — raqamni ajratib olamiz
+    order_no = ""
+    first = lines[0] if lines else ""
+    match = re.search(r"#\s*(\S+)", first)
+    if match:
+        order_no = "#" + match.group(1)
+        body = "\n".join(lines[1:]).strip("\n")
+    else:
+        body = text.strip("\n")
+
+    stamp = datetime.now(TASHKENT_TZ).strftime("%d.%m.%Y · %H:%M")
+    who = f"@{user.username}" if user.username else f"id {user.id}"
+
+    header = "🔔 <b>YANGI BUYURTMA</b>"
+    if order_no:
+        header += f"  <code>{esc(order_no)}</code>"
+
+    return (
+        f"{header}\n"
+        f"<i>{stamp}</i>\n"
+        f"➖➖➖➖➖➖➖➖➖➖\n"
+        f"{esc(body)}\n"
+        f"➖➖➖➖➖➖➖➖➖➖\n"
+        f"💬 Telegram: {esc(who)}"
+    )
 
 
 def to_admin(text):
@@ -121,11 +163,7 @@ def on_order_text(message):
         "✅ Ваш заказ принят!\nОператор скоро свяжется с вами. Спасибо! 🙌",
         reply_markup=inline_keyboard(),
     )
-    to_orders(
-        f"🆕 <b>YANGI BUYURTMA</b>\n"
-        f"🕒 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-        f"{message.text}\n\n{user_line(message.from_user)}"
-    )
+    to_orders(build_order_card(message.text, message.from_user))
 
 
 @bot.message_handler(func=lambda m: m.content_type == "text")
@@ -140,7 +178,7 @@ def on_text(message):
         and (message.reply_to_message.text or "") == FEEDBACK_PROMPT
     )
     label = "💬 <b>YANGI FIKR</b>" if is_feedback else "💬 <b>Mijozdan xabar</b>"
-    to_admin(f"{label}\n\n{text}\n\n{user_line(message.from_user)}")
+    to_admin(f"{label}\n\n{esc(text)}\n\n{user_line(message.from_user)}")
     bot.send_message(message.chat.id, "Спасибо! Ваше сообщение принято 🙏")
 
 

@@ -436,20 +436,26 @@
   // Bu usul serversiz ishlaydi va inline «Ochish» tugmasi bilan mos.
   function buildOrderText(order) {
     const L = [];
-    L.push("🧾 YANGI BUYURTMA " + order.id);
+    // 1-qator — bot shu yerdan buyurtma raqamini oladi (o'zgartirmang)
+    L.push("🧾 Buyurtma " + order.id);
     L.push("");
     order.items.forEach(function (i) {
-      L.push("• " + i.name + " ×" + i.qty + " — " + formatPrice(i.price * i.qty));
+      L.push("▪️ " + i.name);
+      L.push(
+        "    " + i.qty + " × " + formatPrice(i.price) + " = " + formatPrice(i.price * i.qty)
+      );
     });
     L.push("");
     L.push("💰 Jami: " + formatPrice(order.total));
+    L.push("");
     if (order.branch) {
-      L.push("🏬 " + order.branch.label + ": " + order.branch.address);
+      L.push("🏬 " + order.branch.label + " — " + order.branch.address);
     }
     L.push("🚚 " + (order.mode === "pickup" ? "Olib ketish" : "Yetkazish"));
+    if (order.mode !== "pickup" && order.address) L.push("📍 " + order.address);
+    L.push("");
     L.push("👤 " + order.name);
     L.push("📞 " + order.phone);
-    if (order.mode !== "pickup" && order.address) L.push("📍 " + order.address);
     if (order.note) L.push("📝 " + order.note);
     return L.join("\n");
   }

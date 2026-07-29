@@ -21,6 +21,7 @@
   let orders = load(LS_ORDERS, []); // [{id, date, items, total, mode, ...}]
   let mode = "delivery"; // delivery | pickup
   let activeItem = null; // sheet uchun
+  let selectedBranch = 0; // tanlangan filial indeksi (birinchisi standart)
 
   /* ============ Yordamchilar ============ */
   function load(key, fallback) {
@@ -382,7 +383,21 @@
     const user = tgUser();
     const defaultName = user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "";
 
+    // Filial tanlash tugmalari
+    const branches = window.MENU.restaurant.branches || [];
+    const branchHtml = branches
+      .map(function (b, i) {
+        return (
+          `<button type="button" class="branch-opt${i === selectedBranch ? " is-active" : ""}" data-idx="${i}">` +
+          `${escapeHtml(b.label)}<small>📍 ${escapeHtml(b.address)}</small></button>`
+        );
+      })
+      .join("");
+
     wrap.innerHTML =
+      (branches.length
+        ? `<div class="field"><label>Filialni tanlang</label><div class="branch-select">${branchHtml}</div></div>`
+        : "") +
       '<div class="field"><label>Ismingiz</label>' +
       `<input id="coName" type="text" placeholder="Ism" value="${escapeHtml(defaultName)}" /></div>` +
       '<div class="field"><label>Telefon raqam</label>' +
@@ -391,6 +406,17 @@
       '<textarea id="coAddr" placeholder="Ko\'cha, uy, xonadon…"></textarea></div>' +
       '<div class="field"><label>Izoh (ixtiyoriy)</label>' +
       '<textarea id="coNote" placeholder="Qo\'shimcha izoh"></textarea></div>';
+
+    // Filial tanlash bosilganda
+    wrap.querySelectorAll(".branch-opt").forEach(function (b) {
+      b.addEventListener("click", function () {
+        selectedBranch = parseInt(b.dataset.idx, 10) || 0;
+        wrap.querySelectorAll(".branch-opt").forEach(function (x) {
+          x.classList.toggle("is-active", x === b);
+        });
+        haptic("light");
+      });
+    });
 
     const btn = el("button", "btn btn--primary", "Buyurtma berish");
     btn.addEventListener("click", submitOrder);
@@ -417,6 +443,9 @@
     });
     L.push("");
     L.push("💰 Jami: " + formatPrice(order.total));
+    if (order.branch) {
+      L.push("🏬 " + order.branch.label + ": " + order.branch.address);
+    }
     L.push("🚚 " + (order.mode === "pickup" ? "Olib ketish" : "Yetkazish"));
     L.push("👤 " + order.name);
     L.push("📞 " + order.phone);
@@ -440,10 +469,16 @@
       return { id: id, name: it.name, price: it.price, qty: cart[id] };
     });
 
+    const branches = window.MENU.restaurant.branches || [];
+    const branch = branches[selectedBranch] || null;
+
     const order = {
       id: "#" + Date.now().toString().slice(-6),
       date: new Date().toISOString(),
       mode: mode,
+      branch: branch
+        ? { label: branch.label, address: branch.address, phone: branch.phone }
+        : null,
       name: name,
       phone: phone,
       address: addr.trim(),

@@ -22,7 +22,7 @@ const MENU = {
     telegramChannel: "dondoner_uz",
     branches: [
       {
-        label: "TURK ART CAFE",
+        label: "1-filial",
         address: "Yangi Chorsu, 219-uy",
         phone: "+998 90 053 25 25",
       },

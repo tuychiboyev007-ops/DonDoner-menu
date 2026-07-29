@@ -6,11 +6,16 @@ Telegram har bir yangilanishni shu manzilga POST qiladi:
     https://<loyiha>.vercel.app/api/webhook
 
 Muhit o'zgaruvchilari (Vercel dashboard → Settings → Environment Variables):
-  BOT_TOKEN      — BotFather bergan token (majburiy)
-  ADMIN_CHAT_ID  — buyurtma va fikrlar boradigan chat ID (majburiy)
-  WEBAPP_URL     — Mini App manzili (ixtiyoriy, standart: GitHub Pages)
-  WEBHOOK_SECRET — setWebhook'da berilgan maxfiy kalit (ixtiyoriy,
-                   qo'yilsa, faqat Telegram'dan kelgan so'rovlar qabul qilinadi)
+  BOT_TOKEN         — mijozlar botining tokeni (majburiy)
+  ADMIN_CHAT_ID     — fikr va xabarlar boradigan chat ID (majburiy)
+  WEBAPP_URL        — Mini App manzili (ixtiyoriy)
+  WEBHOOK_SECRET    — setWebhook'dagi maxfiy kalit (ixtiyoriy, tavsiya)
+  ORDERS_BOT_TOKEN  — BUYURTMALAR boti tokeni (ixtiyoriy). Qo'yilsa,
+                      buyurtmalar shu bot orqali yuboriladi — mijozlar
+                      boti bilan aralashmaydi.
+  ORDERS_CHAT_ID    — buyurtmalar boradigan chat (ixtiyoriy; qo'yilmasa
+                      ADMIN_CHAT_ID ishlatiladi). Guruh ID ham bo'lishi
+                      mumkin — shunda butun jamoa ko'radi.
 
 Serverless muhitda xotira saqlanmaydi, shuning uchun hamma narsa
 holatsiz (stateless) ishlaydi:
@@ -32,11 +37,22 @@ WEBAPP_URL = os.environ.get(
 ).strip()
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "").strip()
 
+# Buyurtmalar uchun alohida bot (ixtiyoriy)
+ORDERS_BOT_TOKEN = os.environ.get("ORDERS_BOT_TOKEN", "").strip()
+ORDERS_CHAT_ID = os.environ.get("ORDERS_CHAT_ID", "").strip() or ADMIN_CHAT_ID
+
 ORDER_PREFIX = "🧾"
 FEEDBACK_PROMPT = "Напишите ваш отзыв — нам очень важно ваше мнение 👇"
 
 # threaded=False — serverless uchun majburiy
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML", threaded=False)
+
+# Buyurtmalar boti sozlangan bo'lsa — alohida, bo'lmasa asosiy bot
+orders_bot = (
+    telebot.TeleBot(ORDERS_BOT_TOKEN, parse_mode="HTML", threaded=False)
+    if ORDERS_BOT_TOKEN
+    else bot
+)
 
 
 def inline_keyboard():
@@ -54,6 +70,7 @@ def user_line(user):
 
 
 def to_admin(text):
+    """Fikr va oddiy xabarlar — mijozlar boti orqali adminga."""
     if ADMIN_CHAT_ID:
         try:
             bot.send_message(ADMIN_CHAT_ID, text)
@@ -61,6 +78,24 @@ def to_admin(text):
             print(f"[WARN] Adminga yuborilmadi: {exc}")
     else:
         print("[ADMIN]\n" + text)
+
+
+def to_orders(text):
+    """Buyurtmalar — alohida bot orqali (sozlangan bo'lsa)."""
+    if ORDERS_CHAT_ID:
+        try:
+            orders_bot.send_message(ORDERS_CHAT_ID, text)
+            return
+        except Exception as exc:  # noqa: BLE001
+            print(f"[WARN] Buyurtma yuborilmadi: {exc}")
+            # Zaxira: asosiy bot orqali urinib ko'ramiz
+            if orders_bot is not bot and ADMIN_CHAT_ID:
+                try:
+                    bot.send_message(ADMIN_CHAT_ID, text)
+                    return
+                except Exception as exc2:  # noqa: BLE001
+                    print(f"[WARN] Zaxira ham ishlamadi: {exc2}")
+    print("[ORDER]\n" + text)
 
 
 @bot.message_handler(commands=["start"])
@@ -86,7 +121,7 @@ def on_order_text(message):
         "✅ Ваш заказ принят!\nОператор скоро свяжется с вами. Спасибо! 🙌",
         reply_markup=inline_keyboard(),
     )
-    to_admin(
+    to_orders(
         f"🆕 <b>YANGI BUYURTMA</b>\n"
         f"🕒 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
         f"{message.text}\n\n{user_line(message.from_user)}"

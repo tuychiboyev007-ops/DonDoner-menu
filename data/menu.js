@@ -13,14 +13,25 @@
 
 const MENU = {
   restaurant: {
-    name: "DonDoner",
+    name: "DonDöner",
     tagline: "Turkcha ishtaha — O'zbekona mehmondo'stlik",
     botUsername: "DonDoner_bot",
     currency: "so'm",
-    phone: "+998 90 000 00 00",
-    address: "Toshkent sh.",
-    workingHours: "Har kuni 10:00 – 23:00",
-    // Buyurtmalar shu Telegram chatga boradi (bot orqali). Bot .env dan oladi.
+    delivery: "🚗 Yetkazib berish — BEPUL",
+    instagram: "dondoner.uz",
+    telegramChannel: "dondoner_uz",
+    branches: [
+      {
+        label: "TURK ART CAFE",
+        address: "Yangi Chorsu, 219-uy",
+        phone: "+998 90 053 25 25",
+      },
+      {
+        label: "2-filial",
+        address: "Charxiy Sportivniy ko'cha, 18-uy",
+        phone: "+998 95 864 25 25",
+      },
+    ],
   },
 
   categories: [

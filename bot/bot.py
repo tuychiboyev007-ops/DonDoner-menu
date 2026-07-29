@@ -48,11 +48,15 @@ if not BOT_TOKEN:
 # Restoran ma'lumotlari — shu yerdan tahrirlang
 # ------------------------------------------------------------------
 RESTAURANT = {
-    "name": "DonDoner",
-    "about": "🥙 O'tinda tayyorlangan asl doner",
-    "hours": "Har kuni 10:00 – 23:00",
-    "address": "Toshkent sh.",
-    "phone": "+998 90 000 00 00",
+    "name": "DonDöner",
+    "about": "🥙 O'tinda tayyorlangan asl doner — TURK ART CAFE",
+    "branches": [
+        {"address": "Yangi Chorsu, 219-uy", "phone": "+998 90 053 25 25"},
+        {"address": "Charxiy Sportivniy ko'cha, 18-uy", "phone": "+998 95 864 25 25"},
+    ],
+    "delivery": "Yetkazib berish — BEPUL",
+    "instagram": "dondoner.uz",
+    "telegram_channel": "dondoner_uz",
 }
 
 # Menyuni ochib, shuncha vaqt ichida buyurtma qilmaganlarga eslatma

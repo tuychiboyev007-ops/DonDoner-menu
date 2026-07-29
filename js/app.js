@@ -163,10 +163,19 @@
   function renderHeader() {
     const r = window.MENU.restaurant;
     document.title = r.name + " — Menyu";
-    document.getElementById("footer").innerHTML =
-      `<div>📍 ${escapeHtml(r.address)}</div>` +
-      `<div>🕒 ${escapeHtml(r.workingHours)}</div>` +
-      `<div>📞 <a href="tel:${r.phone.replace(/\s/g, "")}">${escapeHtml(r.phone)}</a></div>`;
+    let html = (r.branches || [])
+      .map(function (b) {
+        return (
+          `<div>📍 ${escapeHtml(b.address)} — ` +
+          `<a href="tel:${b.phone.replace(/\s/g, "")}">${escapeHtml(b.phone)}</a></div>`
+        );
+      })
+      .join("");
+    if (r.delivery) html += `<div>${escapeHtml(r.delivery)}</div>`;
+    if (r.instagram) {
+      html += `<div>📸 <a href="https://instagram.com/${r.instagram}" target="_blank" rel="noopener">@${r.instagram}</a></div>`;
+    }
+    document.getElementById("footer").innerHTML = html;
   }
 
   function renderChips() {
@@ -536,18 +545,30 @@
     const avatar = user && user.photo_url ? `<img src="${user.photo_url}" alt="" />` : initial;
     const uname = user && user.username ? "@" + user.username : "Telegram foydalanuvchi";
 
+    let rows = (r.branches || [])
+      .map(function (b) {
+        return (
+          `<div class="profile__row"><span class="emoji">📍</span>` +
+          `<span>${escapeHtml(b.label)}: ${escapeHtml(b.address)}<br>` +
+          `<a href="tel:${b.phone.replace(/\s/g, "")}">${escapeHtml(b.phone)}</a></span></div>`
+        );
+      })
+      .join("");
+    if (r.delivery) {
+      rows += `<div class="profile__row"><span class="emoji">🚗</span>Yetkazib berish — BEPUL</div>`;
+    }
+    if (r.instagram) {
+      rows += `<div class="profile__row"><span class="emoji">📸</span><a href="https://instagram.com/${r.instagram}" target="_blank" rel="noopener">@${r.instagram}</a></div>`;
+    }
+    rows += `<div class="profile__row"><span class="emoji">📋</span>Buyurtmalar tarixi: ${orders.length} ta</div>`;
+
     root.innerHTML =
       '<div class="profile__card">' +
       `<div class="profile__avatar">${avatar}</div>` +
       `<div><h3 class="profile__name">${escapeHtml(name)}</h3>` +
       `<p class="profile__sub">${escapeHtml(uname)}</p></div>` +
       "</div>" +
-      '<div class="profile__list">' +
-      `<div class="profile__row"><span class="emoji">📞</span><a href="tel:${r.phone.replace(/\s/g, "")}">${escapeHtml(r.phone)}</a></div>` +
-      `<div class="profile__row"><span class="emoji">📍</span>${escapeHtml(r.address)}</div>` +
-      `<div class="profile__row"><span class="emoji">🕒</span>${escapeHtml(r.workingHours)}</div>` +
-      `<div class="profile__row"><span class="emoji">📋</span>Buyurtmalar tarixi: ${orders.length} ta</div>` +
-      "</div>";
+      `<div class="profile__list">${rows}</div>`;
   }
 
   /* ============ Navigatsiya ============ */

@@ -58,10 +58,9 @@ RESTAURANT = {
 # Menyuni ochib, shuncha vaqt ichida buyurtma qilmaganlarga eslatma
 NUDGE_AFTER_SECONDS = 45 * 60  # 45 daqiqa
 
-BTN_MENU = "🍽 Menyuni ochish"
+BTN_MENU = "Ochish"
 BTN_FEEDBACK = "✍️ Fikr qoldirish"
-BTN_CONTACT = "📞 Aloqa"
-KNOWN_BUTTONS = {BTN_MENU, BTN_FEEDBACK, BTN_CONTACT}
+KNOWN_BUTTONS = {BTN_MENU, BTN_FEEDBACK}
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
@@ -80,7 +79,7 @@ def menu_keyboard():
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if WEBAPP_URL:
         kb.add(types.KeyboardButton(BTN_MENU, web_app=types.WebAppInfo(WEBAPP_URL)))
-    kb.add(types.KeyboardButton(BTN_FEEDBACK), types.KeyboardButton(BTN_CONTACT))
+    kb.add(types.KeyboardButton(BTN_FEEDBACK))
     return kb
 
 
@@ -97,16 +96,6 @@ def cmd_start(message):
     # Eslatma navbatiga qo'shamiz (buyurtma qilsa — o'chiriladi)
     with _nudge_lock:
         _nudge_queue[message.chat.id] = time.time()
-
-
-@bot.message_handler(func=lambda m: m.text == BTN_CONTACT)
-def cmd_contact(message):
-    bot.send_message(
-        message.chat.id,
-        f"☎️ {RESTAURANT['phone']}\n"
-        f"📍 {RESTAURANT['address']}\n"
-        f"🕒 {RESTAURANT['hours']}",
-    )
 
 
 @bot.message_handler(func=lambda m: m.text == BTN_FEEDBACK)

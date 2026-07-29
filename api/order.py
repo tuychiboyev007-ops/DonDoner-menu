@@ -37,6 +37,9 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "").strip()
 ORDERS_BOT_TOKEN = os.environ.get("ORDERS_BOT_TOKEN", "").strip() or BOT_TOKEN
 ORDERS_CHAT_ID = os.environ.get("ORDERS_CHAT_ID", "").strip() or ADMIN_CHAT_ID
+WEBAPP_URL = os.environ.get(
+    "WEBAPP_URL", "https://dondoner-blush.vercel.app/"
+).strip()
 
 TASHKENT_TZ = timezone(timedelta(hours=5))
 MAX_BODY = 32 * 1024  # buyurtma matni uchun yetarli
@@ -166,6 +169,19 @@ def build_card(order, user, number=None):
     return "\n".join(L)
 
 
+def build_confirm_keyboard(number):
+    """Mijozga tasdiq xabari tugmasi — bosilsa Mini App shu
+    buyurtmaning holat sahifasini to'g'ridan-to'g'ri ochadi."""
+    if not WEBAPP_URL:
+        return None
+    url = WEBAPP_URL.rstrip("/") + "/?order=" + str(number)
+    return {
+        "inline_keyboard": [
+            [{"text": "📋 Buyurtmani ko'rish", "web_app": {"url": url}}]
+        ]
+    }
+
+
 def build_buttons(order, path):
     """Yangi buyurtma kartochkasi tugmalari: xarita + keyingi qadam."""
     rows = []
@@ -219,7 +235,7 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             if not ok:
                 return self._send(502, {"ok": False, "error": "yuborilmadi"})
 
-        # 3) Mijozga tasdiq
+        # 3) Mijozga tasdiq — «Buyurtmani ko'rish» tugmasi bilan
         chat_id = user.get("id")
         if chat_id:
             send_message(
@@ -227,7 +243,10 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
                 chat_id,
                 f"✅ <b>Buyurtmangiz qabul qilindi!</b>\n"
                 f"Raqami: <b>#{number}</b>\n\n"
+                "📋 Buyurtma holatini pastdagi tugma orqali yoki "
+                "«Buyurtmalar» bo'limida kuzatib borishingiz mumkin.\n\n"
                 "Tez orada operator siz bilan bog'lanadi. Rahmat! 🙌",
+                build_confirm_keyboard(number),
             )
 
         self._send(200, {"ok": True, "number": number})

@@ -30,6 +30,9 @@ import _store  # noqa: E402
 ORDERS_BOT_TOKEN = os.environ.get("ORDERS_BOT_TOKEN", "").strip()
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "").strip()
+WEBAPP_URL = os.environ.get(
+    "WEBAPP_URL", "https://dondoner-blush.vercel.app/"
+).strip()
 
 TASHKENT_TZ = timezone(timedelta(hours=5))
 
@@ -94,13 +97,24 @@ def strip_status_lines(text):
     return "\n".join(lines)
 
 
-def notify_customer(chat_id, text):
+def customer_view_keyboard(number):
+    """«📋 Buyurtmani ko'rish» tugmasi — Mini App'ni to'g'ridan-to'g'ri
+    shu buyurtma holat sahifasiga ochadi."""
+    if not WEBAPP_URL:
+        return None
+    url = WEBAPP_URL.rstrip("/") + "/?order=" + str(number)
+    kb = types.InlineKeyboardMarkup()
+    kb.add(types.InlineKeyboardButton("📋 Buyurtmani ko'rish", web_app=types.WebAppInfo(url)))
+    return kb
+
+
+def notify_customer(chat_id, text, number=None):
     """Mijozga asosiy bot orqali xabar yuboradi."""
     if not (BOT_TOKEN and chat_id):
         return
     try:
         telebot.TeleBot(BOT_TOKEN, parse_mode="HTML", threaded=False).send_message(
-            chat_id, text
+            chat_id, text, reply_markup=customer_view_keyboard(number) if number else None
         )
     except Exception as exc:  # noqa: BLE001
         print(f"[WARN] mijozga xabar: {exc}")
@@ -132,7 +146,7 @@ def cb_status(call):
     if record and customer_text:
         user = record.get("user") or {}
         num = record.get("number", "")
-        notify_customer(user.get("id"), f"{customer_text}\n\nRaqami: <b>#{num}</b>")
+        notify_customer(user.get("id"), f"{customer_text}\n\nRaqami: <b>#{num}</b>", num)
 
     # Kartochkada faqat BITTA holat qatori turadi — eskisi almashtiriladi
     base = strip_status_lines(call.message.html_text or call.message.text or "")

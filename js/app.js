@@ -1690,6 +1690,22 @@
     });
   }
 
+  // Bot xabaridagi «📋 Buyurtmani ko'rish» tugmasi ilovani
+  // ?order=<raqam> bilan ochadi — shu buyurtmani darhol ko'rsatamiz
+  function openOrderFromLink() {
+    const params = new URLSearchParams(window.location.search);
+    const num = parseInt(params.get("order"), 10);
+    if (!num) return;
+    switchPage("orders");
+    fetchOrders(function (list) {
+      if (!list) return;
+      const rec = list.filter(function (r) {
+        return r.number === num;
+      })[0];
+      if (rec) openOrderPage(rec);
+    });
+  }
+
   /* ============ Ishga tushirish ============ */
   function init() {
     if (!window.MENU) {
@@ -1707,6 +1723,7 @@
     document.documentElement.lang = lang;
     applyStaticLabels();
     refreshCartUI();
+    openOrderFromLink();
   }
 
   document.addEventListener("DOMContentLoaded", init);

@@ -1706,8 +1706,36 @@
     });
   }
 
+  // Admin panelda tahrirlangan menyu bo'lsa — o'shani ishlatamiz,
+  // bo'lmasa yoki server javob bermasa data/menu.js dagi standart menyu qoladi
+  function loadRemoteMenu(done) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = setTimeout(function () {
+      if (controller) controller.abort();
+    }, 2500);
+    fetch("/api/menu", controller ? { signal: controller.signal } : {})
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        clearTimeout(timer);
+        if (d && d.menu && d.menu.categories && d.menu.categories.length) {
+          window.MENU = d.menu;
+        }
+        done();
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        done();
+      });
+  }
+
   /* ============ Ishga tushirish ============ */
   function init() {
+    loadRemoteMenu(startApp);
+  }
+
+  function startApp() {
     if (!window.MENU) {
       menuRoot.innerHTML = '<div class="empty">Menyu topilmadi 😕</div>';
       return;

@@ -179,6 +179,51 @@ def update_status(path, status, actor=""):
     return record
 
 
+# ------------------------------------------------------------------
+# Menyu (admin panel)
+# ------------------------------------------------------------------
+
+MENU_PATH = "menu/current.json"
+
+
+def save_menu(menu):
+    """Butun menyuni saqlaydi (admin panel «Saqlash»)."""
+    return put_blob(MENU_PATH, menu)
+
+
+def load_menu():
+    """Admin tahrirlagan menyu. Hali tahrirlanmagan bo'lsa — None."""
+    for b in list_blobs("menu/"):
+        if b.get("pathname") == MENU_PATH:
+            return get_blob(b.get("url", ""))
+    return None
+
+
+def save_image(filename, raw_bytes, content_type):
+    """Mahsulot rasmini Blob'ga yuklaydi, ochiq URL qaytaradi."""
+    if not BLOB_TOKEN:
+        return ""
+    try:
+        ext = ""
+        if "." in filename:
+            ext = "." + filename.rsplit(".", 1)[-1].lower()[:5]
+        pathname = f"images/uploads/{uuid.uuid4().hex[:12]}{ext}"
+        url = f"{BLOB_API}/{urllib.parse.quote(pathname)}"
+        res = _request(
+            "PUT",
+            url,
+            data=raw_bytes,
+            headers={
+                "Content-Type": content_type or "application/octet-stream",
+                "x-add-random-suffix": "0",
+            },
+        )
+        return res.get("url", "")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[WARN] rasm yuklanmadi: {exc}")
+        return ""
+
+
 def day_report(day=None):
     """Kunlik hisobot: nechta buyurtma, qancha savdo, top taomlar."""
     day = day or today_key()

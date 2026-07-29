@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>DonDöner — Admin</title>
+<style>
+  :root {
+    --brand: #d81327;
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #16181c;
+    --muted: #8a8f98;
+    --line: rgba(128, 128, 128, 0.2);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e0f11;
+      --card: #1c1c1e;
+      --text: #f2f2f2;
+      --muted: #9a9a9a;
+      --line: rgba(255, 255, 255, 0.14);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: #000;
+    color: #fff;
+    padding: calc(env(safe-area-inset-top) + 14px) 18px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 800; }
+  .savebar { font-size: 11px; color: #aaa; display: block; margin-top: 2px; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 60px; }
+  .login { max-width: 300px; margin: 90px auto; text-align: center; padding: 0 20px; }
+  .login h2 { font-size: 20px; }
+  .login input {
+    width: 100%; padding: 15px; font-size: 22px; text-align: center;
+    border: 1.5px solid var(--line); border-radius: 12px;
+    background: var(--card); color: var(--text); letter-spacing: 6px;
+    outline: none;
+  }
+  .login input:focus { border-color: var(--brand); }
+  .btn {
+    margin-top: 12px; width: 100%; padding: 13px; border: none; border-radius: 12px;
+    background: var(--brand); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn--ghost { background: transparent; color: var(--brand); border: 1.5px dashed var(--brand); }
+  .btn--danger { background: transparent; color: #d00000; border: 1.5px solid rgba(217,0,0,.35); }
+  .btn--small { width: auto; padding: 7px 12px; font-size: 12px; border-radius: 9px; }
+  .btn--save { width: auto; padding: 8px 14px; background: #fff; color: #111; font-size: 13px; }
+  .err { color: #ff6b6b; font-size: 13px; min-height: 18px; margin-top: 8px; }
+  .section-title { font-size: 19px; font-weight: 800; margin: 26px 0 10px; }
+  .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--brand); }
+  .field textarea { resize: vertical; min-height: 50px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cat { border: 1px solid var(--line); border-radius: 16px; margin-bottom: 16px; overflow: hidden; }
+  .cat__head { display: flex; gap: 8px; align-items: center; padding: 12px 14px; background: rgba(216,19,39,.07); }
+  .cat__head input { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); color: var(--text); font-size: 14px; outline: none; }
+  .cat__head input[data-k="icon"] { width: 50px; text-align: center; font-size: 18px; flex-shrink: 0; }
+  .cat__head input[data-k="name"] { flex: 1; font-weight: 700; min-width: 0; }
+  .cat__body { padding: 12px 14px; }
+  .prod { display: flex; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+  .prod__img {
+    width: 64px; height: 64px; border-radius: 10px; background: var(--bg); flex-shrink: 0;
+    display: grid; place-items: center; font-size: 24px; overflow: hidden; cursor: pointer; position: relative;
+  }
+  .prod__img img { width: 100%; height: 100%; object-fit: cover; }
+  .prod__body { flex: 1; min-width: 0; }
+  .variant-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .variant-row input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font-size: 13px; outline: none; }
+  .variant-row input[data-vk="label"] { flex: 1; min-width: 0; }
+  .variant-row input[data-vk="price"] { max-width: 100px; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #16181c; color: #fff; padding: 10px 18px; border-radius: 10px;
+    font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50;
+  }
+  .toast.show { opacity: 1; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .checkline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); margin: 8px 0; }
+  hr.sep { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="login" id="loginBox">
+  <h2>🔒 DonDöner Admin</h2>
+  <p class="muted">Kirish uchun PIN kodni kiriting</p>
+  <input id="pinInput" inputmode="numeric" maxlength="8" placeholder="••••••" autocomplete="off" />
+  <button class="btn" id="pinBtn">Kirish</button>
+  <p class="err" id="loginErr"></p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div>
+      <h1>🥙 DonDöner Admin</h1>
+      <span class="savebar" id="saveStatus">tayyor</span>
+    </div>
+    <button class="btn btn--save" id="saveBtn">Saqlash</button>
+  </header>
+  <main>
+    <div class="section-title">Restoran sozlamalari</div>
+    <div class="card" id="settingsCard"></div>
+
+    <div class="section-title">Filiallar</div>
+    <div class="card" id="branchesCard"></div>
+    <button class="btn btn--ghost btn--small" id="addBranchBtn">+ Filial qo'shish</button>
+
+    <hr class="sep" />
+
+    <div class="section-title">Menyu</div>
+    <div id="categoriesRoot"></div>
+    <button class="btn btn--ghost" id="addCatBtn">+ Yangi kategoriya</button>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data/menu.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var PIN_KEY = "dondoner_admin_pin";
+  var pin = sessionStorage.getItem(PIN_KEY) || "";
+  var MENU = null;
+  var saveTimer = null;
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+  function slug(str) {
+    return String(str).toLowerCase()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "item";
+  }
+  function uid() {
+    return Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 5);
+  }
+
+  function api(action, extra, cb) {
+    var body = Object.assign({ action: action }, extra || {});
+    fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Pin": pin },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) {
+        return r.json().then(function (d) { return { status: r.status, data: d }; });
+      })
+      .then(function (res) { cb(null, res); })
+      .catch(function (e) { cb(e); });
+  }
+
+  function cloneSeed() {
+    return JSON.parse(JSON.stringify(window.MENU || { restaurant: {}, categories: [] }));
+  }
+
+  /* ---------- Kirish ---------- */
+  function tryLogin() {
+    var val = document.getElementById("pinInput").value.trim();
+    if (!val) return;
+    pin = val;
+    api("get_menu", {}, function (err, res) {
+      if (err || res.status !== 200) {
+        document.getElementById("loginErr").textContent = "PIN noto'g'ri yoki server javob bermadi";
+        pin = "";
+        return;
+      }
+      sessionStorage.setItem(PIN_KEY, pin);
+      enterApp(res.data && res.data.menu);
+    });
+  }
+
+  function enterApp(remoteMenu) {
+    MENU = remoteMenu && remoteMenu.categories ? remoteMenu : cloneSeed();
+    document.getElementById("loginBox").hidden = true;
+    document.getElementById("app").hidden = false;
+    renderAll();
+  }
+
+  document.getElementById("pinBtn").addEventListener("click", tryLogin);
+  document.getElementById("pinInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") tryLogin();
+  });
+
+  // Sessiyada PIN saqlangan bo'lsa — avtomatik kirish
+  if (pin) {
+    api("get_menu", {}, function (err, res) {
+      if (!err && res.status === 200) {
+        enterApp(res.data && res.data.menu);
+      } else {
+        pin = "";
+        sessionStorage.removeItem(PIN_KEY);
+      }
+    });
+  }
+
+  /* ---------- Saqlash ---------- */
+  function scheduleSave() {
+    document.getElementById("saveStatus").textContent = "o'zgarishlar bor…";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 900);
+  }
+  function doSave() {
+    api("save_menu", { menu: MENU }, function (err, res) {
+      if (err || res.status !== 200) {
+        document.getElementById("saveStatus").textContent = "❌ saqlanmadi";
+        return;
+      }
+      var d = new Date();
+      var hh = String(d.getHours()).padStart(2, "0");
+      var mm = String(d.getMinutes()).padStart(2, "0");
+      document.getElementById("saveStatus").textContent = "✅ saqlandi " + hh + ":" + mm;
+    });
+  }
+  document.getElementById("saveBtn").addEventListener("click", function () {
+    clearTimeout(saveTimer);
+    doSave();
+    toast("Saqlanmoqda…");
+  });
+
+  /* ---------- Chizish ---------- */
+  function renderAll() {
+    renderSettings();
+    renderBranches();
+    renderCategories();
+  }
+
+  function renderSettings() {
+    var r = MENU.restaurant || (MENU.restaurant = {});
+    var box = document.getElementById("settingsCard");
+    box.innerHTML =
+      '<div class="field"><label>Nomi</label><input id="setName" value="' + esc(r.name || "") + '"/></div>' +
+      '<div class="field"><label>Shior</label><input id="setTagline" value="' + esc(r.tagline || "") + '"/></div>' +
+      '<div class="row2">' +
+      '<div class="field"><label>Ish vaqti — ochilish</label><input id="setOpen" value="' + esc((r.hours && r.hours.open) || "") + '" placeholder="08:00"/></div>' +
+      '<div class="field"><label>Ish vaqti — yopilish</label><input id="setClose" value="' + esc((r.hours && r.hours.close) || "") + '" placeholder="02:00"/></div>' +
+      "</div>" +
+      '<div class="row2">' +
+      '<div class="field"><label>Minimal buyurtma (so\'m)</label><input id="setMin" type="number" value="' + (r.minOrder || 0) + '"/></div>' +
+      '<div class="field"><label>Yetkazish narxi (so\'m)</label><input id="setFee" type="number" value="' + (r.deliveryFee || 0) + '"/></div>' +
+      "</div>" +
+      '<div class="field"><label>Instagram (username, @ siz)</label><input id="setInsta" value="' + esc(r.instagram || "") + '"/></div>';
+
+    function sync() {
+      r.name = document.getElementById("setName").value;
+      r.tagline = document.getElementById("setTagline").value;
+      r.hours = {
+        open: document.getElementById("setOpen").value,
+        close: document.getElementById("setClose").value,
+      };
+      r.minOrder = parseInt(document.getElementById("setMin").value, 10) || 0;
+      r.deliveryFee = parseInt(document.getElementById("setFee").value, 10) || 0;
+      r.instagram = document.getElementById("setInsta").value;
+      scheduleSave();
+    }
+    ["setName", "setTagline", "setOpen", "setClose", "setMin", "setFee", "setInsta"].forEach(function (id) {
+      document.getElementById(id).addEventListener("input", sync);
+    });
+  }
+
+  function renderBranches() {
+    var r = MENU.restaurant;
+    var list = r.branches || (r.branches = []);
+    var box = document.getElementById("branchesCard");
+    box.innerHTML = "";
+    list.forEach(function (b, i) {
+      var row = el("div", "field");
+      row.innerHTML =
+        '<div class="row2">' +
+        '<input placeholder="Nomi (1-filial)" value="' + esc(b.label || "") + '" data-k="label" />' +
+        '<input placeholder="Telefon" value="' + esc(b.phone || "") + '" data-k="phone" />' +
+        "</div>" +
+        '<input placeholder="Manzil" value="' + esc(b.address || "") + '" data-k="address" style="margin-top:8px" />' +
+        '<button class="btn btn--danger btn--small" style="margin-top:8px" data-del>O\'chirish</button>';
+      row.querySelectorAll("input").forEach(function (inp) {
+        inp.addEventListener("input", function () {
+          b[inp.dataset.k] = inp.value;
+          scheduleSave();
+        });
+      });
+      row.querySelector("[data-del]").addEventListener("click", function () {
+        list.splice(i, 1);
+        renderBranches();
+        scheduleSave();
+      });
+      box.appendChild(row);
+      if (i < list.length - 1) box.appendChild(el("hr", "sep"));
+    });
+    if (!list.length) box.innerHTML = '<p class="muted">Hali filial qo\'shilmagan</p>';
+  }
+  document.getElementById("addBranchBtn").addEventListener("click", function () {
+    MENU.restaurant.branches = MENU.restaurant.branches || [];
+    MENU.restaurant.branches.push({ label: "Yangi filial", address: "", phone: "" });
+    renderBranches();
+    scheduleSave();
+  });
+
+  function renderCategories() {
+    var root = document.getElementById("categoriesRoot");
+    root.innerHTML = "";
+    (MENU.categories || []).forEach(function (cat, ci) {
+      root.appendChild(buildCategory(cat, ci));
+    });
+  }
+
+  function buildCategory(cat, ci) {
+    var wrap = el("div", "cat");
+    var head = el("div", "cat__head");
+    head.innerHTML =
+      '<input data-k="icon" value="' + esc(cat.icon || "🍽") + '" />' +
+      '<input data-k="name" value="' + esc(cat.name || "") + '" />' +
+      '<button class="btn btn--danger btn--small" data-delcat>✕</button>';
+    head.querySelector('[data-k="icon"]').addEventListener("input", function (e) {
+      cat.icon = e.target.value; scheduleSave();
+    });
+    head.querySelector('[data-k="name"]').addEventListener("input", function (e) {
+      cat.name = e.target.value; scheduleSave();
+    });
+    head.querySelector("[data-delcat]").addEventListener("click", function () {
+      if (!confirm("«" + cat.name + "» kategoriyasini butun mahsulotlari bilan o'chirasizmi?")) return;
+      MENU.categories.splice(ci, 1);
+      renderCategories();
+      scheduleSave();
+    });
+    wrap.appendChild(head);
+
+    var body = el("div", "cat__body");
+    (cat.items || []).forEach(function (item, ii) {
+      body.appendChild(buildProduct(cat, item, ii));
+    });
+    var addBtn = el("button", "btn btn--ghost btn--small", "+ Mahsulot qo'shish");
+    addBtn.addEventListener("click", function () {
+      cat.items = cat.items || [];
+      cat.items.push({ id: slug(cat.id || cat.name) + "-" + uid(), name: "Yangi mahsulot", price: 0, desc: "", image: "" });
+      renderCategories();
+      scheduleSave();
+    });
+    body.appendChild(addBtn);
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function buildProduct(cat, item, ii) {
+    var row = el("div", "prod");
+    var img = el("div", "prod__img", item.image ? '<img src="' + esc(item.image) + '"/>' : esc(cat.icon || "🍽"));
+    var fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.style.display = "none";
+    img.appendChild(fileInput);
+    img.addEventListener("click", function () { fileInput.click(); });
+    fileInput.addEventListener("change", function () {
+      var f = fileInput.files[0];
+      if (!f) return;
+      toast("Rasm yuklanmoqda…");
+      uploadImage(f, function (url) {
+        item.image = url;
+        img.innerHTML = '<img src="' + esc(url) + '"/>';
+        img.appendChild(fileInput);
+        scheduleSave();
+        toast("Rasm yuklandi ✅");
+      });
+    });
+
+    var body = el("div", "prod__body");
+    var hasVariants = !!(item.variants && item.variants.length);
+
+    body.innerHTML =
+      '<div class="field"><input placeholder="Nomi" value="' + esc(item.name || "") + '" data-k="name" /></div>' +
+      '<div class="field"><textarea placeholder="Tarkibi" rows="2" data-k="desc">' + esc(item.desc || "") + "</textarea></div>" +
+      '<label class="checkline"><input type="checkbox" data-k="hasVariants" ' + (hasVariants ? "checked" : "") + ' /> O\'lchamli mahsulot (masalan, pitsa Kichik/O\'rta/Katta)</label>' +
+      '<div data-variants></div>' +
+      '<div class="row2" data-simple style="' + (hasVariants ? "display:none" : "") + '">' +
+      '<div class="field"><label>Narx</label><input type="number" value="' + (item.price || 0) + '" data-k="price"/></div>' +
+      '<div class="field"><label>Chegirma narxi (ixtiyoriy)</label><input type="number" value="' + (item.oldPrice || "") + '" data-k="oldPrice"/></div>' +
+      "</div>" +
+      '<div class="row2">' +
+      '<div class="field"><label>Og\'irligi/hajmi</label><input value="' + esc(item.weight || "") + '" data-k="weight"/></div>' +
+      '<div class="field"><label>Yorliq</label><select data-k="badge">' +
+      '<option value=""' + (!item.badge ? " selected" : "") + ">— yo'q —</option>" +
+      '<option value="Hit"' + (item.badge === "Hit" ? " selected" : "") + ">Hit</option>" +
+      '<option value="Yangi"' + (item.badge === "Yangi" ? " selected" : "") + ">Yangi</option>" +
+      '<option value="Achchiq"' + (item.badge === "Achchiq" ? " selected" : "") + ">Achchiq</option>" +
+      "</select></div>" +
+      "</div>" +
+      '<button class="btn btn--danger btn--small" data-delitem>Mahsulotni o\'chirish</button>';
+
+    row.appendChild(img);
+    row.appendChild(body);
+
+    function bind(k, transform) {
+      var elm = body.querySelector('[data-k="' + k + '"]');
+      elm.addEventListener("input", function () {
+        var v = elm.type === "checkbox" ? elm.checked : elm.value;
+        if (transform) v = transform(v);
+        if (k === "hasVariants") { toggleVariants(v); return; }
+        item[k] = v;
+        scheduleSave();
+      });
+    }
+    bind("name");
+    bind("desc");
+    bind("weight");
+    bind("badge");
+    bind("price", function (v) { return parseInt(v, 10) || 0; });
+    bind("oldPrice", function (v) { return v ? (parseInt(v, 10) || 0) : undefined; });
+    bind("hasVariants");
+
+    function toggleVariants(on) {
+      if (on) {
+        item.variants = item.variants && item.variants.length ? item.variants : [{ label: "Kichik", price: item.price || 0 }];
+        delete item.price;
+        body.querySelector("[data-simple]").style.display = "none";
+      } else {
+        item.price = (item.variants && item.variants[0] && item.variants[0].price) || 0;
+        delete item.variants;
+        body.querySelector("[data-simple]").style.display = "";
+      }
+      renderVariants();
+      scheduleSave();
+    }
+
+    function renderVariants() {
+      var box = body.querySelector("[data-variants]");
+      box.innerHTML = "";
+      if (!item.variants) return;
+      item.variants.forEach(function (v, vi) {
+        var vr = el("div", "variant-row");
+        vr.innerHTML =
+          '<input placeholder="Nomi (Kichik/O\'rta/Katta)" value="' + esc(v.label || "") + '" data-vk="label" />' +
+          '<input type="number" placeholder="Narx" value="' + (v.price || 0) + '" data-vk="price" />' +
+          '<button class="btn btn--danger btn--small" data-delv>✕</button>';
+        vr.querySelector('[data-vk="label"]').addEventListener("input", function (e) { v.label = e.target.value; scheduleSave(); });
+        vr.querySelector('[data-vk="price"]').addEventListener("input", function (e) { v.price = parseInt(e.target.value, 10) || 0; scheduleSave(); });
+        vr.querySelector("[data-delv]").addEventListener("click", function () {
+          item.variants.splice(vi, 1);
+          renderVariants();
+          scheduleSave();
+        });
+        box.appendChild(vr);
+      });
+      var addV = el("button", "btn btn--ghost btn--small", "+ O'lcham qo'shish");
+      addV.addEventListener("click", function () {
+        item.variants.push({ label: "Yangi", price: 0 });
+        renderVariants();
+        scheduleSave();
+      });
+      box.appendChild(addV);
+    }
+    renderVariants();
+
+    body.querySelector("[data-delitem]").addEventListener("click", function () {
+      if (!confirm("«" + item.name + "» ni o'chirasizmi?")) return;
+      cat.items.splice(ii, 1);
+      renderCategories();
+      scheduleSave();
+    });
+
+    return row;
+  }
+
+  document.getElementById("addCatBtn").addEventListener("click", function () {
+    MENU.categories = MENU.categories || [];
+    var name = "Yangi kategoriya";
+    MENU.categories.push({ id: slug(name) + "-" + uid(), name: name, icon: "🍽", items: [] });
+    renderCategories();
+    scheduleSave();
+  });
+
+  /* ---------- Rasm yuklash: brauzerda qisqartirib, base64 qilib yuboramiz ---------- */
+  function uploadImage(file, done) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var maxW = 900;
+        var scale = Math.min(1, maxW / img.width);
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        var dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+        var base64 = dataUrl.split(",")[1];
+        api("upload_image", { filename: file.name, content_type: "image/jpeg", data_base64: base64 }, function (err, res) {
+          if (err || res.status !== 200 || !res.data.url) {
+            toast("❌ Rasm yuklanmadi");
+            return;
+          }
+          done(res.data.url);
+        });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+})();
+</script>
+</body>
+</html>

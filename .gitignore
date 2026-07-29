@@ -1,0 +1,17 @@
+# Maxfiy sozlamalar — HECH QACHON git'ga tushmasin
+.env
+bot/.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# OS / tahrirlagich
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

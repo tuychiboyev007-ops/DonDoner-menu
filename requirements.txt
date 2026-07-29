@@ -1,0 +1,2 @@
+# Vercel serverless funksiyasi uchun (api/webhook.py)
+pyTelegramBotAPI>=4.14.0

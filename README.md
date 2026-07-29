@@ -106,11 +106,33 @@ qaytadi.
 > (reply-klaviatura) orqali ochilishi kerak. BotFather'dagi «menu button»
 > orqali ochilsa, buyurtma yuborish `sendData` ishlamaydi (Telegram cheklovi).
 
-### 🌐 Botni doimiy ishlatish
+### 🌐 Botni doimiy ishlatish — Vercel (tavsiya, bepul)
 
-`python bot.py` faqat kompyuteringiz yoqilib turganda ishlaydi. Doimiy
-ishlashi uchun botni serverga qo'ying (masalan Railway, Render, VPS yoki
-Replit). Server `.env` qiymatlarini o'z panelidan kiritasiz.
+`bot/bot.py` (polling) faqat kompyuter yoqiq bo'lganda ishlaydi. Doimiy
+ishlashi uchun **Vercel** webhook versiyasidan foydalaniladi —
+`api/webhook.py`:
+
+1. [vercel.com](https://vercel.com) → **Continue with GitHub** bilan kiring.
+2. **Add New → Project** → `DonDoner-menu` repozitoriyni import qiling.
+3. **Environment Variables** bo'limida kiriting:
+   - `BOT_TOKEN` — BotFather tokeni
+   - `ADMIN_CHAT_ID` — buyurtmalar boradigan chat ID
+   - `WEBHOOK_SECRET` — ixtiyoriy maxfiy kalit (xavfsizlik uchun)
+4. **Deploy** bosing. Manzil chiqadi: `https://<loyiha>.vercel.app`
+5. Telegram webhook'ni ulang (bir marta):
+
+   ```bash
+   curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+     -d "url=https://<loyiha>.vercel.app/api/webhook" \
+     -d "secret_token=<WEBHOOK_SECRET>"
+   ```
+
+Shundan so'ng har `git push` avtomatik qayta deploy qilinadi. Polling
+(`bot.py`) va webhook bir vaqtda ishlamaydi — webhook yoqilgach, `bot.py`ni
+to'xtating (yoki `deleteWebhook` bilan pollingga qaytish mumkin).
+
+> Eslatma: serverless muhitda 45 daqiqalik "eslatma" xabari ishlamaydi
+> (doimiy jarayon yo'q) — qolgan hamma funksiya to'liq ishlaydi.
 
 ---
 

@@ -1312,13 +1312,18 @@
   }
 
   /* ============ Buyurtma tafsiloti ============ */
+  let currentOrderStatus = null;
+
   function openOrderPage(rec) {
     const o = rec.order || {};
+    currentOrderStatus = rec.status;
     const info = statusInfo(rec.status);
     const r = window.MENU.restaurant;
     haptic("light");
 
-    document.getElementById("orderTitle").textContent = t("orderDetail");
+    document.getElementById("orderTitle").textContent =
+      t("orderDetail") + " #" + rec.number;
+    currentOrderNumber = rec.number;
 
     // Bosqichlar chizig'i
     const steps = ["📄", "👨‍🍳", "🛵", "✓"];
@@ -1376,7 +1381,6 @@
 
     document.getElementById("orderBody").innerHTML =
       '<div class="ohead">' +
-      `<h3>${t("orderNo")} #${escapeHtml(String(rec.number))}</h3>` +
       `<p>${escapeHtml(t("createdAt"))} ${escapeHtml(formatDateTime(rec.created_at))}</p>` +
       "</div>" +
       '<div class="ostatus">' +
@@ -1404,9 +1408,41 @@
 
     document.getElementById("orderPage").hidden = false;
     document.body.style.overflow = "hidden";
+    startOrderPolling();
+  }
+
+  // Sahifa ochiq turganda holatni muntazam yangilab turamiz
+  let orderTimer = null;
+  let currentOrderNumber = null;
+
+  function startOrderPolling() {
+    stopOrderPolling();
+    orderTimer = setInterval(refreshOpenOrder, 15000);
+  }
+
+  function stopOrderPolling() {
+    if (orderTimer) clearInterval(orderTimer);
+    orderTimer = null;
+  }
+
+  function refreshOpenOrder() {
+    if (document.getElementById("orderPage").hidden) return stopOrderPolling();
+    fetchOrders(function (list) {
+      if (!list) return;
+      const fresh = list.filter(function (r) {
+        return r.number === currentOrderNumber;
+      })[0];
+      // Holat o'zgargan bo'lsagina qayta chizamiz
+      if (fresh && fresh.status !== currentOrderStatus) {
+        currentOrderStatus = fresh.status;
+        openOrderPage(fresh);
+        haptic("light");
+      }
+    });
   }
 
   function closeOrderPage() {
+    stopOrderPolling();
     document.getElementById("orderPage").hidden = true;
     document.body.style.overflow = "";
   }

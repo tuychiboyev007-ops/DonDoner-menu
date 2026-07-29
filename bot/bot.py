@@ -73,36 +73,29 @@ def inline_keyboard():
     if WEBAPP_URL:
         kb.add(
             types.InlineKeyboardButton(
-                "Ochish", web_app=types.WebAppInfo(WEBAPP_URL)
+                "Открыть", web_app=types.WebAppInfo(WEBAPP_URL)
             )
         )
-    kb.add(types.InlineKeyboardButton("✍️ Fikr qoldirish", callback_data="feedback"))
+    kb.add(types.InlineKeyboardButton("✍️ Оставить отзыв", callback_data="feedback"))
     return kb
 
 
 @bot.message_handler(commands=["start"])
 def cmd_start(message):
-    text = "Xush kelibsiz! 🥙"
+    text = "Добро пожаловать"
     if not WEBAPP_URL:
         text += (
             "\n\n⚠️ <i>WEBAPP_URL hali sozlanmagan. .env faylida Mini App "
             "manzilini ko'rsating.</i>"
         )
-    # Avval eski (reply) klaviaturani tozalaymiz, so'ng xuddi shu xabarga
-    # inline tugmalarni yopishtiramiz — ekranda bitta toza xabar qoladi.
-    sent = bot.send_message(
-        message.chat.id, text, reply_markup=types.ReplyKeyboardRemove()
-    )
-    try:
-        bot.edit_message_reply_markup(
-            message.chat.id, sent.message_id, reply_markup=inline_keyboard()
-        )
-    except Exception as exc:  # noqa: BLE001
-        print(f"[WARN] Inline tugmalarni qo'shib bo'lmadi: {exc}")
+    bot.send_message(message.chat.id, text, reply_markup=inline_keyboard())
 
     # Eslatma navbatiga qo'shamiz (buyurtma qilsa — o'chiriladi)
     with _nudge_lock:
         _nudge_queue[message.chat.id] = time.time()
+
+
+FEEDBACK_PROMPT = "Напишите ваш отзыв — нам очень важно ваше мнение 👇"
 
 
 @bot.callback_query_handler(func=lambda c: c.data == "feedback")
@@ -110,18 +103,20 @@ def cb_feedback(call):
     bot.answer_callback_query(call.id)
     msg = bot.send_message(
         call.message.chat.id,
-        "Fikringizni yozib qoldiring — biz uchun juda muhim! 👇",
+        FEEDBACK_PROMPT,
         reply_markup=types.ReplyKeyboardRemove(),
     )
     bot.register_next_step_handler(msg, on_feedback_text)
 
 
 # Eski versiya klaviaturasidan qolgan tugma bosilsa ham ishlasin
-@bot.message_handler(func=lambda m: (m.text or "") == "✍️ Fikr qoldirish")
+@bot.message_handler(
+    func=lambda m: (m.text or "") in ("✍️ Fikr qoldirish", "✍️ Оставить отзыв")
+)
 def legacy_feedback_button(message):
     msg = bot.send_message(
         message.chat.id,
-        "Fikringizni yozib qoldiring — biz uchun juda muhim! 👇",
+        FEEDBACK_PROMPT,
         reply_markup=types.ReplyKeyboardRemove(),
     )
     bot.register_next_step_handler(msg, on_feedback_text)
@@ -131,7 +126,7 @@ def on_feedback_text(message):
     """Fikr matnini qabul qilib, adminga yuboradi."""
     text = (message.text or "").strip()
     if not text or text.startswith("/") or text.startswith(ORDER_PREFIX):
-        bot.send_message(message.chat.id, "Fikr qoldirish bekor qilindi.")
+        bot.send_message(message.chat.id, "Отменено.")
         return
 
     user = message.from_user
@@ -150,7 +145,7 @@ def on_feedback_text(message):
     else:
         print(f"[FEEDBACK] {who}: {text}")
 
-    bot.send_message(message.chat.id, "Rahmat! Fikringiz qabul qilindi 🙏")
+    bot.send_message(message.chat.id, "Спасибо! Ваш отзыв принят 🙏")
 
 
 @bot.message_handler(func=lambda m: (m.text or "").startswith(ORDER_PREFIX))
@@ -165,8 +160,8 @@ def on_order_text(message):
     # Mijozga tasdiq
     bot.send_message(
         message.chat.id,
-        "✅ Buyurtmangiz qabul qilindi!\n"
-        "Tez orada operator siz bilan bog'lanadi. Rahmat! 🙌",
+        "✅ Ваш заказ принят!\n"
+        "Оператор скоро свяжется с вами. Спасибо! 🙌",
         reply_markup=inline_keyboard(),
     )
 
@@ -201,8 +196,9 @@ def nudge_loop():
             try:
                 bot.send_message(
                     chat_id,
-                    "Taomlarimizni ko'rib chiqdingiz 👀\n"
-                    "Davom etamizmi? Sizga yoqadigan yana ko'p narsamiz bor! 🥙",
+                    "Вы смотрели наши блюда 👀\n"
+                    "Давайте продолжим — у нас есть ещё много того, "
+                    "что вам понравится 🥙",
                     reply_markup=inline_keyboard(),
                 )
             except Exception as exc:  # noqa: BLE001

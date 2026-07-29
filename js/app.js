@@ -26,6 +26,7 @@
   let mode = "delivery"; // delivery | pickup
   let activeItem = null; // sheet uchun
   let selectedBranch = 0; // tanlangan filial indeksi (birinchisi standart)
+  let payment = "cash"; // cash | card
   let geo = null; // tanlangan joylashuv: { lat, lng }
   let geoLabel = ""; // joylashuvning matnli manzili
   let pickerMap = null; // manzil tanlash xaritasi
@@ -502,6 +503,13 @@
       (branches.length
         ? '<h3 class="co-title">' + escapeHtml(t("branch")) + '</h3><div class="branch-select">' + branchHtml + "</div>"
         : "") +
+      '<h3 class="co-title">' + escapeHtml(t("payment")) + '</h3>' +
+      '<div class="mode-cards" id="payCards">' +
+      `<button type="button" class="mode-card${payment === "cash" ? " is-active" : ""}" data-pay="cash">` +
+      '<span class="mode-card__tick"></span>💵 ' + escapeHtml(t("cash")) + '</button>' +
+      `<button type="button" class="mode-card${payment === "card" ? " is-active" : ""}" data-pay="card">` +
+      '<span class="mode-card__tick"></span>💳 ' + escapeHtml(t("card")) + '</button>' +
+      '</div>' +
       '<h3 class="co-title">' + escapeHtml(t("customer")) + '</h3>' +
       '<div class="field"><label>' + escapeHtml(t("yourName")) + '</label>' +
       `<input id="coName" type="text" placeholder="${escapeHtml(t('name'))}" value="${escapeHtml(defaultName)}" /></div>` +
@@ -521,6 +529,16 @@
     });
 
     wrap.querySelector("#addrRow").addEventListener("click", openPicker);
+
+    wrap.querySelector("#payCards").addEventListener("click", function (e) {
+      const b = e.target.closest(".mode-card");
+      if (!b) return;
+      payment = b.dataset.pay;
+      wrap.querySelectorAll("#payCards .mode-card").forEach(function (x) {
+        x.classList.toggle("is-active", x === b);
+      });
+      haptic("light");
+    });
 
     // Manzil maydonlari saqlanadi
     ["coHouse", "coFlat", "coFloor", "coEntrance", "coCourier"].forEach(function (id) {
@@ -838,6 +856,7 @@
       id: "#" + Date.now().toString().slice(-6),
       date: new Date().toISOString(),
       mode: mode,
+      payment: payment,
       branch: branch
         ? { label: branch.label, address: branch.address, phone: branch.phone }
         : null,

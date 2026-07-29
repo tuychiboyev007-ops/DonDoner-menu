@@ -16,6 +16,7 @@ Muhit o'zgaruvchilari:
 """
 
 import os
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
 import telebot
@@ -24,7 +25,51 @@ from telebot import types
 ORDERS_BOT_TOKEN = os.environ.get("ORDERS_BOT_TOKEN", "").strip()
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "").strip()
 
+TASHKENT_TZ = timezone(timedelta(hours=5))
+
 bot = telebot.TeleBot(ORDERS_BOT_TOKEN or "0:none", parse_mode="HTML", threaded=False)
+
+
+@bot.callback_query_handler(func=lambda c: (c.data or "").startswith("take:"))
+def cb_take(call):
+    """«✅ Olaman» — buyurtmani kim olganini kartochkaga yozib qo'yadi."""
+    who = call.from_user.first_name or "Xodim"
+    if call.from_user.username:
+        who += f" (@{call.from_user.username})"
+    stamp = datetime.now(TASHKENT_TZ).strftime("%H:%M")
+
+    try:
+        bot.answer_callback_query(call.id, "Qabul qilindi ✅")
+    except Exception:  # noqa: BLE001
+        pass
+
+    original = call.message.html_text or call.message.text or ""
+    if "✅ Qabul qildi:" in original:
+        return  # allaqachon olingan
+
+    updated = f"{original}\n━━━━━━━━━━━━━━━\n✅ <b>Qabul qildi:</b> {who} · {stamp}"
+
+    # Tugmalardan «Olaman»ni olib tashlaymiz, xarita havolasi qolsin
+    markup = call.message.reply_markup
+    rows = []
+    if markup and markup.keyboard:
+        for row in markup.keyboard:
+            keep = [b for b in row if not (b.callback_data or "").startswith("take:")]
+            if keep:
+                rows.append(keep)
+    new_markup = types.InlineKeyboardMarkup()
+    for row in rows:
+        new_markup.row(*row)
+
+    try:
+        bot.edit_message_text(
+            updated,
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=new_markup if rows else None,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[WARN] kartochka yangilanmadi: {exc}")
 
 
 @bot.message_handler(commands=["start", "id"])

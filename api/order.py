@@ -41,13 +41,14 @@ def esc(text):
     return html.escape(str(text), quote=False)
 
 
-def send_message(token, chat_id, text):
-    """Telegram'ga xabar yuboradi."""
+def send_message(token, chat_id, text, keyboard=None):
+    """Telegram'ga xabar yuboradi (ixtiyoriy tugmalar bilan)."""
     if not token or not chat_id:
         return False, "sozlanmagan"
-    payload = urllib.parse.urlencode(
-        {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
-    ).encode("utf-8")
+    fields = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    if keyboard:
+        fields["reply_markup"] = json.dumps(keyboard, ensure_ascii=False)
+    payload = urllib.parse.urlencode(fields).encode("utf-8")
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     try:
         with urllib.request.urlopen(url, data=payload, timeout=10) as resp:
@@ -93,33 +94,97 @@ def check_init_data(init_data):
         return False, {}
 
 
-def build_card(order_text, user):
-    """Buyurtma matnini professional kartochkaga aylantiradi."""
-    lines = order_text.split("\n")
-    first = lines[0] if lines else ""
-    order_no = ""
-    if "#" in first:
-        order_no = "#" + first.split("#", 1)[1].split()[0]
-        body = "\n".join(lines[1:]).strip("\n")
+def fmt_sum(value):
+    """92000 -> '92 000 so'm'"""
+    try:
+        return f"{int(value):,}".replace(",", " ") + " so'm"
+    except (ValueError, TypeError):
+        return str(value)
+
+
+def order_number(order):
+    """Qisqa, o'sib boruvchi buyurtma raqami."""
+    raw = str(order.get("id") or "").lstrip("#")
+    if raw.isdigit():
+        return "#" + raw[-4:]
+    # Zaxira: vaqtdan olingan raqam
+    return "#" + str(int(datetime.now(TASHKENT_TZ).timestamp()))[-4:]
+
+
+def build_card(order, user):
+    """Buyurtma kartochkasi (reference ko'rinishida)."""
+    L = []
+    L.append("🆕 <b>Yangi zakaz!</b>")
+    L.append(f"📦 <b>{esc(order_number(order))}</b>")
+    L.append("━━━━━━━━━━━━━━━")
+
+    for it in order.get("items", []):
+        L.append(f"• {esc(it.get('name', '-'))} ×{it.get('qty', 1)}")
+
+    L.append("━━━━━━━━━━━━━━━")
+
+    pay = "Naqd" if order.get("payment") != "card" else "Karta"
+    L.append(f"💰 <b>{esc(fmt_sum(order.get('total', 0)))}</b> · {pay}")
+
+    name = order.get("name") or user.get("first_name") or "-"
+    L.append(f"👤 {esc(name)}")
+
+    phone = (order.get("phone") or "").replace(" ", "")
+    if phone:
+        L.append(f"📞 {esc(phone)}")
+
+    if order.get("mode") == "pickup":
+        L.append("🏃 Olib ketish")
     else:
-        body = order_text.strip("\n")
+        addr_bits = []
+        if order.get("geoLabel"):
+            addr_bits.append(order["geoLabel"])
+        parts = order.get("addrParts") or {}
+        detail = []
+        if parts.get("house"):
+            detail.append(parts["house"] + "-uy")
+        if parts.get("entrance"):
+            detail.append(parts["entrance"] + "-podyezd")
+        if parts.get("floor"):
+            detail.append(parts["floor"] + "-qavat")
+        if parts.get("flat"):
+            detail.append(parts["flat"] + "-xonadon")
+        if detail:
+            addr_bits.append(", ".join(detail))
+        if addr_bits:
+            L.append(f"📍 {esc(' · '.join(addr_bits))}")
+        if parts.get("note"):
+            L.append(f"🛵 {esc(parts['note'])}")
 
-    stamp = datetime.now(TASHKENT_TZ).strftime("%d.%m.%Y · %H:%M")
+    branch = order.get("branch") or {}
+    if branch.get("label"):
+        L.append(f"🏬 {esc(branch['label'])}")
+
+    if order.get("note"):
+        L.append(f"📝 {esc(order['note'])}")
+
     uname = user.get("username")
-    who = f"@{uname}" if uname else f"id {user.get('id', '-')}"
+    if uname:
+        L.append(f"💬 @{esc(uname)}")
 
-    header = "🔔 <b>YANGI BUYURTMA</b>"
-    if order_no:
-        header += f"  <code>{esc(order_no)}</code>"
+    return "\n".join(L)
 
-    return (
-        f"{header}\n"
-        f"<i>{stamp}</i>\n"
-        f"➖➖➖➖➖➖➖➖➖➖\n"
-        f"{esc(body)}\n"
-        f"➖➖➖➖➖➖➖➖➖➖\n"
-        f"💬 Telegram: {esc(who)}"
-    )
+
+def build_buttons(order):
+    """Kartochka tagidagi tugmalar."""
+    rows = []
+    g = order.get("geo") or {}
+    if g.get("lat") and g.get("lng"):
+        rows.append([
+            {
+                "text": "🗺 Xaritada ochish (yo'l)",
+                "url": f"https://maps.google.com/?q={g['lat']},{g['lng']}",
+            }
+        ])
+    rows.append([
+        {"text": "✅ Olaman", "callback_data": "take:" + order_number(order).lstrip("#")}
+    ])
+    return {"inline_keyboard": rows} if rows else None
 
 
 class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
@@ -133,8 +198,8 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
         except (ValueError, UnicodeDecodeError):
             return self._send(400, {"ok": False, "error": "noto'g'ri so'rov"})
 
-        order_text = (payload.get("text") or "").strip()
-        if not order_text:
+        order = payload.get("order") or {}
+        if not order.get("items"):
             return self._send(400, {"ok": False, "error": "buyurtma bo'sh"})
 
         valid, user = check_init_data(payload.get("initData", ""))
@@ -143,13 +208,13 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             return self._send(403, {"ok": False, "error": "tekshiruvdan o'tmadi"})
 
         # 1) Buyurtmani restoranga
-        ok, err = send_message(ORDERS_BOT_TOKEN, ORDERS_CHAT_ID, build_card(order_text, user))
+        card = build_card(order, user)
+        keyboard = build_buttons(order)
+        ok, err = send_message(ORDERS_BOT_TOKEN, ORDERS_CHAT_ID, card, keyboard)
         if not ok:
             print(f"[WARN] buyurtma yuborilmadi: {err}")
             # Zaxira: asosiy bot orqali adminga
-            ok, err = send_message(
-                BOT_TOKEN, ADMIN_CHAT_ID, build_card(order_text, user)
-            )
+            ok, err = send_message(BOT_TOKEN, ADMIN_CHAT_ID, card, keyboard)
             if not ok:
                 return self._send(502, {"ok": False, "error": "yuborilmadi"})
 

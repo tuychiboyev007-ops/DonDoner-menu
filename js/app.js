@@ -17,6 +17,8 @@
   const LS_ORDERS = "dondoner_orders";
   const LS_ADDR = "dondoner_addr";
   const LS_GEO = "dondoner_geo";
+  const LS_LANG = "dondoner_lang";
+  const LS_PROFILE = "dondoner_profile";
 
   /* ============ Holat ============ */
   let cart = load(LS_CART, {}); // { itemId: qty }
@@ -32,6 +34,8 @@
   let skipNextLookup = false; // qidiruvdan tanlangan nom saqlanib qolsin
   // Tuzilmali manzil maydonlari (saqlanadi)
   let addrParts = load(LS_ADDR, { house: "", flat: "", floor: "", entrance: "", note: "" });
+  let lang = localStorage.getItem(LS_LANG) || "uz";
+  let profile = load(LS_PROFILE, { name: "", phone: "" });
   const savedGeo = load(LS_GEO, null);
   if (savedGeo && savedGeo.lat) {
     geo = { lat: savedGeo.lat, lng: savedGeo.lng };
@@ -50,6 +54,22 @@
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {}
+  }
+
+  // Tarjima: kalit topilmasa o'zbekchasi, u ham bo'lmasa kalitning o'zi
+  function t(key) {
+    const dict = (window.I18N && window.I18N[lang]) || {};
+    const fallback = (window.I18N && window.I18N.uz) || {};
+    return dict[key] || fallback[key] || key;
+  }
+
+  function setLang(next) {
+    lang = next;
+    try {
+      localStorage.setItem(LS_LANG, next);
+    } catch (e) {}
+    document.documentElement.lang = next;
+    renderAll();
   }
 
   function formatPrice(v) {
@@ -266,7 +286,7 @@
         el(
           "div",
           "empty",
-          '<div class="empty__icon">🔎</div><div class="empty__text">Hech narsa topilmadi</div>'
+          '<div class="empty__icon">🔎</div><div class="empty__text">' + t("nothingFound") + '</div>'
         )
       );
     }
@@ -400,14 +420,14 @@
       el(
         "div",
         "cart-summary__row",
-        `<span>Mahsulotlar (${cartCount()})</span><span>${formatPrice(cartTotal())}</span>`
+        `<span>${t("products")} (${cartCount()})</span><span>${formatPrice(cartTotal())}</span>`
       )
     );
     summary.appendChild(
       el(
         "div",
         "cart-summary__total",
-        `<span>Jami</span><span>${formatPrice(cartTotal())}</span>`
+        `<span>${t("total")}</span><span>${formatPrice(cartTotal())}</span>`
       )
     );
     cartRoot.appendChild(summary);
@@ -418,7 +438,7 @@
     // Pastda yopishib turadigan panel: jami + buyurtma tugmasi
     const bar = el("div", "checkout-bar");
     bar.innerHTML = `<span class="checkout-bar__total">${formatPrice(cartTotal())}</span>`;
-    const goBtn = el("button", "btn btn--primary checkout-bar__btn", "Buyurtma berish");
+    const goBtn = el("button", "btn btn--primary checkout-bar__btn", t("placeOrder"));
     goBtn.addEventListener("click", submitOrder);
     bar.appendChild(goBtn);
     cartRoot.appendChild(bar);
@@ -436,9 +456,9 @@
     const modeHtml =
       '<div class="mode-cards" id="modeCards">' +
       `<button type="button" class="mode-card${mode === "delivery" ? " is-active" : ""}" data-mode="delivery">` +
-      '<span class="mode-card__tick"></span>Yetkazish</button>' +
+      '<span class="mode-card__tick"></span>' + escapeHtml(t("delivery")) + '</button>' +
       `<button type="button" class="mode-card${mode === "pickup" ? " is-active" : ""}" data-mode="pickup">` +
-      '<span class="mode-card__tick"></span>Olib ketish</button>' +
+      '<span class="mode-card__tick"></span>' + escapeHtml(t("pickup")) + '</button>' +
       "</div>";
 
     /* --- Qayerga: manzil + tuzilmali maydonlar --- */
@@ -446,20 +466,20 @@
       '<button type="button" class="addr-row" id="addrRow">' +
       '<span class="addr-row__icon">🏠</span>' +
       '<span class="addr-row__body">' +
-      '<span class="addr-row__label">Yetkazish manzili</span>' +
+      '<span class="addr-row__label">' + escapeHtml(t("deliveryAddress")) + '</span>' +
       `<span class="addr-row__value${geoLabel ? "" : " is-empty"}" id="addrValue">` +
-      escapeHtml(geoLabel || "Xaritadan tanlang") +
+      escapeHtml(geoLabel || t("chooseFromMap")) +
       "</span></span>" +
       '<span class="addr-row__arrow">›</span></button>';
 
     const gridHtml =
       '<div class="addr-grid">' +
-      `<input id="coHouse" type="text" placeholder="Uy" value="${escapeHtml(addrParts.house)}" />` +
-      `<input id="coFlat" type="text" placeholder="Xonadon" value="${escapeHtml(addrParts.flat)}" />` +
-      `<input id="coFloor" type="text" placeholder="Qavat" value="${escapeHtml(addrParts.floor)}" />` +
-      `<input id="coEntrance" type="text" placeholder="Podyezd" value="${escapeHtml(addrParts.entrance)}" />` +
+      `<input id="coHouse" type="text" placeholder="${escapeHtml(t('house'))}" value="${escapeHtml(addrParts.house)}" />` +
+      `<input id="coFlat" type="text" placeholder="${escapeHtml(t('flat'))}" value="${escapeHtml(addrParts.flat)}" />` +
+      `<input id="coFloor" type="text" placeholder="${escapeHtml(t('floor'))}" value="${escapeHtml(addrParts.floor)}" />` +
+      `<input id="coEntrance" type="text" placeholder="${escapeHtml(t('entrance'))}" value="${escapeHtml(addrParts.entrance)}" />` +
       "</div>" +
-      `<textarea id="coCourier" class="addr-note" placeholder="Kuryerga izoh">${escapeHtml(addrParts.note)}</textarea>`;
+      `<textarea id="coCourier" class="addr-note" placeholder="${escapeHtml(t('courierNote'))}">${escapeHtml(addrParts.note)}</textarea>`;
 
     /* --- Filial --- */
     const branchHtml = branches
@@ -472,24 +492,24 @@
       .join("");
 
     wrap.innerHTML =
-      '<h3 class="co-title">Yetkazish</h3>' +
+      '<h3 class="co-title">' + escapeHtml(t("delivery")) + '</h3>' +
       modeHtml +
       '<div id="whereBlock">' +
-      '<h3 class="co-title">Qayerga</h3>' +
+      '<h3 class="co-title">' + escapeHtml(t("whereTo")) + '</h3>' +
       addrRowHtml +
       gridHtml +
       "</div>" +
       (branches.length
-        ? '<h3 class="co-title">Filial</h3><div class="branch-select">' + branchHtml + "</div>"
+        ? '<h3 class="co-title">' + escapeHtml(t("branch")) + '</h3><div class="branch-select">' + branchHtml + "</div>"
         : "") +
-      '<h3 class="co-title">Mijoz</h3>' +
-      '<div class="field"><label>Ismingiz</label>' +
-      `<input id="coName" type="text" placeholder="Ism" value="${escapeHtml(defaultName)}" /></div>` +
-      '<div class="field"><label>Telefon raqam</label>' +
+      '<h3 class="co-title">' + escapeHtml(t("customer")) + '</h3>' +
+      '<div class="field"><label>' + escapeHtml(t("yourName")) + '</label>' +
+      `<input id="coName" type="text" placeholder="${escapeHtml(t('name'))}" value="${escapeHtml(defaultName)}" /></div>` +
+      '<div class="field"><label>' + escapeHtml(t("phone")) + '</label>' +
       '<div class="phone-input"><span class="phone-input__prefix">+998</span>' +
       '<input id="coPhone" type="tel" inputmode="numeric" placeholder="__ ___ __ __" /></div></div>' +
-      '<div class="field"><label>Buyurtmaga izoh</label>' +
-      '<textarea id="coNote" placeholder="Qo\'shimcha izoh"></textarea></div>';
+      '<div class="field"><label>' + escapeHtml(t("orderNote")) + '</label>' +
+      `<textarea id="coNote" placeholder="${escapeHtml(t("extraNote"))}"></textarea></div>`;
 
     /* --- Hodisalar --- */
     wrap.querySelector("#modeCards").addEventListener("click", function (e) {
@@ -614,10 +634,10 @@
   function updatePickerAddr() {
     const el = document.getElementById("pickerAddr");
     if (!pickerGeo) return;
-    el.textContent = "Manzil aniqlanmoqda…";
+    el.textContent = t("detecting");
     reverseGeocode(pickerGeo, function (addr) {
       pickerLabel = addr;
-      el.textContent = addr || "Manzil aniqlanmadi — nuqtani surib ko'ring";
+      el.textContent = addr || t("notDetected");
     });
   }
 
@@ -668,7 +688,7 @@
 
   // «Meni topish»
   function pickerLocateMe() {
-    if (!navigator.geolocation) return toast("Qurilma joylashuvni qo'llamaydi");
+    if (!navigator.geolocation) return toast(t("noGeoSupport"));
     const btn = document.getElementById("pickerLocate");
     btn.disabled = true;
     navigator.geolocation.getCurrentPosition(
@@ -685,7 +705,7 @@
       },
       function (err) {
         btn.disabled = false;
-        toast(err && err.code === 1 ? "Joylashuvga ruxsat berilmadi" : "Joylashuv aniqlanmadi");
+        toast(err && err.code === 1 ? t("geoDenied") : t("geoFailed"));
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     );
@@ -701,7 +721,48 @@
     if (currentPage === "cart") renderCart();
   }
 
+  // Til o'zgarganda hamma narsani qayta chizamiz
+  function renderAll() {
+    applyStaticLabels();
+    renderChips();
+    renderMenu();
+    renderHeader();
+    if (currentPage === "cart") renderCart();
+    else if (currentPage === "orders") renderOrders();
+    else if (currentPage === "profile") renderProfile();
+  }
+
+  // HTML'dagi qo'zg'almas yozuvlar
+  function applyStaticLabels() {
+    const map = {
+      "page-cart": "cart",
+      "page-orders": "orders",
+      "page-profile": "profile",
+    };
+    Object.keys(map).forEach(function (id) {
+      const h = document.querySelector("#" + id + " .pagehead h2");
+      if (h) h.textContent = t(map[id]);
+    });
+    const tabs = { home: "home", cart: "cart", orders: "orders", profile: "profile" };
+    document.querySelectorAll(".tabbar__btn").forEach(function (b) {
+      const label = b.querySelector(".tabbar__label");
+      if (label) label.textContent = t(tabs[b.dataset.page]);
+    });
+    document.querySelector("#searchInput").placeholder = t("searchFood");
+    document.querySelector(".delivery__label").textContent = t("address");
+    document.querySelectorAll(".segmented__btn").forEach(function (b) {
+      b.textContent = b.dataset.mode === "pickup" ? t("pickup") : t("delivery");
+    });
+    document.querySelector(".picker__title").textContent = t("newAddress");
+    document.querySelector("#pickerInput").placeholder = t("enterAddress");
+    document.querySelector("#pickerDone").textContent = t("continue");
+    document.querySelector("#sheetAdd").textContent = t("addToCart");
+    const dv = document.getElementById("deliveryAddr");
+    if (dv && !geoLabel) dv.textContent = t("chooseAddress");
+  }
+
   function setupPicker() {
+    document.getElementById("subBack").addEventListener("click", closeSub);
     document.getElementById("pickerBack").addEventListener("click", closePicker);
     document.getElementById("pickerDone").addEventListener("click", confirmPicker);
     document.getElementById("pickerLocate").addEventListener("click", pickerLocateMe);
@@ -756,13 +817,13 @@
     const phoneRaw = (document.getElementById("coPhone").value || "").trim();
     const note = (document.getElementById("coNote") || {}).value || "";
 
-    if (!name) return toast("Ismingizni kiriting");
+    if (!name) return toast(t("enterName"));
     const digits = phoneRaw.replace(/\D/g, "").slice(0, 9);
-    if (digits.length !== 9) return toast("Telefon raqamni to'liq kiriting");
+    if (digits.length !== 9) return toast(t("enterPhone"));
     const phone = formatPhone(digits);
 
     if (mode === "delivery" && !geo) {
-      return toast("Yetkazish manzilini xaritadan tanlang");
+      return toast(t("chooseAddressFirst"));
     }
 
     const items = Object.keys(cart).map(function (id) {
@@ -824,7 +885,7 @@
     } catch (e) {}
 
     // 3) Oddiy brauzer: tasdiq va Buyurtmalar sahifasi
-    toast("Buyurtma qabul qilindi ✅");
+    toast(t("orderAccepted"));
     renderOrders();
     switchPage("orders");
   }
@@ -877,36 +938,183 @@
   function renderProfile() {
     const root = document.getElementById("profileBody");
     const user = tgUser();
-    const r = window.MENU.restaurant;
-    const name = user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "Mehmon";
+    const tgName = user
+      ? [user.first_name, user.last_name].filter(Boolean).join(" ")
+      : "";
+    const name = profile.name || tgName || t("guest");
+    const phone = profile.phone || t("phoneNotSet");
     const initial = (name[0] || "M").toUpperCase();
-    const avatar = user && user.photo_url ? `<img src="${user.photo_url}" alt="" />` : initial;
-    const uname = user && user.username ? "@" + user.username : "Telegram foydalanuvchi";
+    const avatar =
+      user && user.photo_url ? `<img src="${user.photo_url}" alt="" />` : initial;
 
-    let rows = (r.branches || [])
-      .map(function (b) {
-        return (
-          `<div class="profile__row"><span class="emoji">📍</span>` +
-          `<span>${escapeHtml(b.label)}: ${escapeHtml(b.address)}<br>` +
-          `<a href="tel:${b.phone.replace(/\s/g, "")}">${escapeHtml(b.phone)}</a></span></div>`
-        );
-      })
-      .join("");
-    if (r.delivery) {
-      rows += `<div class="profile__row"><span class="emoji">🚗</span>Yetkazib berish — BEPUL</div>`;
-    }
-    if (r.instagram) {
-      rows += `<div class="profile__row"><span class="emoji">📸</span><a href="https://instagram.com/${r.instagram}" target="_blank" rel="noopener">@${r.instagram}</a></div>`;
-    }
-    rows += `<div class="profile__row"><span class="emoji">📋</span>Buyurtmalar tarixi: ${orders.length} ta</div>`;
+    const rows = [
+      { icon: "📋", label: t("myOrders"), badge: String(orders.length), screen: "orders" },
+      { icon: "🏬", label: t("branches"), screen: "branches" },
+      { icon: "ℹ️", label: t("about"), screen: "about" },
+      { icon: "📞", label: t("contacts"), screen: "contacts" },
+      { icon: "🌐", label: t("language"), badge: lang === "ru" ? "Русский" : "O'zbekcha", screen: "language" },
+    ];
 
     root.innerHTML =
-      '<div class="profile__card">' +
-      `<div class="profile__avatar">${avatar}</div>` +
-      `<div><h3 class="profile__name">${escapeHtml(name)}</h3>` +
-      `<p class="profile__sub">${escapeHtml(uname)}</p></div>` +
+      '<div class="prof-head">' +
+      `<div class="prof-head__avatar">${avatar}</div>` +
+      '<div class="prof-head__info">' +
+      `<h3 class="prof-head__name">${escapeHtml(name)}</h3>` +
+      `<p class="prof-head__phone">${escapeHtml(phone)}</p></div>` +
+      '<button class="prof-head__edit" id="profEdit" aria-label="' +
+      escapeHtml(t("editProfile")) +
+      '">✏️</button></div>' +
+      '<div class="prof-list">' +
+      rows
+        .map(function (r) {
+          return (
+            `<button type="button" class="prof-row" data-screen="${r.screen}">` +
+            `<span class="prof-row__icon">${r.icon}</span>` +
+            `<span class="prof-row__label">${escapeHtml(r.label)}</span>` +
+            (r.badge ? `<span class="prof-row__badge">${escapeHtml(r.badge)}</span>` : "") +
+            '<span class="prof-row__arrow">›</span></button>'
+          );
+        })
+        .join("") +
       "</div>" +
-      `<div class="profile__list">${rows}</div>`;
+      `<p class="prof-foot">${escapeHtml(window.MENU.restaurant.name)} · ${escapeHtml(
+        window.MENU.restaurant.tagline
+      )}</p>`;
+
+    root.querySelector("#profEdit").addEventListener("click", openProfileEdit);
+    root.querySelectorAll(".prof-row").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const screen = btn.dataset.screen;
+        if (screen === "orders") return switchPage("orders");
+        openSub(screen);
+      });
+    });
+  }
+
+  /* ---- Profil ma'lumotlarini tahrirlash ---- */
+  function openProfileEdit() {
+    haptic("light");
+    openSub("editProfile");
+  }
+
+  /* ============ Ichki ekranlar ============ */
+  function openSub(screen) {
+    const box = document.getElementById("subpage");
+    const title = document.getElementById("subTitle");
+    const body = document.getElementById("subBody");
+    const r = window.MENU.restaurant;
+    haptic("light");
+
+    if (screen === "branches") {
+      title.textContent = t("branches");
+      body.innerHTML = (r.branches || [])
+        .map(function (b) {
+          return (
+            '<div class="info-card">' +
+            `<h4>${escapeHtml(b.label)}</h4>` +
+            `<p>📍 ${escapeHtml(b.address)}</p>` +
+            `<p>📞 <a href="tel:${b.phone.replace(/\s/g, "")}">${escapeHtml(b.phone)}</a></p>` +
+            `<a class="info-link" target="_blank" rel="noopener" href="https://maps.google.com/?q=${encodeURIComponent(
+              b.address + ", Toshkent"
+            )}">🗺 ${lang === "ru" ? "Открыть на карте" : "Xaritada ochish"}</a>` +
+            "</div>"
+          );
+        })
+        .join("");
+    } else if (screen === "about") {
+      title.textContent = t("about");
+      body.innerHTML =
+        '<div class="info-card">' +
+        `<h4>${escapeHtml(r.name)}</h4>` +
+        `<p>${escapeHtml(r.tagline)}</p>` +
+        `<p>🇹🇷 ${lang === "ru" ? "Настоящий донер на дровах" : "O'tinda tayyorlangan asl doner"}</p>` +
+        `<p>🚗 ${escapeHtml(t("freeDelivery"))}</p>` +
+        "</div>";
+    } else if (screen === "contacts") {
+      title.textContent = t("contacts");
+      let html = (r.branches || [])
+        .map(function (b) {
+          return (
+            '<div class="info-card">' +
+            `<h4>${escapeHtml(b.label)}</h4>` +
+            `<p>📍 ${escapeHtml(b.address)}</p>` +
+            `<p>📞 <a href="tel:${b.phone.replace(/\s/g, "")}">${escapeHtml(b.phone)}</a></p>` +
+            "</div>"
+          );
+        })
+        .join("");
+      if (r.instagram) {
+        html +=
+          '<div class="info-card">' +
+          `<p>📸 <a href="https://instagram.com/${r.instagram}" target="_blank" rel="noopener">@${escapeHtml(
+            r.instagram
+          )}</a></p></div>`;
+      }
+      body.innerHTML = html;
+    } else if (screen === "language") {
+      title.textContent = t("language");
+      body.innerHTML =
+        '<div class="lang-list">' +
+        `<button type="button" class="lang-opt${lang === "uz" ? " is-active" : ""}" data-lang="uz">🇺🇿 O'zbekcha</button>` +
+        `<button type="button" class="lang-opt${lang === "ru" ? " is-active" : ""}" data-lang="ru">🇷🇺 Русский</button>` +
+        "</div>";
+      body.querySelectorAll(".lang-opt").forEach(function (b) {
+        b.addEventListener("click", function () {
+          setLang(b.dataset.lang);
+          closeSub();
+        });
+      });
+    } else if (screen === "editProfile") {
+      title.textContent = t("editProfile");
+      const user = tgUser();
+      const tgName = user
+        ? [user.first_name, user.last_name].filter(Boolean).join(" ")
+        : "";
+      const digits = (profile.phone || "").replace(/\D/g, "").replace(/^998/, "");
+      body.innerHTML =
+        '<div class="field"><label>' + escapeHtml(t("yourName")) + "</label>" +
+        `<input id="pfName" type="text" value="${escapeHtml(profile.name || tgName)}" /></div>` +
+        '<div class="field"><label>' + escapeHtml(t("phone")) + "</label>" +
+        '<div class="phone-input"><span class="phone-input__prefix">+998</span>' +
+        `<input id="pfPhone" type="tel" inputmode="numeric" placeholder="__ ___ __ __" value="${escapeHtml(
+          formatLocalPhone(digits)
+        )}" /></div></div>` +
+        '<button class="btn btn--primary" id="pfSave">' + escapeHtml(t("save")) + "</button>";
+
+      const pfPhone = body.querySelector("#pfPhone");
+      pfPhone.addEventListener("input", function () {
+        pfPhone.value = formatLocalPhone(pfPhone.value.replace(/\D/g, ""));
+      });
+      body.querySelector("#pfSave").addEventListener("click", function () {
+        const d = pfPhone.value.replace(/\D/g, "").slice(0, 9);
+        profile = {
+          name: body.querySelector("#pfName").value.trim(),
+          phone: d.length === 9 ? formatPhone(d) : "",
+        };
+        save(LS_PROFILE, profile);
+        toast(t("saved"));
+        closeSub();
+        renderProfile();
+      });
+    }
+
+    box.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeSub() {
+    document.getElementById("subpage").hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  // "901234567" -> "90 123 45 67"
+  function formatLocalPhone(digits) {
+    const d = String(digits).replace(/\D/g, "").replace(/^998/, "").slice(0, 9);
+    let out = d.slice(0, 2);
+    if (d.length > 2) out += " " + d.slice(2, 5);
+    if (d.length > 5) out += " " + d.slice(5, 7);
+    if (d.length > 7) out += " " + d.slice(7, 9);
+    return out;
   }
 
   /* ============ Navigatsiya ============ */
@@ -983,6 +1191,8 @@
     setupTabbar();
     setupControls();
     setupPicker();
+    document.documentElement.lang = lang;
+    applyStaticLabels();
     refreshCartUI();
   }
 

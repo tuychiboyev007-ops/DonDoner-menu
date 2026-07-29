@@ -262,7 +262,7 @@ button {
 .product__media {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: linear-gradient(135deg, var(--brand-soft), #f8ccd4);
+  background: rgba(142, 142, 152, 0.14);
   display: grid;
   place-items: center;
   font-size: 54px;
@@ -304,7 +304,7 @@ button {
 .product__add {
   margin-top: auto;
   border: none;
-  background: var(--brand-soft);
+  background: rgba(142, 142, 152, 0.14);
   color: var(--brand);
   font-size: 22px;
   font-weight: 700;
@@ -424,7 +424,7 @@ button {
   height: 64px;
   border-radius: 10px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--brand-soft), #f8ccd4);
+  background: rgba(142, 142, 152, 0.14);
   display: grid;
   place-items: center;
   font-size: 28px;
@@ -465,7 +465,7 @@ button {
   height: 30px;
   border-radius: 8px;
   border: none;
-  background: var(--brand-soft);
+  background: rgba(142, 142, 152, 0.14);
   color: var(--brand);
   font-size: 18px;
   font-weight: 700;
@@ -575,7 +575,7 @@ button {
 }
 
 .btn--ghost {
-  background: var(--brand-soft);
+  background: rgba(142, 142, 152, 0.14);
   color: var(--brand);
 }
 
@@ -609,7 +609,7 @@ button {
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--brand-soft);
+  background: rgba(142, 142, 152, 0.14);
   color: var(--brand);
 }
 
@@ -828,7 +828,7 @@ button {
 
 .sheet__media {
   height: 210px;
-  background: linear-gradient(135deg, var(--brand-soft), #f8ccd4);
+  background: rgba(142, 142, 152, 0.14);
   display: grid;
   place-items: center;
   font-size: 96px;

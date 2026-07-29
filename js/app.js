@@ -23,6 +23,9 @@
   let activeItem = null; // sheet uchun
   let selectedBranch = 0; // tanlangan filial indeksi (birinchisi standart)
   let geo = null; // aniqlangan joylashuv: { lat, lng }
+  let geoLabel = ""; // joylashuvning matnli manzili (Nominatim)
+  let mapObj = null; // Leaflet xarita nusxasi
+  let markerObj = null; // xaritadagi nuqta
 
   /* ============ Yordamchilar ============ */
   function load(key, fallback) {
@@ -429,7 +432,11 @@
       '<div class="field" id="coAddrField"><label>Yetkazish manzili</label>' +
       '<textarea id="coAddr" placeholder="Ko\'cha, uy, xonadon…"></textarea>' +
       '<button type="button" class="geo-btn" id="geoBtn">📍 Joylashuvimni aniqlash</button>' +
-      '<div class="geo-status" id="geoStatus" hidden></div></div>' +
+      '<div class="geo-box" id="geoBox" hidden>' +
+      '<div class="geo-map" id="geoMap"></div>' +
+      '<div class="geo-hint">Nuqtani surib aniq joyni belgilashingiz mumkin</div>' +
+      '<div class="geo-addr" id="geoAddr"></div>' +
+      "</div></div>" +
       '<div class="field"><label>Izoh (ixtiyoriy)</label>' +
       '<textarea id="coNote" placeholder="Qo\'shimcha izoh"></textarea></div>';
 
@@ -449,11 +456,14 @@
 
     // Joylashuvni aniqlash
     const geoBtn = wrap.querySelector("#geoBtn");
-    const geoStatus = wrap.querySelector("#geoStatus");
-    if (geo) showGeo(geoStatus);
     geoBtn.addEventListener("click", function () {
-      requestGeo(geoBtn, geoStatus);
+      requestGeo(geoBtn);
     });
+    if (geo) {
+      geoBtn.textContent = "📍 Joylashuvni yangilash";
+      // DOM'ga qo'shilgandan keyin xaritani chizamiz
+      setTimeout(showGeoMap, 0);
+    }
 
     // Filial tanlash bosilganda
     wrap.querySelectorAll(".branch-opt").forEach(function (b) {
@@ -483,16 +493,93 @@
     return "https://maps.google.com/?q=" + g.lat + "," + g.lng;
   }
 
-  function showGeo(statusEl) {
-    if (!statusEl || !geo) return;
-    statusEl.hidden = false;
-    statusEl.innerHTML =
-      '✅ Joylashuv aniqlandi — <a href="' +
-      mapsLink(geo) +
-      '" target="_blank" rel="noopener">xaritada ko\'rish</a>';
+  // Manzil nomini aniqlash (OpenStreetMap Nominatim — bepul)
+  function lookupAddress(g) {
+    const addrEl = document.getElementById("geoAddr");
+    if (addrEl) addrEl.textContent = "Manzil aniqlanmoqda…";
+    fetch("/api/geocode?lat=" + g.lat + "&lng=" + g.lng)
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        geoLabel = (d && d.address) || "";
+        const el = document.getElementById("geoAddr");
+        if (el) el.textContent = geoLabel ? "📍 " + geoLabel : "";
+      })
+      .catch(function () {
+        geoLabel = "";
+        const el = document.getElementById("geoAddr");
+        if (el) el.textContent = "";
+      });
   }
 
-  function requestGeo(btn, statusEl) {
+  // Xaritani ko'rsatish (nuqtani surish mumkin)
+  function showGeoMap() {
+    const box = document.getElementById("geoBox");
+    const mapEl = document.getElementById("geoMap");
+    if (!box || !mapEl || !geo) return;
+    box.hidden = false;
+
+    if (typeof L === "undefined") {
+      // Leaflet yuklanmasa — oddiy havola bilan cheklanamiz
+      mapEl.innerHTML =
+        '<a class="geo-fallback" href="' +
+        mapsLink(geo) +
+        '" target="_blank" rel="noopener">🗺 Xaritada ko\'rish</a>';
+      return;
+    }
+
+    const pos = [parseFloat(geo.lat), parseFloat(geo.lng)];
+    if (mapObj) {
+      mapObj.remove();
+      mapObj = null;
+    }
+    mapObj = L.map(mapEl, { attributionControl: false }).setView(pos, 17);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+    }).addTo(mapObj);
+
+    markerObj = L.marker(pos, { draggable: true }).addTo(mapObj);
+    markerObj.on("dragend", function () {
+      const p = markerObj.getLatLng();
+      geo = { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) };
+      haptic("light");
+      lookupAddress(geo);
+    });
+    mapObj.on("click", function (e) {
+      markerObj.setLatLng(e.latlng);
+      geo = { lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6) };
+      haptic("light");
+      lookupAddress(geo);
+    });
+
+    // Yashirin holatda chizilgani uchun o'lchamni yangilaymiz
+    setTimeout(function () {
+      if (mapObj) mapObj.invalidateSize();
+    }, 120);
+
+    // Plitkalar yuklanmasa (internet sekin/bloklangan) — havola ko'rsatamiz
+    setTimeout(function () {
+      const tiles = mapEl.querySelectorAll("img.leaflet-tile");
+      let ok = 0;
+      tiles.forEach(function (t) {
+        if (t.naturalWidth > 0) ok++;
+      });
+      if (ok === 0) {
+        const hint = document.querySelector(".geo-hint");
+        if (hint) {
+          hint.innerHTML =
+            'Xarita yuklanmadi — <a href="' +
+            mapsLink(geo) +
+            '" target="_blank" rel="noopener">xaritada ochish</a>';
+        }
+      }
+    }, 5000);
+
+    lookupAddress(geo);
+  }
+
+  function requestGeo(btn) {
     if (!navigator.geolocation) {
       toast("Qurilma joylashuvni qo'llab-quvvatlamaydi");
       return;
@@ -509,7 +596,7 @@
         };
         btn.disabled = false;
         btn.textContent = "📍 Joylashuvni yangilash";
-        showGeo(statusEl);
+        showGeoMap();
         toast("Joylashuv aniqlandi ✅");
         haptic("medium");
       },
@@ -549,6 +636,7 @@
     }
     L.push("🚚 " + (order.mode === "pickup" ? "Olib ketish" : "Yetkazish"));
     if (order.mode !== "pickup" && order.address) L.push("📍 " + order.address);
+    if (order.geoLabel) L.push("📌 " + order.geoLabel);
     if (order.geo) L.push("🗺 " + mapsLink(order.geo));
     L.push("");
     L.push("👤 " + order.name);
@@ -590,6 +678,7 @@
       phone: phone,
       address: addr.trim(),
       geo: mode === "delivery" ? geo : null,
+      geoLabel: mode === "delivery" ? geoLabel : "",
       note: note.trim(),
       items: items,
       total: cartTotal(),

@@ -572,19 +572,49 @@ button {
   cursor: default;
 }
 
-.geo-status {
-  margin-top: 6px;
-  font-size: 13px;
-  color: var(--muted);
+/* Xarita ko'rsatiladigan quti */
+.geo-box {
+  margin-top: 10px;
 }
 
-.geo-status[hidden] {
+.geo-box[hidden] {
   display: none;
 }
 
-.geo-status a {
+.geo-map {
+  height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: rgba(142, 142, 152, 0.14);
+  display: grid;
+  place-items: center;
+}
+
+/* Leaflet ustidagi elementlar tabbar ostida qolsin */
+.geo-map .leaflet-pane,
+.geo-map .leaflet-control {
+  z-index: 1;
+}
+
+.geo-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.geo-addr {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.geo-fallback {
   color: var(--link);
   font-weight: 600;
+  text-decoration: none;
 }
 
 /* ---------- Filial tanlash ---------- */

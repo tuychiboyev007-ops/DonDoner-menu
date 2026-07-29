@@ -2,14 +2,16 @@
   "builds": [
     { "src": "api/webhook.py", "use": "@vercel/python" },
     { "src": "api/orders.py", "use": "@vercel/python" },
+    { "src": "api/geocode.py", "use": "@vercel/python" },
     {
-      "src": "{index.html,css/**,js/**,data/**,images/**}",
+      "src": "{index.html,css/**,js/**,data/**,images/**,vendor/**}",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     { "src": "/api/webhook", "dest": "/api/webhook.py" },
     { "src": "/api/orders", "dest": "/api/orders.py" },
+    { "src": "/api/geocode(\\?.*)?", "dest": "/api/geocode.py" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]

@@ -22,6 +22,7 @@
   let mode = "delivery"; // delivery | pickup
   let activeItem = null; // sheet uchun
   let selectedBranch = 0; // tanlangan filial indeksi (birinchisi standart)
+  let geo = null; // aniqlangan joylashuv: { lat, lng }
 
   /* ============ Yordamchilar ============ */
   function load(key, fallback) {
@@ -88,6 +89,29 @@
     try {
       tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(type || "light");
     } catch (e) {}
+  }
+
+  /* ---- Telefon: +998 XX XXX XX XX ko'rinishida formatlash ---- */
+  const PHONE_PREFIX = "+998 ";
+
+  function formatPhone(raw) {
+    // "998" dan keyingi raqamlarni ajratib olamiz (maks 9 ta)
+    let digits = raw.replace(/\D/g, "");
+    if (digits.indexOf("998") === 0) digits = digits.slice(3);
+    digits = digits.slice(0, 9);
+
+    let out = PHONE_PREFIX;
+    if (digits.length) out += digits.slice(0, 2);
+    if (digits.length > 2) out += " " + digits.slice(2, 5);
+    if (digits.length > 5) out += " " + digits.slice(5, 7);
+    if (digits.length > 7) out += " " + digits.slice(7, 9);
+    return out;
+  }
+
+  function phoneDigits(value) {
+    let d = value.replace(/\D/g, "");
+    if (d.indexOf("998") === 0) d = d.slice(3);
+    return d;
   }
 
   function toast(msg) {
@@ -401,11 +425,35 @@
       '<div class="field"><label>Ismingiz</label>' +
       `<input id="coName" type="text" placeholder="Ism" value="${escapeHtml(defaultName)}" /></div>` +
       '<div class="field"><label>Telefon raqam</label>' +
-      '<input id="coPhone" type="tel" placeholder="+998 __ ___ __ __" /></div>' +
+      `<input id="coPhone" type="tel" inputmode="numeric" value="${PHONE_PREFIX}" /></div>` +
       '<div class="field" id="coAddrField"><label>Yetkazish manzili</label>' +
-      '<textarea id="coAddr" placeholder="Ko\'cha, uy, xonadon…"></textarea></div>' +
+      '<textarea id="coAddr" placeholder="Ko\'cha, uy, xonadon…"></textarea>' +
+      '<button type="button" class="geo-btn" id="geoBtn">📍 Joylashuvimni aniqlash</button>' +
+      '<div class="geo-status" id="geoStatus" hidden></div></div>' +
       '<div class="field"><label>Izoh (ixtiyoriy)</label>' +
       '<textarea id="coNote" placeholder="Qo\'shimcha izoh"></textarea></div>';
+
+    // Telefon maydoni — har doim +998 bilan boshlanadi
+    const phoneInput = wrap.querySelector("#coPhone");
+    phoneInput.addEventListener("input", function () {
+      phoneInput.value = formatPhone(phoneInput.value);
+    });
+    phoneInput.addEventListener("focus", function () {
+      if (!phoneInput.value.trim()) phoneInput.value = PHONE_PREFIX;
+      // Kursorni oxiriga qo'yamiz (prefiksni o'chirib yubormasin)
+      setTimeout(function () {
+        const end = phoneInput.value.length;
+        phoneInput.setSelectionRange(end, end);
+      }, 0);
+    });
+
+    // Joylashuvni aniqlash
+    const geoBtn = wrap.querySelector("#geoBtn");
+    const geoStatus = wrap.querySelector("#geoStatus");
+    if (geo) showGeo(geoStatus);
+    geoBtn.addEventListener("click", function () {
+      requestGeo(geoBtn, geoStatus);
+    });
 
     // Filial tanlash bosilganda
     wrap.querySelectorAll(".branch-opt").forEach(function (b) {
@@ -428,6 +476,54 @@
       if (af) af.style.display = "none";
     }
     return wrap;
+  }
+
+  /* ============ Joylashuv ============ */
+  function mapsLink(g) {
+    return "https://maps.google.com/?q=" + g.lat + "," + g.lng;
+  }
+
+  function showGeo(statusEl) {
+    if (!statusEl || !geo) return;
+    statusEl.hidden = false;
+    statusEl.innerHTML =
+      '✅ Joylashuv aniqlandi — <a href="' +
+      mapsLink(geo) +
+      '" target="_blank" rel="noopener">xaritada ko\'rish</a>';
+  }
+
+  function requestGeo(btn, statusEl) {
+    if (!navigator.geolocation) {
+      toast("Qurilma joylashuvni qo'llab-quvvatlamaydi");
+      return;
+    }
+    haptic("light");
+    btn.disabled = true;
+    btn.textContent = "⏳ Aniqlanmoqda…";
+
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        geo = {
+          lat: pos.coords.latitude.toFixed(6),
+          lng: pos.coords.longitude.toFixed(6),
+        };
+        btn.disabled = false;
+        btn.textContent = "📍 Joylashuvni yangilash";
+        showGeo(statusEl);
+        toast("Joylashuv aniqlandi ✅");
+        haptic("medium");
+      },
+      function (err) {
+        btn.disabled = false;
+        btn.textContent = "📍 Joylashuvimni aniqlash";
+        const msg =
+          err && err.code === 1
+            ? "Joylashuvga ruxsat berilmadi"
+            : "Joylashuv aniqlanmadi";
+        toast(msg + " — manzilni qo'lda yozing");
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
   }
 
   /* ============ Buyurtma yuborish ============ */
@@ -453,6 +549,7 @@
     }
     L.push("🚚 " + (order.mode === "pickup" ? "Olib ketish" : "Yetkazish"));
     if (order.mode !== "pickup" && order.address) L.push("📍 " + order.address);
+    if (order.geo) L.push("🗺 " + mapsLink(order.geo));
     L.push("");
     L.push("👤 " + order.name);
     L.push("📞 " + order.phone);
@@ -467,8 +564,12 @@
     const note = (document.getElementById("coNote") || {}).value || "";
 
     if (!name) return toast("Ismingizni kiriting");
-    if (!phone) return toast("Telefon raqamni kiriting");
-    if (mode === "delivery" && !addr.trim()) return toast("Yetkazish manzilini kiriting");
+    if (phoneDigits(phone).length !== 9) {
+      return toast("Telefon raqamni to'liq kiriting");
+    }
+    if (mode === "delivery" && !addr.trim() && !geo) {
+      return toast("Manzilni yozing yoki joylashuvni aniqlang");
+    }
 
     const items = Object.keys(cart).map(function (id) {
       const it = findItem(id);
@@ -488,6 +589,7 @@
       name: name,
       phone: phone,
       address: addr.trim(),
+      geo: mode === "delivery" ? geo : null,
       note: note.trim(),
       items: items,
       total: cartTotal(),

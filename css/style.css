@@ -548,6 +548,45 @@ button {
   min-height: 60px;
 }
 
+/* ---------- Joylashuv tugmasi ---------- */
+.geo-btn {
+  width: 100%;
+  margin-top: 8px;
+  border: 1.5px dashed var(--line);
+  background: transparent;
+  color: var(--brand);
+  border-radius: 12px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.geo-btn:active {
+  background: rgba(216, 19, 39, 0.06);
+}
+
+.geo-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.geo-status {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.geo-status[hidden] {
+  display: none;
+}
+
+.geo-status a {
+  color: var(--link);
+  font-weight: 600;
+}
+
 /* ---------- Filial tanlash ---------- */
 .branch-select {
   display: flex;

@@ -46,6 +46,54 @@ STATUS_LABELS = {
 }
 
 
+# Holat qatori aynan shu nomlar bilan boshlanadi.
+# Belgiga qarab emas, to'liq nomga qarab tekshiramiz — aks holda
+# kuryerga izoh (🛵 ...) ham holat deb o'chirilib ketardi.
+STATUS_PREFIXES = tuple(label for label, _ in STATUS_LABELS.values())
+
+# Keyingi qadam tugmalari — faqat mantiqan keladigan amal ko'rsatiladi
+NEXT_ACTIONS = {
+    "new": [("✅ Olaman", "accepted"), ("❌ Bekor", "cancelled")],
+    "accepted": [("👨\u200d🍳 Tayyorlanmoqda", "cooking"), ("❌ Bekor", "cancelled")],
+    "cooking": [("🛵 Yo'lda", "onway"), ("❌ Bekor", "cancelled")],
+    "onway": [("🏁 Yetkazildi", "done")],
+    "done": [],
+    "cancelled": [],
+}
+
+
+def order_keyboard(status, path, geo=None):
+    """Kartochka tugmalari: xarita + keyingi qadam."""
+    kb = types.InlineKeyboardMarkup()
+    g = geo or {}
+    if g.get("lat") and g.get("lng"):
+        kb.row(
+            types.InlineKeyboardButton(
+                "🗺 Xaritada ochish (yo'l)",
+                url=f"https://maps.google.com/?q={g['lat']},{g['lng']}",
+            )
+        )
+    actions = NEXT_ACTIONS.get(status, [])
+    if actions:
+        kb.row(
+            *[
+                types.InlineKeyboardButton(text, callback_data=f"st:{code}:{path}")
+                for text, code in actions
+            ]
+        )
+    return kb if kb.keyboard else None
+
+
+def strip_status_lines(text):
+    """Kartochkadan eski holat qatorlarini olib tashlaydi."""
+    lines = text.split("\n")
+    while lines and lines[-1].strip().startswith(STATUS_PREFIXES):
+        lines.pop()
+    while lines and not lines[-1].strip():
+        lines.pop()
+    return "\n".join(lines)
+
+
 def notify_customer(chat_id, text):
     """Mijozga asosiy bot orqali xabar yuboradi."""
     if not (BOT_TOKEN and chat_id):
@@ -71,8 +119,6 @@ def cb_status(call):
         return bot.answer_callback_query(call.id, "Noma'lum holat")
 
     who = call.from_user.first_name or "Xodim"
-    if call.from_user.username:
-        who += f" (@{call.from_user.username})"
     stamp = datetime.now(TASHKENT_TZ).strftime("%H:%M")
 
     try:
@@ -82,25 +128,22 @@ def cb_status(call):
 
     # Bazada holatni yangilaymiz va mijozga xabar beramiz
     record = _store.update_status(path, status, who) if path else None
+    geo = ((record or {}).get("order") or {}).get("geo")
     if record and customer_text:
         user = record.get("user") or {}
         num = record.get("number", "")
         notify_customer(user.get("id"), f"{customer_text}\n\nRaqami: <b>#{num}</b>")
 
-    # Kartochkaga holat qatorini qo'shamiz
-    original = call.message.html_text or call.message.text or ""
-    line = f"{label} · {who} · {stamp}"
-    if line in original:
-        return
-    updated = f"{original}\n{line}"
-
-    # Bajarilgan/bekor qilingan bo'lsa — tugmalarni olib tashlaymiz
-    keep_buttons = status not in ("done", "cancelled")
-    markup = call.message.reply_markup if keep_buttons else None
+    # Kartochkada faqat BITTA holat qatori turadi — eskisi almashtiriladi
+    base = strip_status_lines(call.message.html_text or call.message.text or "")
+    updated = f"{base}\n\n{label} · {who} · {stamp}"
 
     try:
         bot.edit_message_text(
-            updated, call.message.chat.id, call.message.message_id, reply_markup=markup
+            updated,
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=order_keyboard(status, path, geo),
         )
     except Exception as exc:  # noqa: BLE001
         print(f"[WARN] kartochka yangilanmadi: {exc}")

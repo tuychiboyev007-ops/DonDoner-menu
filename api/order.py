@@ -167,7 +167,7 @@ def build_card(order, user, number=None):
 
 
 def build_buttons(order, path):
-    """Kartochka tagidagi tugmalar."""
+    """Yangi buyurtma kartochkasi tugmalari: xarita + keyingi qadam."""
     rows = []
     g = order.get("geo") or {}
     if g.get("lat") and g.get("lng"):
@@ -177,20 +177,10 @@ def build_buttons(order, path):
                 "url": f"https://maps.google.com/?q={g['lat']},{g['lng']}",
             }
         ])
-    # Holat tugmalari — callback_data 64 baytdan oshmasligi kerak
-    ref = path or ""
     rows.append([
-        {"text": "✅ Olaman", "callback_data": f"st:accepted:{ref}"},
+        {"text": "✅ Olaman", "callback_data": f"st:accepted:{path}"},
+        {"text": "❌ Bekor", "callback_data": f"st:cancelled:{path}"},
     ])
-    rows.append([
-        {"text": "👨‍🍳 Tayyorlanmoqda", "callback_data": f"st:cooking:{ref}"},
-        {"text": "🛵 Yo'lda", "callback_data": f"st:onway:{ref}"},
-    ])
-    rows.append([
-        {"text": "🏁 Yetkazildi", "callback_data": f"st:done:{ref}"},
-        {"text": "❌ Bekor", "callback_data": f"st:cancelled:{ref}"},
-    ])
-    rows.append([{"text": "📋 Bugungi ro'yxat", "callback_data": "list:today"}])
     return {"inline_keyboard": rows}
 
 

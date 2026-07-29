@@ -398,6 +398,26 @@
   }
 
   /* ============ Buyurtma yuborish ============ */
+  // Buyurtmani chatga tayyor xabar (draft) sifatida qo'yamiz —
+  // mijoz faqat "yuborish"ni bosadi, bot esa buyurtmani adminga uzatadi.
+  // Bu usul serversiz ishlaydi va inline «Ochish» tugmasi bilan mos.
+  function buildOrderText(order) {
+    const L = [];
+    L.push("🧾 YANGI BUYURTMA " + order.id);
+    L.push("");
+    order.items.forEach(function (i) {
+      L.push("• " + i.name + " ×" + i.qty + " — " + formatPrice(i.price * i.qty));
+    });
+    L.push("");
+    L.push("💰 Jami: " + formatPrice(order.total));
+    L.push("🚚 " + (order.mode === "pickup" ? "Olib ketish" : "Yetkazish"));
+    L.push("👤 " + order.name);
+    L.push("📞 " + order.phone);
+    if (order.mode !== "pickup" && order.address) L.push("📍 " + order.address);
+    if (order.note) L.push("📝 " + order.note);
+    return L.join("\n");
+  }
+
   function submitOrder() {
     const name = (document.getElementById("coName").value || "").trim();
     const phone = (document.getElementById("coPhone").value || "").trim();
@@ -426,35 +446,42 @@
       status: "Yangi",
     };
 
-    // 1) Telegram botga yuborish (agar sendData mavjud bo'lsa)
-    let sent = false;
-    try {
-      if (tg && typeof tg.sendData === "function") {
-        tg.sendData(JSON.stringify({ type: "order", order: order }));
-        sent = true;
-      }
-    } catch (e) {}
-
-    // 2) Buyurtmani lokal tarixga saqlash
+    // Buyurtmani lokal tarixga saqlash va savatni tozalash
     orders.unshift(order);
     save(LS_ORDERS, orders);
-
-    // 3) Savatni tozalash
     cart = {};
     save(LS_CART, cart);
     refreshCartUI();
-
     haptic("medium");
 
-    if (sent) {
-      // sendData chaqirilsa Telegram Mini App odatda yopiladi
-      toast("Buyurtma yuborildi ✅");
-    } else {
-      // Web/menu-tugma rejimida: tasdiq va Buyurtmalar sahifasi
-      toast("Buyurtma qabul qilindi ✅");
-      renderOrders();
-      switchPage("orders");
-    }
+    // 1) Asosiy yo'l: chatga tayyor buyurtma matnini qo'yish.
+    //    Ilova yopiladi, mijoz faqat "yuborish"ni bosadi.
+    const botUsername = window.MENU.restaurant.botUsername;
+    try {
+      if (tg && typeof tg.openTelegramLink === "function" && botUsername) {
+        tg.openTelegramLink(
+          "https://t.me/" +
+            botUsername +
+            "?text=" +
+            encodeURIComponent(buildOrderText(order))
+        );
+        return;
+      }
+    } catch (e) {}
+
+    // 2) Zaxira: klaviatura tugmasidan ochilgan bo'lsa — sendData
+    try {
+      if (tg && typeof tg.sendData === "function") {
+        tg.sendData(JSON.stringify({ type: "order", order: order }));
+        toast("Buyurtma yuborildi ✅");
+        return;
+      }
+    } catch (e) {}
+
+    // 3) Oddiy brauzer: tasdiq va Buyurtmalar sahifasi
+    toast("Buyurtma qabul qilindi ✅");
+    renderOrders();
+    switchPage("orders");
   }
 
   /* ============ Buyurtmalar sahifasi ============ */

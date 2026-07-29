@@ -3,9 +3,10 @@
 DonDoner — Telegram bot (backend)
 ====================================================================
 Vazifasi:
-  1. /start — xush kelibsiz xabari + Mini App'ni ochadigan tugma.
-  2. Mini App'dan kelgan buyurtmani (web_app_data) qabul qiladi,
-     ADMIN'ga yuboradi va mijozga tasdiq beradi.
+  1. /start — qisqa xush kelibsiz + xabar tagiga yopishgan (inline)
+     «Ochish» va «✍️ Fikr qoldirish» tugmalari.
+  2. Mini App'dan kelgan buyurtma matnini (🧾 bilan boshlanadi) qabul
+     qiladi: ADMIN'ga uzatadi va mijozga tasdiq beradi.
   3. ✍️ Fikr qoldirish — mijoz fikri ADMIN'ga boradi.
   4. Eslatma: menyuni ochib buyurtma qilmagan mijozga bir muddatdan
      keyin bitta yumshoq eslatma yuboriladi.
@@ -21,7 +22,6 @@ Ishga tushirish:
 """
 
 import os
-import json
 import time
 import threading
 from datetime import datetime
@@ -58,9 +58,7 @@ RESTAURANT = {
 # Menyuni ochib, shuncha vaqt ichida buyurtma qilmaganlarga eslatma
 NUDGE_AFTER_SECONDS = 45 * 60  # 45 daqiqa
 
-BTN_MENU = "Ochish"
-BTN_FEEDBACK = "✍️ Fikr qoldirish"
-KNOWN_BUTTONS = {BTN_MENU, BTN_FEEDBACK}
+ORDER_PREFIX = "🧾"  # Mini App'dan keladigan buyurtma matni shu bilan boshlanadi
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
@@ -69,17 +67,16 @@ _nudge_queue = {}
 _nudge_lock = threading.Lock()
 
 
-def menu_keyboard():
-    """Asosiy klaviatura.
-
-    DIQQAT: web_app tugmasi REPLY klaviaturada bo'lgandagina Mini App
-    buyurtmani botga qaytara oladi (sendData). Shuning uchun menyu shu
-    tugma orqali ochilishi kerak.
-    """
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+def inline_keyboard():
+    """Xabar tagiga yopishgan tugmalar (reference ko'rinishi)."""
+    kb = types.InlineKeyboardMarkup()
     if WEBAPP_URL:
-        kb.add(types.KeyboardButton(BTN_MENU, web_app=types.WebAppInfo(WEBAPP_URL)))
-    kb.add(types.KeyboardButton(BTN_FEEDBACK))
+        kb.add(
+            types.InlineKeyboardButton(
+                "Ochish", web_app=types.WebAppInfo(WEBAPP_URL)
+            )
+        )
+    kb.add(types.InlineKeyboardButton("✍️ Fikr qoldirish", callback_data="feedback"))
     return kb
 
 
@@ -91,18 +88,41 @@ def cmd_start(message):
             "\n\n⚠️ <i>WEBAPP_URL hali sozlanmagan. .env faylida Mini App "
             "manzilini ko'rsating.</i>"
         )
-    bot.send_message(message.chat.id, text, reply_markup=menu_keyboard())
+    # Avval eski (reply) klaviaturani tozalaymiz, so'ng xuddi shu xabarga
+    # inline tugmalarni yopishtiramiz — ekranda bitta toza xabar qoladi.
+    sent = bot.send_message(
+        message.chat.id, text, reply_markup=types.ReplyKeyboardRemove()
+    )
+    try:
+        bot.edit_message_reply_markup(
+            message.chat.id, sent.message_id, reply_markup=inline_keyboard()
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[WARN] Inline tugmalarni qo'shib bo'lmadi: {exc}")
 
     # Eslatma navbatiga qo'shamiz (buyurtma qilsa — o'chiriladi)
     with _nudge_lock:
         _nudge_queue[message.chat.id] = time.time()
 
 
-@bot.message_handler(func=lambda m: m.text == BTN_FEEDBACK)
-def cmd_feedback(message):
+@bot.callback_query_handler(func=lambda c: c.data == "feedback")
+def cb_feedback(call):
+    bot.answer_callback_query(call.id)
+    msg = bot.send_message(
+        call.message.chat.id,
+        "Fikringizni yozib qoldiring — biz uchun juda muhim! 👇",
+        reply_markup=types.ReplyKeyboardRemove(),
+    )
+    bot.register_next_step_handler(msg, on_feedback_text)
+
+
+# Eski versiya klaviaturasidan qolgan tugma bosilsa ham ishlasin
+@bot.message_handler(func=lambda m: (m.text or "") == "✍️ Fikr qoldirish")
+def legacy_feedback_button(message):
     msg = bot.send_message(
         message.chat.id,
         "Fikringizni yozib qoldiring — biz uchun juda muhim! 👇",
+        reply_markup=types.ReplyKeyboardRemove(),
     )
     bot.register_next_step_handler(msg, on_feedback_text)
 
@@ -110,7 +130,7 @@ def cmd_feedback(message):
 def on_feedback_text(message):
     """Fikr matnini qabul qilib, adminga yuboradi."""
     text = (message.text or "").strip()
-    if not text or text in KNOWN_BUTTONS or text.startswith("/"):
+    if not text or text.startswith("/") or text.startswith(ORDER_PREFIX):
         bot.send_message(message.chat.id, "Fikr qoldirish bekor qilindi.")
         return
 
@@ -130,26 +150,13 @@ def on_feedback_text(message):
     else:
         print(f"[FEEDBACK] {who}: {text}")
 
-    bot.send_message(
-        message.chat.id,
-        "Rahmat! Fikringiz qabul qilindi 🙏",
-        reply_markup=menu_keyboard(),
-    )
+    bot.send_message(message.chat.id, "Rahmat! Fikringiz qabul qilindi 🙏")
 
 
-@bot.message_handler(content_types=["web_app_data"])
-def on_web_app_data(message):
-    """Mini App'dan kelgan buyurtmani qabul qiladi."""
-    try:
-        payload = json.loads(message.web_app_data.data)
-    except (ValueError, AttributeError):
-        bot.send_message(message.chat.id, "Buyurtmani o'qib bo'lmadi 😕")
-        return
-
-    if payload.get("type") != "order":
-        return
-
-    order = payload.get("order", {})
+@bot.message_handler(func=lambda m: (m.text or "").startswith(ORDER_PREFIX))
+def on_order_text(message):
+    """Mini App chatga qo'ygan buyurtma xabarini qabul qiladi."""
+    user = message.from_user
 
     # Buyurtma qildi — eslatma kerak emas
     with _nudge_lock:
@@ -158,14 +165,18 @@ def on_web_app_data(message):
     # Mijozga tasdiq
     bot.send_message(
         message.chat.id,
-        f"✅ Buyurtmangiz qabul qilindi!\n\n"
-        f"Raqami: <b>{order.get('id', '-')}</b>\n"
-        f"Tez orada operator siz bilan bog'lanadi. Rahmat! 🙌",
-        reply_markup=menu_keyboard(),
+        "✅ Buyurtmangiz qabul qilindi!\n"
+        "Tez orada operator siz bilan bog'lanadi. Rahmat! 🙌",
+        reply_markup=inline_keyboard(),
     )
 
-    # Adminga to'liq buyurtma
-    admin_text = format_order_for_admin(order, message.from_user)
+    # Adminga uzatish
+    who = f"tg id: {user.id}" + (f" (@{user.username})" if user.username else "")
+    admin_text = (
+        f"🆕 <b>YANGI BUYURTMA</b>\n"
+        f"🕒 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+        f"{message.text}\n\n{who}"
+    )
     if ADMIN_CHAT_ID:
         try:
             bot.send_message(ADMIN_CHAT_ID, admin_text)
@@ -173,37 +184,6 @@ def on_web_app_data(message):
             print(f"[WARN] Adminga yuborilmadi: {exc}")
     else:
         print("[ORDER]\n" + admin_text)
-
-
-def format_order_for_admin(order, user):
-    lines = ["🆕 <b>YANGI BUYURTMA</b>", ""]
-    lines.append(f"№ {order.get('id', '-')}")
-    lines.append(f"🕒 {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-    lines.append(
-        "🚚 " + ("Olib ketish" if order.get("mode") == "pickup" else "Yetkazish")
-    )
-    lines.append("")
-    lines.append(f"👤 {order.get('name', '-')}")
-    lines.append(f"📞 {order.get('phone', '-')}")
-    if order.get("mode") != "pickup" and order.get("address"):
-        lines.append(f"📍 {order.get('address')}")
-    if order.get("note"):
-        lines.append(f"📝 {order.get('note')}")
-    lines.append("")
-    lines.append("<b>Buyurtma:</b>")
-    for it in order.get("items", []):
-        line_total = it.get("price", 0) * it.get("qty", 0)
-        lines.append(
-            f"  • {it.get('name')} ×{it.get('qty')} — {line_total:,} so'm".replace(
-                ",", " "
-            )
-        )
-    total = order.get("total", 0)
-    lines.append("")
-    lines.append(f"💰 <b>Jami: {total:,} so'm</b>".replace(",", " "))
-    lines.append("")
-    lines.append(f"tg id: {user.id}" + (f" (@{user.username})" if user.username else ""))
-    return "\n".join(lines)
 
 
 def nudge_loop():
@@ -223,7 +203,7 @@ def nudge_loop():
                     chat_id,
                     "Taomlarimizni ko'rib chiqdingiz 👀\n"
                     "Davom etamizmi? Sizga yoqadigan yana ko'p narsamiz bor! 🥙",
-                    reply_markup=menu_keyboard(),
+                    reply_markup=inline_keyboard(),
                 )
             except Exception as exc:  # noqa: BLE001
                 print(f"[WARN] Eslatma yuborilmadi ({chat_id}): {exc}")
@@ -232,7 +212,7 @@ def nudge_loop():
 if __name__ == "__main__":
     print("🤖 DonDoner bot ishga tushdi...")
     if not WEBAPP_URL:
-        print("⚠️  WEBAPP_URL sozlanmagan — Mini App tugmasi ko'rinmaydi.")
+        print("⚠️  WEBAPP_URL sozlanmagan — «Ochish» tugmasi ko'rinmaydi.")
     if not ADMIN_CHAT_ID:
         print("⚠️  ADMIN_CHAT_ID sozlanmagan — buyurtmalar konsolga chiqadi.")
     threading.Thread(target=nudge_loop, daemon=True).start()

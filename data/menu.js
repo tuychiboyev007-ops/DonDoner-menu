@@ -15,6 +15,7 @@ const MENU = {
   restaurant: {
     name: "DonDoner",
     tagline: "o'tinda doner 🔥",
+    botUsername: "DonDoner_bot",
     currency: "so'm",
     phone: "+998 90 000 00 00",
     address: "Toshkent sh.",

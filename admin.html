@@ -2,23 +2,25 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
 <title>DonDöner — Admin</title>
 <style>
   :root {
     --brand: #d81327;
-    --bg: #f4f5f7;
+    --bg: #f2f3f5;
     --card: #ffffff;
     --text: #16181c;
     --muted: #8a8f98;
-    --line: rgba(128, 128, 128, 0.2);
+    --line: rgba(120, 120, 130, 0.22);
+    --ok: #1f9d55;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0e0f11;
-      --card: #1c1c1e;
-      --text: #f2f2f2;
-      --muted: #9a9a9a;
+      --bg: #0d0e10;
+      --card: #1b1c1f;
+      --text: #f3f3f3;
+      --muted: #9a9ba0;
       --line: rgba(255, 255, 255, 0.14);
     }
   }
@@ -28,112 +30,167 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
   }
-  header {
-    background: #000;
-    color: #fff;
-    padding: calc(env(safe-area-inset-top) + 14px) 18px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 5;
+  button, input, textarea, select { font-family: inherit; }
+
+  /* ---------- Sarlavha ---------- */
+  .top {
+    position: sticky; top: 0; z-index: 10;
+    background: #000; color: #fff;
+    padding: calc(env(safe-area-inset-top) + 12px) 14px 12px;
+    display: flex; align-items: center; gap: 10px;
   }
-  header h1 { font-size: 17px; margin: 0; font-weight: 800; }
-  .savebar { font-size: 11px; color: #aaa; display: block; margin-top: 2px; }
-  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 60px; }
-  .login { max-width: 300px; margin: 90px auto; text-align: center; padding: 0 20px; }
-  .login h2 { font-size: 20px; }
+  .top__back {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border: none; background: rgba(255,255,255,.12); color: #fff;
+    border-radius: 12px; font-size: 20px; cursor: pointer;
+  }
+  .top__title { flex: 1; min-width: 0; }
+  .top__title b { display: block; font-size: 17px; font-weight: 800; }
+  .top__title span { display: block; font-size: 11px; color: #9a9a9a; margin-top: 1px; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 14px 14px calc(env(safe-area-inset-bottom) + 40px); }
+
+  /* ---------- Kirish ---------- */
+  .login { max-width: 300px; margin: 15vh auto; text-align: center; padding: 0 20px; }
+  .login__logo { font-size: 52px; }
+  .login h2 { font-size: 21px; margin: 6px 0 2px; }
+  .login p { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
   .login input {
-    width: 100%; padding: 15px; font-size: 22px; text-align: center;
-    border: 1.5px solid var(--line); border-radius: 12px;
-    background: var(--card); color: var(--text); letter-spacing: 6px;
-    outline: none;
+    width: 100%; padding: 16px; font-size: 26px; text-align: center;
+    border: 2px solid var(--line); border-radius: 14px;
+    background: var(--card); color: var(--text); letter-spacing: 8px; outline: none;
   }
   .login input:focus { border-color: var(--brand); }
+  .err { color: #ff5c5c; font-size: 13px; min-height: 20px; margin-top: 10px; }
+
+  /* ---------- Tugmalar ---------- */
   .btn {
-    margin-top: 12px; width: 100%; padding: 13px; border: none; border-radius: 12px;
-    background: var(--brand); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer;
+    width: 100%; padding: 15px; border: none; border-radius: 14px;
+    background: var(--brand); color: #fff; font-weight: 700; font-size: 16px; cursor: pointer;
   }
-  .btn:active { transform: scale(0.98); }
-  .btn--ghost { background: transparent; color: var(--brand); border: 1.5px dashed var(--brand); }
-  .btn--danger { background: transparent; color: #d00000; border: 1.5px solid rgba(217,0,0,.35); }
-  .btn--small { width: auto; padding: 7px 12px; font-size: 12px; border-radius: 9px; }
-  .btn--save { width: auto; padding: 8px 14px; background: #fff; color: #111; font-size: 13px; }
-  .err { color: #ff6b6b; font-size: 13px; min-height: 18px; margin-top: 8px; }
-  .section-title { font-size: 19px; font-weight: 800; margin: 26px 0 10px; }
-  .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-  .field { margin-bottom: 10px; }
-  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .field input, .field textarea, .field select {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
-    background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+  .btn:active { transform: scale(0.985); }
+  .btn--add {
+    background: var(--card); color: var(--brand);
+    border: 2px dashed rgba(216,19,39,.45); margin-top: 4px;
   }
-  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--brand); }
-  .field textarea { resize: vertical; min-height: 50px; }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .cat { border: 1px solid var(--line); border-radius: 16px; margin-bottom: 16px; overflow: hidden; }
-  .cat__head { display: flex; gap: 8px; align-items: center; padding: 12px 14px; background: rgba(216,19,39,.07); }
-  .cat__head input { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); color: var(--text); font-size: 14px; outline: none; }
-  .cat__head input[data-k="icon"] { width: 50px; text-align: center; font-size: 18px; flex-shrink: 0; }
-  .cat__head input[data-k="name"] { flex: 1; font-weight: 700; min-width: 0; }
-  .cat__body { padding: 12px 14px; }
-  .prod { display: flex; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
-  .prod__img {
-    width: 64px; height: 64px; border-radius: 10px; background: var(--bg); flex-shrink: 0;
-    display: grid; place-items: center; font-size: 24px; overflow: hidden; cursor: pointer; position: relative;
+  .btn--del { background: transparent; color: #e03131; border: 1.5px solid rgba(224,49,49,.4); margin-top: 20px; }
+  .btn--mini { width: auto; padding: 9px 14px; font-size: 13px; border-radius: 10px; }
+
+  /* ---------- Ro'yxat qatorlari ---------- */
+  .list { background: var(--card); border-radius: 16px; overflow: hidden; margin-bottom: 14px; }
+  .row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 14px 15px; border: none; background: transparent; color: var(--text);
+    border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; font-size: 16px;
   }
-  .prod__img img { width: 100%; height: 100%; object-fit: cover; }
-  .prod__body { flex: 1; min-width: 0; }
-  .variant-row { display: flex; gap: 6px; margin-bottom: 6px; }
-  .variant-row input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font-size: 13px; outline: none; }
-  .variant-row input[data-vk="label"] { flex: 1; min-width: 0; }
-  .variant-row input[data-vk="price"] { max-width: 100px; }
+  .row:last-child { border-bottom: none; }
+  .row:active { background: rgba(130,130,140,.1); }
+  .row__ico { font-size: 24px; width: 34px; text-align: center; flex-shrink: 0; }
+  .row__mid { flex: 1; min-width: 0; }
+  .row__mid b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row__mid span { display: block; font-size: 13px; color: var(--muted); }
+  .row__arrow { color: var(--muted); font-size: 22px; flex-shrink: 0; }
+  .row__thumb {
+    width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; overflow: hidden;
+    background: rgba(130,130,140,.14); display: grid; place-items: center; font-size: 20px;
+  }
+  .row__thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .title { font-size: 13px; font-weight: 700; color: var(--muted);
+           text-transform: uppercase; letter-spacing: .04em; margin: 22px 4px 8px; }
+
+  /* ---------- Forma ---------- */
+  .card { background: var(--card); border-radius: 16px; padding: 15px; margin-bottom: 14px; }
+  .f { margin-bottom: 14px; }
+  .f:last-child { margin-bottom: 0; }
+  .f label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .f input, .f textarea {
+    width: 100%; padding: 13px 14px; border: 1.5px solid var(--line); border-radius: 12px;
+    background: var(--bg); color: var(--text); font-size: 16px; outline: none;
+  }
+  .f input:focus, .f textarea:focus { border-color: var(--brand); background: var(--card); }
+  .f textarea { resize: vertical; min-height: 62px; }
+  .f2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+
+  /* Rasm yuklash */
+  .photo {
+    position: relative; width: 100%; aspect-ratio: 16/10; border-radius: 14px; overflow: hidden;
+    background: rgba(130,130,140,.14); display: grid; place-items: center; cursor: pointer;
+    border: 2px dashed var(--line);
+  }
+  .photo img { width: 100%; height: 100%; object-fit: cover; }
+  .photo__hint { text-align: center; color: var(--muted); font-size: 14px; padding: 10px; }
+  .photo__hint b { display: block; font-size: 34px; margin-bottom: 4px; }
+  .photo__badge {
+    position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.65); color: #fff;
+    font-size: 12px; padding: 6px 10px; border-radius: 8px;
+  }
+
+  /* Segmentli tanlov */
+  .seg { display: flex; gap: 8px; }
+  .seg button {
+    flex: 1; padding: 12px 8px; border: 1.5px solid var(--line); border-radius: 12px;
+    background: var(--bg); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .seg button.on { border-color: var(--brand); background: rgba(216,19,39,.09); color: var(--brand); }
+
+  /* O'lchamlar */
+  .vrow { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .vrow input { padding: 12px; border: 1.5px solid var(--line); border-radius: 11px;
+                background: var(--bg); color: var(--text); font-size: 15px; outline: none; min-width: 0; }
+  .vrow input:focus { border-color: var(--brand); }
+  .vrow .vl { flex: 1; }
+  .vrow .vp { width: 108px; flex-shrink: 0; }
+  .vrow .vx {
+    width: 40px; height: 40px; flex-shrink: 0; border: none; border-radius: 10px;
+    background: rgba(224,49,49,.12); color: #e03131; font-size: 17px; cursor: pointer;
+  }
+
+  /* Saqlash holati */
+  .saved { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; flex-shrink: 0; }
+  .dot.on { background: #f59e0b; }
+  .dot.ok { background: #22c55e; }
+  .dot.bad { background: #ef4444; }
+
   .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    background: #16181c; color: #fff; padding: 10px 18px; border-radius: 10px;
-    font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50;
+    position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 10px);
+    background: #16181c; color: #fff; padding: 12px 20px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s, transform .2s;
+    pointer-events: none; z-index: 90; max-width: 88%; text-align: center;
   }
-  .toast.show { opacity: 1; }
-  .muted { color: var(--muted); font-size: 12px; }
-  .checkline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); margin: 8px 0; }
-  hr.sep { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .empty { text-align: center; color: var(--muted); padding: 30px 16px; font-size: 15px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 
+<!-- ===== KIRISH ===== -->
 <div class="login" id="loginBox">
-  <h2>🔒 DonDöner Admin</h2>
-  <p class="muted">Kirish uchun PIN kodni kiriting</p>
+  <div class="login__logo">🔒</div>
+  <h2>DonDöner Admin</h2>
+  <p>PIN kodni kiriting</p>
   <input id="pinInput" inputmode="numeric" maxlength="8" placeholder="••••••" autocomplete="off" />
-  <button class="btn" id="pinBtn">Kirish</button>
+  <button class="btn" id="pinBtn" style="margin-top:14px">Kirish</button>
   <p class="err" id="loginErr"></p>
 </div>
 
+<!-- ===== PANEL ===== -->
 <div id="app" hidden>
-  <header>
-    <div>
-      <h1>🥙 DonDöner Admin</h1>
-      <span class="savebar" id="saveStatus">tayyor</span>
+  <div class="top">
+    <button class="top__back" id="backBtn" hidden>←</button>
+    <div class="top__title">
+      <b id="topTitle">DonDöner Admin</b>
+      <span class="saved"><i class="dot" id="saveDot"></i><i id="saveText">tayyor</i></span>
     </div>
-    <button class="btn btn--save" id="saveBtn">Saqlash</button>
-  </header>
-  <main>
-    <div class="section-title">Restoran sozlamalari</div>
-    <div class="card" id="settingsCard"></div>
-
-    <div class="section-title">Filiallar</div>
-    <div class="card" id="branchesCard"></div>
-    <button class="btn btn--ghost btn--small" id="addBranchBtn">+ Filial qo'shish</button>
-
-    <hr class="sep" />
-
-    <div class="section-title">Menyu</div>
-    <div id="categoriesRoot"></div>
-    <button class="btn btn--ghost" id="addCatBtn">+ Yangi kategoriya</button>
-  </main>
+    <button class="top__back" id="saveBtn" title="Saqlash">💾</button>
+  </div>
+  <main id="screen"></main>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -143,11 +200,18 @@
 (function () {
   "use strict";
 
+  /* ============================================================
+     DonDöner admin panel — ekran-ekran navigatsiya
+     home → kategoriya → mahsulot
+     ============================================================ */
+
   var PIN_KEY = "dondoner_admin_pin";
   var pin = sessionStorage.getItem(PIN_KEY) || "";
   var MENU = null;
+  var view = { name: "home", ci: 0, ii: 0 };
   var saveTimer = null;
 
+  /* ---------- Yordamchilar ---------- */
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -159,23 +223,36 @@
     if (html != null) n.innerHTML = html;
     return n;
   }
+  function money(n) {
+    return String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
   function toast(msg) {
     var t = document.getElementById("toast");
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(toast._t);
-    toast._t = setTimeout(function () { t.classList.remove("show"); }, 1800);
-  }
-  function slug(str) {
-    return String(str).toLowerCase()
-      .replace(/[^a-z0-9]+/gi, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "item";
+    toast._t = setTimeout(function () { t.classList.remove("show"); }, 1900);
   }
   function uid() {
     return Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 5);
   }
+  function slug(s) {
+    return String(s).toLowerCase().replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "").slice(0, 30) || "item";
+  }
+  function minPrice(item) {
+    if (item.variants && item.variants.length) {
+      return Math.min.apply(null, item.variants.map(function (v) { return v.price || 0; }));
+    }
+    return item.price || 0;
+  }
+  function priceText(item) {
+    var p = money(minPrice(item)) + " so'm";
+    if (item.variants && item.variants.length > 1) p += " dan";
+    return p;
+  }
 
+  /* ---------- Server bilan aloqa ---------- */
   function api(action, extra, cb) {
     var body = Object.assign({ action: action }, extra || {});
     fetch("/api/admin", {
@@ -183,15 +260,33 @@
       headers: { "Content-Type": "application/json", "X-Admin-Pin": pin },
       body: JSON.stringify(body),
     })
-      .then(function (r) {
-        return r.json().then(function (d) { return { status: r.status, data: d }; });
-      })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
       .then(function (res) { cb(null, res); })
       .catch(function (e) { cb(e); });
   }
 
-  function cloneSeed() {
-    return JSON.parse(JSON.stringify(window.MENU || { restaurant: {}, categories: [] }));
+  function setSaveState(state, text) {
+    var dot = document.getElementById("saveDot");
+    dot.className = "dot" + (state ? " " + state : "");
+    document.getElementById("saveText").textContent = text;
+  }
+
+  function scheduleSave() {
+    setSaveState("on", "saqlanmoqda…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 800);
+  }
+
+  function doSave() {
+    api("save_menu", { menu: MENU }, function (err, res) {
+      if (err || res.status !== 200) {
+        setSaveState("bad", "saqlanmadi!");
+        return;
+      }
+      var d = new Date();
+      setSaveState("ok", "saqlandi " +
+        String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"));
+    });
   }
 
   /* ---------- Kirish ---------- */
@@ -199,319 +294,416 @@
     var val = document.getElementById("pinInput").value.trim();
     if (!val) return;
     pin = val;
+    document.getElementById("loginErr").textContent = "Tekshirilmoqda…";
     api("get_menu", {}, function (err, res) {
       if (err || res.status !== 200) {
-        document.getElementById("loginErr").textContent = "PIN noto'g'ri yoki server javob bermadi";
+        document.getElementById("loginErr").textContent = "PIN noto'g'ri";
         pin = "";
         return;
       }
       sessionStorage.setItem(PIN_KEY, pin);
-      enterApp(res.data && res.data.menu);
+      MENU = (res.data && res.data.menu && res.data.menu.categories)
+        ? res.data.menu
+        : JSON.parse(JSON.stringify(window.MENU || { restaurant: {}, categories: [] }));
+      document.getElementById("loginBox").hidden = true;
+      document.getElementById("app").hidden = false;
+      setSaveState("", "tayyor");
+      go("home");
     });
-  }
-
-  function enterApp(remoteMenu) {
-    MENU = remoteMenu && remoteMenu.categories ? remoteMenu : cloneSeed();
-    document.getElementById("loginBox").hidden = true;
-    document.getElementById("app").hidden = false;
-    renderAll();
   }
 
   document.getElementById("pinBtn").addEventListener("click", tryLogin);
   document.getElementById("pinInput").addEventListener("keydown", function (e) {
     if (e.key === "Enter") tryLogin();
   });
-
-  // Sessiyada PIN saqlangan bo'lsa — avtomatik kirish
-  if (pin) {
-    api("get_menu", {}, function (err, res) {
-      if (!err && res.status === 200) {
-        enterApp(res.data && res.data.menu);
-      } else {
-        pin = "";
-        sessionStorage.removeItem(PIN_KEY);
-      }
-    });
-  }
-
-  /* ---------- Saqlash ---------- */
-  function scheduleSave() {
-    document.getElementById("saveStatus").textContent = "o'zgarishlar bor…";
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(doSave, 900);
-  }
-  function doSave() {
-    api("save_menu", { menu: MENU }, function (err, res) {
-      if (err || res.status !== 200) {
-        document.getElementById("saveStatus").textContent = "❌ saqlanmadi";
-        return;
-      }
-      var d = new Date();
-      var hh = String(d.getHours()).padStart(2, "0");
-      var mm = String(d.getMinutes()).padStart(2, "0");
-      document.getElementById("saveStatus").textContent = "✅ saqlandi " + hh + ":" + mm;
-    });
-  }
   document.getElementById("saveBtn").addEventListener("click", function () {
     clearTimeout(saveTimer);
     doSave();
     toast("Saqlanmoqda…");
   });
 
-  /* ---------- Chizish ---------- */
-  function renderAll() {
-    renderSettings();
-    renderBranches();
-    renderCategories();
+  if (pin) {
+    document.getElementById("pinInput").value = pin;
+    tryLogin();
   }
 
-  function renderSettings() {
-    var r = MENU.restaurant || (MENU.restaurant = {});
-    var box = document.getElementById("settingsCard");
-    box.innerHTML =
-      '<div class="field"><label>Nomi</label><input id="setName" value="' + esc(r.name || "") + '"/></div>' +
-      '<div class="field"><label>Shior</label><input id="setTagline" value="' + esc(r.tagline || "") + '"/></div>' +
-      '<div class="row2">' +
-      '<div class="field"><label>Ish vaqti — ochilish</label><input id="setOpen" value="' + esc((r.hours && r.hours.open) || "") + '" placeholder="08:00"/></div>' +
-      '<div class="field"><label>Ish vaqti — yopilish</label><input id="setClose" value="' + esc((r.hours && r.hours.close) || "") + '" placeholder="02:00"/></div>' +
-      "</div>" +
-      '<div class="row2">' +
-      '<div class="field"><label>Minimal buyurtma (so\'m)</label><input id="setMin" type="number" value="' + (r.minOrder || 0) + '"/></div>' +
-      '<div class="field"><label>Yetkazish narxi (so\'m)</label><input id="setFee" type="number" value="' + (r.deliveryFee || 0) + '"/></div>' +
-      "</div>" +
-      '<div class="field"><label>Instagram (username, @ siz)</label><input id="setInsta" value="' + esc(r.instagram || "") + '"/></div>';
-
-    function sync() {
-      r.name = document.getElementById("setName").value;
-      r.tagline = document.getElementById("setTagline").value;
-      r.hours = {
-        open: document.getElementById("setOpen").value,
-        close: document.getElementById("setClose").value,
-      };
-      r.minOrder = parseInt(document.getElementById("setMin").value, 10) || 0;
-      r.deliveryFee = parseInt(document.getElementById("setFee").value, 10) || 0;
-      r.instagram = document.getElementById("setInsta").value;
-      scheduleSave();
-    }
-    ["setName", "setTagline", "setOpen", "setClose", "setMin", "setFee", "setInsta"].forEach(function (id) {
-      document.getElementById(id).addEventListener("input", sync);
-    });
+  /* ---------- Navigatsiya ---------- */
+  function go(name, ci, ii) {
+    view = { name: name, ci: ci || 0, ii: ii || 0 };
+    window.scrollTo(0, 0);
+    render();
   }
-
-  function renderBranches() {
-    var r = MENU.restaurant;
-    var list = r.branches || (r.branches = []);
-    var box = document.getElementById("branchesCard");
-    box.innerHTML = "";
-    list.forEach(function (b, i) {
-      var row = el("div", "field");
-      row.innerHTML =
-        '<div class="row2">' +
-        '<input placeholder="Nomi (1-filial)" value="' + esc(b.label || "") + '" data-k="label" />' +
-        '<input placeholder="Telefon" value="' + esc(b.phone || "") + '" data-k="phone" />' +
-        "</div>" +
-        '<input placeholder="Manzil" value="' + esc(b.address || "") + '" data-k="address" style="margin-top:8px" />' +
-        '<button class="btn btn--danger btn--small" style="margin-top:8px" data-del>O\'chirish</button>';
-      row.querySelectorAll("input").forEach(function (inp) {
-        inp.addEventListener("input", function () {
-          b[inp.dataset.k] = inp.value;
-          scheduleSave();
-        });
-      });
-      row.querySelector("[data-del]").addEventListener("click", function () {
-        list.splice(i, 1);
-        renderBranches();
-        scheduleSave();
-      });
-      box.appendChild(row);
-      if (i < list.length - 1) box.appendChild(el("hr", "sep"));
-    });
-    if (!list.length) box.innerHTML = '<p class="muted">Hali filial qo\'shilmagan</p>';
-  }
-  document.getElementById("addBranchBtn").addEventListener("click", function () {
-    MENU.restaurant.branches = MENU.restaurant.branches || [];
-    MENU.restaurant.branches.push({ label: "Yangi filial", address: "", phone: "" });
-    renderBranches();
-    scheduleSave();
+  document.getElementById("backBtn").addEventListener("click", function () {
+    if (view.name === "item") go("cat", view.ci);
+    else go("home");
   });
 
-  function renderCategories() {
-    var root = document.getElementById("categoriesRoot");
-    root.innerHTML = "";
+  function render() {
+    var back = document.getElementById("backBtn");
+    back.hidden = view.name === "home";
+    var box = document.getElementById("screen");
+    box.innerHTML = "";
+    if (view.name === "home") return renderHome(box);
+    if (view.name === "cat") return renderCat(box);
+    if (view.name === "item") return renderItem(box);
+    if (view.name === "settings") return renderSettings(box);
+    if (view.name === "branches") return renderBranches(box);
+  }
+
+  function setTitle(text) {
+    document.getElementById("topTitle").textContent = text;
+  }
+
+  /* ============ 1. BOSH EKRAN ============ */
+  function renderHome(box) {
+    setTitle("DonDöner Admin");
+
+    box.appendChild(el("div", "title", "Sozlamalar"));
+    var s = el("div", "list");
+    s.appendChild(navRow("⚙️", "Restoran sozlamalari", "Nomi, ish vaqti, yetkazish", function () { go("settings"); }));
+    s.appendChild(navRow("🏬", "Filiallar",
+      ((MENU.restaurant.branches || []).length) + " ta filial", function () { go("branches"); }));
+    box.appendChild(s);
+
+    box.appendChild(el("div", "title", "Menyu — kategoriyalar"));
+    var list = el("div", "list");
     (MENU.categories || []).forEach(function (cat, ci) {
-      root.appendChild(buildCategory(cat, ci));
+      var n = (cat.items || []).length;
+      list.appendChild(navRow(cat.icon || "🍽", cat.name || "(nomsiz)",
+        n + " ta mahsulot", function () { go("cat", ci); }));
     });
+    if (!(MENU.categories || []).length) {
+      list.appendChild(el("div", "empty", "Hali kategoriya yo'q"));
+    }
+    box.appendChild(list);
+
+    var add = el("button", "btn btn--add", "➕ Yangi kategoriya");
+    add.addEventListener("click", function () {
+      MENU.categories = MENU.categories || [];
+      MENU.categories.push({ id: "cat-" + uid(), name: "Yangi kategoriya", icon: "🍽", items: [] });
+      scheduleSave();
+      go("cat", MENU.categories.length - 1);
+    });
+    box.appendChild(add);
   }
 
-  function buildCategory(cat, ci) {
-    var wrap = el("div", "cat");
-    var head = el("div", "cat__head");
-    head.innerHTML =
-      '<input data-k="icon" value="' + esc(cat.icon || "🍽") + '" />' +
-      '<input data-k="name" value="' + esc(cat.name || "") + '" />' +
-      '<button class="btn btn--danger btn--small" data-delcat>✕</button>';
-    head.querySelector('[data-k="icon"]').addEventListener("input", function (e) {
-      cat.icon = e.target.value; scheduleSave();
-    });
-    head.querySelector('[data-k="name"]').addEventListener("input", function (e) {
-      cat.name = e.target.value; scheduleSave();
-    });
-    head.querySelector("[data-delcat]").addEventListener("click", function () {
-      if (!confirm("«" + cat.name + "» kategoriyasini butun mahsulotlari bilan o'chirasizmi?")) return;
-      MENU.categories.splice(ci, 1);
-      renderCategories();
-      scheduleSave();
-    });
-    wrap.appendChild(head);
+  function navRow(ico, title, sub, onClick) {
+    var b = el("button", "row",
+      '<span class="row__ico">' + esc(ico) + "</span>" +
+      '<span class="row__mid"><b>' + esc(title) + "</b><span>" + esc(sub) + "</span></span>" +
+      '<span class="row__arrow">›</span>');
+    b.addEventListener("click", onClick);
+    return b;
+  }
 
-    var body = el("div", "cat__body");
+  /* ============ 2. KATEGORIYA ============ */
+  function renderCat(box) {
+    var cat = MENU.categories[view.ci];
+    if (!cat) return go("home");
+    setTitle((cat.icon || "🍽") + " " + (cat.name || ""));
+
+    // Kategoriya nomi va ikonkasi
+    var card = el("div", "card");
+    card.innerHTML =
+      '<div class="f2">' +
+      '<div class="f"><label>Ikonka (emoji)</label><input id="cIcon" value="' + esc(cat.icon || "") + '" /></div>' +
+      '<div class="f"><label>Kategoriya nomi</label><input id="cName" value="' + esc(cat.name || "") + '" /></div>' +
+      "</div>";
+    box.appendChild(card);
+    card.querySelector("#cIcon").addEventListener("input", function (e) {
+      cat.icon = e.target.value; setTitle((cat.icon || "🍽") + " " + (cat.name || "")); scheduleSave();
+    });
+    card.querySelector("#cName").addEventListener("input", function (e) {
+      cat.name = e.target.value; setTitle((cat.icon || "🍽") + " " + (cat.name || "")); scheduleSave();
+    });
+
+    box.appendChild(el("div", "title", "Mahsulotlar (" + (cat.items || []).length + ")"));
+    var list = el("div", "list");
     (cat.items || []).forEach(function (item, ii) {
-      body.appendChild(buildProduct(cat, item, ii));
+      var thumb = item.image
+        ? '<span class="row__thumb"><img src="' + esc(item.image) + '" /></span>'
+        : '<span class="row__thumb">' + esc(cat.icon || "🍽") + "</span>";
+      var b = el("button", "row",
+        thumb +
+        '<span class="row__mid"><b>' + esc(item.name || "(nomsiz)") + "</b><span>" + esc(priceText(item)) + "</span></span>" +
+        '<span class="row__arrow">›</span>');
+      b.addEventListener("click", function () { go("item", view.ci, ii); });
+      list.appendChild(b);
     });
-    var addBtn = el("button", "btn btn--ghost btn--small", "+ Mahsulot qo'shish");
-    addBtn.addEventListener("click", function () {
+    if (!(cat.items || []).length) list.appendChild(el("div", "empty", "Bu kategoriyada mahsulot yo'q"));
+    box.appendChild(list);
+
+    var add = el("button", "btn btn--add", "➕ Mahsulot qo'shish");
+    add.addEventListener("click", function () {
       cat.items = cat.items || [];
-      cat.items.push({ id: slug(cat.id || cat.name) + "-" + uid(), name: "Yangi mahsulot", price: 0, desc: "", image: "" });
-      renderCategories();
+      cat.items.push({ id: slug(cat.name) + "-" + uid(), name: "Yangi mahsulot", price: 0, desc: "", image: "" });
       scheduleSave();
+      go("item", view.ci, cat.items.length - 1);
     });
-    body.appendChild(addBtn);
-    wrap.appendChild(body);
-    return wrap;
+    box.appendChild(add);
+
+    var del = el("button", "btn btn--del", "🗑 Kategoriyani o'chirish");
+    del.addEventListener("click", function () {
+      if (!confirm("«" + (cat.name || "") + "» kategoriyasi va uning " +
+        (cat.items || []).length + " ta mahsuloti o'chiriladi. Davom etamizmi?")) return;
+      MENU.categories.splice(view.ci, 1);
+      scheduleSave();
+      toast("Kategoriya o'chirildi");
+      go("home");
+    });
+    box.appendChild(del);
   }
 
-  function buildProduct(cat, item, ii) {
-    var row = el("div", "prod");
-    var img = el("div", "prod__img", item.image ? '<img src="' + esc(item.image) + '"/>' : esc(cat.icon || "🍽"));
+  /* ============ 3. MAHSULOT ============ */
+  function renderItem(box) {
+    var cat = MENU.categories[view.ci];
+    if (!cat) return go("home");
+    var item = (cat.items || [])[view.ii];
+    if (!item) return go("cat", view.ci);
+    setTitle(item.name || "Mahsulot");
+
+    /* --- Rasm --- */
+    var photo = el("div", "photo");
+    function paintPhoto() {
+      photo.innerHTML = item.image
+        ? '<img src="' + esc(item.image) + '" /><span class="photo__badge">Almashtirish</span>'
+        : '<div class="photo__hint"><b>📷</b>Rasm yuklash uchun bosing</div>';
+      photo.appendChild(fileInput);
+    }
     var fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = "image/*";
-    fileInput.style.display = "none";
-    img.appendChild(fileInput);
-    img.addEventListener("click", function () { fileInput.click(); });
+    fileInput.hidden = true;
     fileInput.addEventListener("change", function () {
       var f = fileInput.files[0];
       if (!f) return;
-      toast("Rasm yuklanmoqda…");
+      photo.innerHTML = '<div class="photo__hint"><b>⏳</b>Yuklanmoqda…</div>';
+      photo.appendChild(fileInput);
       uploadImage(f, function (url) {
+        if (!url) { paintPhoto(); return toast("❌ Rasm yuklanmadi"); }
         item.image = url;
-        img.innerHTML = '<img src="' + esc(url) + '"/>';
-        img.appendChild(fileInput);
+        paintPhoto();
         scheduleSave();
         toast("Rasm yuklandi ✅");
       });
     });
-
-    var body = el("div", "prod__body");
-    var hasVariants = !!(item.variants && item.variants.length);
-
-    body.innerHTML =
-      '<div class="field"><input placeholder="Nomi" value="' + esc(item.name || "") + '" data-k="name" /></div>' +
-      '<div class="field"><textarea placeholder="Tarkibi" rows="2" data-k="desc">' + esc(item.desc || "") + "</textarea></div>" +
-      '<label class="checkline"><input type="checkbox" data-k="hasVariants" ' + (hasVariants ? "checked" : "") + ' /> O\'lchamli mahsulot (masalan, pitsa Kichik/O\'rta/Katta)</label>' +
-      '<div data-variants></div>' +
-      '<div class="row2" data-simple style="' + (hasVariants ? "display:none" : "") + '">' +
-      '<div class="field"><label>Narx</label><input type="number" value="' + (item.price || 0) + '" data-k="price"/></div>' +
-      '<div class="field"><label>Chegirma narxi (ixtiyoriy)</label><input type="number" value="' + (item.oldPrice || "") + '" data-k="oldPrice"/></div>' +
-      "</div>" +
-      '<div class="row2">' +
-      '<div class="field"><label>Og\'irligi/hajmi</label><input value="' + esc(item.weight || "") + '" data-k="weight"/></div>' +
-      '<div class="field"><label>Yorliq</label><select data-k="badge">' +
-      '<option value=""' + (!item.badge ? " selected" : "") + ">— yo'q —</option>" +
-      '<option value="Hit"' + (item.badge === "Hit" ? " selected" : "") + ">Hit</option>" +
-      '<option value="Yangi"' + (item.badge === "Yangi" ? " selected" : "") + ">Yangi</option>" +
-      '<option value="Achchiq"' + (item.badge === "Achchiq" ? " selected" : "") + ">Achchiq</option>" +
-      "</select></div>" +
-      "</div>" +
-      '<button class="btn btn--danger btn--small" data-delitem>Mahsulotni o\'chirish</button>';
-
-    row.appendChild(img);
-    row.appendChild(body);
-
-    function bind(k, transform) {
-      var elm = body.querySelector('[data-k="' + k + '"]');
-      elm.addEventListener("input", function () {
-        var v = elm.type === "checkbox" ? elm.checked : elm.value;
-        if (transform) v = transform(v);
-        if (k === "hasVariants") { toggleVariants(v); return; }
-        item[k] = v;
+    photo.addEventListener("click", function (e) {
+      if (e.target === fileInput) return;
+      fileInput.click();
+    });
+    paintPhoto();
+    var photoCard = el("div", "card");
+    photoCard.appendChild(photo);
+    if (item.image) {
+      var rm = el("button", "btn btn--mini", "Rasmni o'chirish");
+      rm.style.cssText = "margin-top:10px;background:transparent;color:#e03131;border:1.5px solid rgba(224,49,49,.4)";
+      rm.addEventListener("click", function () {
+        item.image = "";
         scheduleSave();
+        render();
       });
+      photoCard.appendChild(rm);
     }
-    bind("name");
-    bind("desc");
-    bind("weight");
-    bind("badge");
-    bind("price", function (v) { return parseInt(v, 10) || 0; });
-    bind("oldPrice", function (v) { return v ? (parseInt(v, 10) || 0) : undefined; });
-    bind("hasVariants");
+    box.appendChild(photoCard);
 
-    function toggleVariants(on) {
-      if (on) {
-        item.variants = item.variants && item.variants.length ? item.variants : [{ label: "Kichik", price: item.price || 0 }];
-        delete item.price;
-        body.querySelector("[data-simple]").style.display = "none";
-      } else {
-        item.price = (item.variants && item.variants[0] && item.variants[0].price) || 0;
-        delete item.variants;
-        body.querySelector("[data-simple]").style.display = "";
-      }
-      renderVariants();
-      scheduleSave();
-    }
-
-    function renderVariants() {
-      var box = body.querySelector("[data-variants]");
-      box.innerHTML = "";
-      if (!item.variants) return;
-      item.variants.forEach(function (v, vi) {
-        var vr = el("div", "variant-row");
-        vr.innerHTML =
-          '<input placeholder="Nomi (Kichik/O\'rta/Katta)" value="' + esc(v.label || "") + '" data-vk="label" />' +
-          '<input type="number" placeholder="Narx" value="' + (v.price || 0) + '" data-vk="price" />' +
-          '<button class="btn btn--danger btn--small" data-delv>✕</button>';
-        vr.querySelector('[data-vk="label"]').addEventListener("input", function (e) { v.label = e.target.value; scheduleSave(); });
-        vr.querySelector('[data-vk="price"]').addEventListener("input", function (e) { v.price = parseInt(e.target.value, 10) || 0; scheduleSave(); });
-        vr.querySelector("[data-delv]").addEventListener("click", function () {
-          item.variants.splice(vi, 1);
-          renderVariants();
-          scheduleSave();
-        });
-        box.appendChild(vr);
-      });
-      var addV = el("button", "btn btn--ghost btn--small", "+ O'lcham qo'shish");
-      addV.addEventListener("click", function () {
-        item.variants.push({ label: "Yangi", price: 0 });
-        renderVariants();
-        scheduleSave();
-      });
-      box.appendChild(addV);
-    }
-    renderVariants();
-
-    body.querySelector("[data-delitem]").addEventListener("click", function () {
-      if (!confirm("«" + item.name + "» ni o'chirasizmi?")) return;
-      cat.items.splice(ii, 1);
-      renderCategories();
-      scheduleSave();
+    /* --- Nomi va tarkibi --- */
+    var main = el("div", "card");
+    main.innerHTML =
+      '<div class="f"><label>Nomi</label><input id="iName" value="' + esc(item.name || "") + '" /></div>' +
+      '<div class="f"><label>Tarkibi (ixtiyoriy)</label><textarea id="iDesc" rows="2">' + esc(item.desc || "") + "</textarea></div>" +
+      '<div class="f"><label>Og\'irligi yoki hajmi (ixtiyoriy)</label><input id="iWeight" value="' + esc(item.weight || "") + '" placeholder="420 g / 0.5 L" /></div>';
+    box.appendChild(main);
+    main.querySelector("#iName").addEventListener("input", function (e) {
+      item.name = e.target.value; setTitle(item.name || "Mahsulot"); scheduleSave();
+    });
+    main.querySelector("#iDesc").addEventListener("input", function (e) {
+      item.desc = e.target.value; scheduleSave();
+    });
+    main.querySelector("#iWeight").addEventListener("input", function (e) {
+      item.weight = e.target.value; scheduleSave();
     });
 
-    return row;
+    /* --- Narx: bitta yoki o'lchamlar --- */
+    var hasV = !!(item.variants && item.variants.length);
+    var priceCard = el("div", "card");
+    priceCard.appendChild(el("div", "f",
+      '<label>Narx turi</label>' +
+      '<div class="seg">' +
+      '<button id="segOne" class="' + (hasV ? "" : "on") + '">Bitta narx</button>' +
+      '<button id="segMany" class="' + (hasV ? "on" : "") + '">O\'lchamlar</button>' +
+      "</div>" +
+      '<p class="hint">O\'lchamlar — pitsa (Kichik/O\'rta/Katta) yoki Oddiy/Set kabi variantlar uchun</p>'));
+    var priceBody = el("div");
+    priceCard.appendChild(priceBody);
+    box.appendChild(priceCard);
+
+    function paintPrice() {
+      priceBody.innerHTML = "";
+      if (item.variants && item.variants.length) {
+        item.variants.forEach(function (v, vi) {
+          var r = el("div", "vrow",
+            '<input class="vl" placeholder="Nomi (Katta)" value="' + esc(v.label || "") + '" />' +
+            '<input class="vp" inputmode="numeric" placeholder="Narx" value="' + (v.price || "") + '" />' +
+            '<button class="vx">✕</button>');
+          var inputs = r.querySelectorAll("input");
+          inputs[0].addEventListener("input", function (e) { v.label = e.target.value; scheduleSave(); });
+          inputs[1].addEventListener("input", function (e) { v.price = parseInt(e.target.value, 10) || 0; scheduleSave(); });
+          r.querySelector(".vx").addEventListener("click", function () {
+            item.variants.splice(vi, 1);
+            if (!item.variants.length) { item.price = 0; delete item.variants; }
+            scheduleSave();
+            render();
+          });
+          priceBody.appendChild(r);
+        });
+        var addV = el("button", "btn btn--add", "➕ O'lcham qo'shish");
+        addV.addEventListener("click", function () {
+          item.variants.push({ label: "", price: 0 });
+          scheduleSave();
+          paintPrice();
+        });
+        priceBody.appendChild(addV);
+      } else {
+        var f = el("div", "f2");
+        f.innerHTML =
+          '<div class="f"><label>Narx (so\'m)</label><input id="iPrice" inputmode="numeric" value="' + (item.price || "") + '" /></div>' +
+          '<div class="f"><label>Eski narx (chegirma)</label><input id="iOld" inputmode="numeric" value="' + (item.oldPrice || "") + '" placeholder="—" /></div>';
+        priceBody.appendChild(f);
+        f.querySelector("#iPrice").addEventListener("input", function (e) {
+          item.price = parseInt(e.target.value, 10) || 0; scheduleSave();
+        });
+        f.querySelector("#iOld").addEventListener("input", function (e) {
+          var v = parseInt(e.target.value, 10);
+          if (v) item.oldPrice = v; else delete item.oldPrice;
+          scheduleSave();
+        });
+      }
+    }
+    paintPrice();
+
+    priceCard.querySelector("#segOne").addEventListener("click", function () {
+      if (!item.variants) return;
+      item.price = minPrice(item);
+      delete item.variants;
+      scheduleSave();
+      render();
+    });
+    priceCard.querySelector("#segMany").addEventListener("click", function () {
+      if (item.variants) return;
+      item.variants = [{ label: "Kichik", price: item.price || 0 }];
+      delete item.price;
+      scheduleSave();
+      render();
+    });
+
+    /* --- Yorliq --- */
+    var badges = ["", "Hit", "Yangi", "Achchiq"];
+    var labels = { "": "— yo'q —", Hit: "🔥 Hit", Yangi: "✨ Yangi", Achchiq: "🌶 Achchiq" };
+    var bCard = el("div", "card");
+    var seg = el("div", "seg");
+    badges.forEach(function (b) {
+      var btn = el("button", (item.badge || "") === b ? "on" : "", labels[b]);
+      btn.style.fontSize = "13px";
+      btn.addEventListener("click", function () {
+        if (b) item.badge = b; else delete item.badge;
+        scheduleSave();
+        render();
+      });
+      seg.appendChild(btn);
+    });
+    var bf = el("div", "f", "<label>Yorliq</label>");
+    bf.appendChild(seg);
+    bCard.appendChild(bf);
+    box.appendChild(bCard);
+
+    /* --- O'chirish --- */
+    var del = el("button", "btn btn--del", "🗑 Mahsulotni o'chirish");
+    del.addEventListener("click", function () {
+      if (!confirm("«" + (item.name || "") + "» o'chiriladi. Davom etamizmi?")) return;
+      cat.items.splice(view.ii, 1);
+      scheduleSave();
+      toast("O'chirildi");
+      go("cat", view.ci);
+    });
+    box.appendChild(del);
   }
 
-  document.getElementById("addCatBtn").addEventListener("click", function () {
-    MENU.categories = MENU.categories || [];
-    var name = "Yangi kategoriya";
-    MENU.categories.push({ id: slug(name) + "-" + uid(), name: name, icon: "🍽", items: [] });
-    renderCategories();
-    scheduleSave();
-  });
+  /* ============ 4. SOZLAMALAR ============ */
+  function renderSettings(box) {
+    setTitle("⚙️ Sozlamalar");
+    var r = MENU.restaurant || (MENU.restaurant = {});
+    var h = r.hours || (r.hours = {});
+    var card = el("div", "card");
+    card.innerHTML =
+      '<div class="f"><label>Restoran nomi</label><input id="sName" value="' + esc(r.name || "") + '" /></div>' +
+      '<div class="f"><label>Shior</label><input id="sTag" value="' + esc(r.tagline || "") + '" /></div>' +
+      '<div class="f2">' +
+      '<div class="f"><label>Ochilish vaqti</label><input id="sOpen" value="' + esc(h.open || "") + '" placeholder="08:00" /></div>' +
+      '<div class="f"><label>Yopilish vaqti</label><input id="sClose" value="' + esc(h.close || "") + '" placeholder="02:00" /></div>' +
+      "</div>" +
+      '<p class="hint">Yopiq vaqtda mijozlar buyurtma bera olmaydi</p>' +
+      '<div class="f2" style="margin-top:14px">' +
+      '<div class="f"><label>Minimal buyurtma</label><input id="sMin" inputmode="numeric" value="' + (r.minOrder || 0) + '" /></div>' +
+      '<div class="f"><label>Yetkazish narxi</label><input id="sFee" inputmode="numeric" value="' + (r.deliveryFee || 0) + '" /></div>' +
+      "</div>" +
+      '<p class="hint">0 — cheklov yo\'q / bepul</p>' +
+      '<div class="f" style="margin-top:14px"><label>Instagram (@ belgisiz)</label><input id="sInsta" value="' + esc(r.instagram || "") + '" /></div>';
+    box.appendChild(card);
 
-  /* ---------- Rasm yuklash: brauzerda qisqartirib, base64 qilib yuboramiz ---------- */
+    function bind(id, fn) {
+      card.querySelector(id).addEventListener("input", function (e) { fn(e.target.value); scheduleSave(); });
+    }
+    bind("#sName", function (v) { r.name = v; });
+    bind("#sTag", function (v) { r.tagline = v; });
+    bind("#sOpen", function (v) { h.open = v; });
+    bind("#sClose", function (v) { h.close = v; });
+    bind("#sMin", function (v) { r.minOrder = parseInt(v, 10) || 0; });
+    bind("#sFee", function (v) { r.deliveryFee = parseInt(v, 10) || 0; });
+    bind("#sInsta", function (v) { r.instagram = v; });
+  }
+
+  /* ============ 5. FILIALLAR ============ */
+  function renderBranches(box) {
+    setTitle("🏬 Filiallar");
+    var list = MENU.restaurant.branches || (MENU.restaurant.branches = []);
+    list.forEach(function (b, i) {
+      var card = el("div", "card");
+      card.innerHTML =
+        '<div class="f"><label>Nomi</label><input data-k="label" value="' + esc(b.label || "") + '" placeholder="1-filial" /></div>' +
+        '<div class="f"><label>Manzil</label><input data-k="address" value="' + esc(b.address || "") + '" /></div>' +
+        '<div class="f"><label>Telefon</label><input data-k="phone" value="' + esc(b.phone || "") + '" placeholder="+998 90 000 00 00" /></div>';
+      card.querySelectorAll("input").forEach(function (inp) {
+        inp.addEventListener("input", function () { b[inp.dataset.k] = inp.value; scheduleSave(); });
+      });
+      var del = el("button", "btn btn--mini", "🗑 O'chirish");
+      del.style.cssText = "background:transparent;color:#e03131;border:1.5px solid rgba(224,49,49,.4)";
+      del.addEventListener("click", function () {
+        if (!confirm("Bu filialni o'chirasizmi?")) return;
+        list.splice(i, 1);
+        scheduleSave();
+        render();
+      });
+      card.appendChild(del);
+      box.appendChild(card);
+    });
+    if (!list.length) box.appendChild(el("div", "empty", "Hali filial qo'shilmagan"));
+
+    var add = el("button", "btn btn--add", "➕ Filial qo'shish");
+    add.addEventListener("click", function () {
+      list.push({ label: (list.length + 1) + "-filial", address: "", phone: "" });
+      scheduleSave();
+      render();
+    });
+    box.appendChild(add);
+  }
+
+  /* ---------- Rasm yuklash (brauzerda siqib yuboriladi) ---------- */
   function uploadImage(file, done) {
     var reader = new FileReader();
+    reader.onerror = function () { done(""); };
     reader.onload = function () {
       var img = new Image();
+      img.onerror = function () { done(""); };
       img.onload = function () {
         var maxW = 900;
         var scale = Math.min(1, maxW / img.width);
@@ -519,14 +711,11 @@
         canvas.width = Math.max(1, Math.round(img.width * scale));
         canvas.height = Math.max(1, Math.round(img.height * scale));
         canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        var dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-        var base64 = dataUrl.split(",")[1];
-        api("upload_image", { filename: file.name, content_type: "image/jpeg", data_base64: base64 }, function (err, res) {
-          if (err || res.status !== 200 || !res.data.url) {
-            toast("❌ Rasm yuklanmadi");
-            return;
-          }
-          done(res.data.url);
+        var base64 = canvas.toDataURL("image/jpeg", 0.82).split(",")[1];
+        api("upload_image", {
+          filename: file.name, content_type: "image/jpeg", data_base64: base64,
+        }, function (err, res) {
+          done(!err && res.status === 200 && res.data.url ? res.data.url : "");
         });
       };
       img.src = reader.result;

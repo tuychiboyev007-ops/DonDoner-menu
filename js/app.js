@@ -159,6 +159,37 @@
     }, 1800);
   }
 
+  /* ============ Ish vaqti ============ */
+  // Toshkent vaqti (UTC+5) bo'yicha hozirgi daqiqalar
+  function tashkentMinutes() {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const tk = new Date(utc + 5 * 3600000);
+    return tk.getHours() * 60 + tk.getMinutes();
+  }
+
+  function toMinutes(hhmm) {
+    const p = String(hhmm || "").split(":");
+    return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0);
+  }
+
+  // Ochiqmi? Yarim tundan oshadigan vaqt ham to'g'ri hisoblanadi (10:00–01:00)
+  function isOpen() {
+    const h = window.MENU.restaurant.hours;
+    if (!h || !h.open || !h.close) return true;
+    const now = tashkentMinutes();
+    const open = toMinutes(h.open);
+    const close = toMinutes(h.close);
+    return close > open ? now >= open && now < close : now >= open || now < close;
+  }
+
+  function closedText() {
+    const h = window.MENU.restaurant.hours || {};
+    const now = tashkentMinutes();
+    const prefix = now < toMinutes(h.open) ? t("opensToday") : t("opensAt");
+    return t("closedNow") + " · " + prefix + " " + h.open + " " + t("willOpen");
+  }
+
   /* ============ Telegram ============ */
   function initTelegram() {
     if (!tg) return;
@@ -424,11 +455,28 @@
         `<span>${t("products")} (${cartCount()})</span><span>${formatPrice(cartTotal())}</span>`
       )
     );
+    if (deliveryFee() > 0) {
+      summary.appendChild(
+        el(
+          "div",
+          "cart-summary__row",
+          `<span>${t("deliveryFeeText")}</span><span>${formatPrice(deliveryFee())}</span>`
+        )
+      );
+    } else if (mode === "delivery") {
+      summary.appendChild(
+        el(
+          "div",
+          "cart-summary__row",
+          `<span>${t("deliveryFeeText")}</span><span>${t("free")}</span>`
+        )
+      );
+    }
     summary.appendChild(
       el(
         "div",
         "cart-summary__total",
-        `<span>${t("total")}</span><span>${formatPrice(cartTotal())}</span>`
+        `<span>${t("total")}</span><span>${formatPrice(orderTotal())}</span>`
       )
     );
     cartRoot.appendChild(summary);
@@ -438,11 +486,54 @@
 
     // Pastda yopishib turadigan panel: jami + buyurtma tugmasi
     const bar = el("div", "checkout-bar");
-    bar.innerHTML = `<span class="checkout-bar__total">${formatPrice(cartTotal())}</span>`;
+    bar.innerHTML = `<span class="checkout-bar__total">${formatPrice(orderTotal())}</span>`;
     const goBtn = el("button", "btn btn--primary checkout-bar__btn", t("placeOrder"));
-    goBtn.addEventListener("click", submitOrder);
+
+    // Yopiq yoki minimal summa yetmasa — buyurtma berilmaydi
+    const r = window.MENU.restaurant;
+    const shortfall = minShortfall();
+    if (!isOpen()) {
+      goBtn.disabled = true;
+      goBtn.textContent = t("closedNow");
+      cartRoot.appendChild(el("div", "notice notice--warn", escapeHtml(closedText())));
+    } else if (shortfall > 0) {
+      goBtn.disabled = true;
+      goBtn.textContent =
+        t("addMore") + " " + formatPrice(shortfall);
+      cartRoot.appendChild(
+        el(
+          "div",
+          "notice",
+          escapeHtml(
+            t("minOrderText") + ": " + formatPrice(r.minOrder) + " — " +
+            t("addMore") + " " + formatPrice(shortfall) + " " + t("toMinOrder")
+          )
+        )
+      );
+    } else {
+      goBtn.addEventListener("click", submitOrder);
+    }
+
     bar.appendChild(goBtn);
     cartRoot.appendChild(bar);
+  }
+
+  // Yetkazish narxi (olib ketishda 0)
+  function deliveryFee() {
+    const r = window.MENU.restaurant;
+    return mode === "delivery" ? Number(r.deliveryFee || 0) : 0;
+  }
+
+  // Yakuniy summa
+  function orderTotal() {
+    return cartTotal() + deliveryFee();
+  }
+
+  // Minimal summagacha qancha yetmayapti
+  function minShortfall() {
+    const min = Number(window.MENU.restaurant.minOrder || 0);
+    if (mode !== "delivery" || !min) return 0;
+    return Math.max(0, min - cartTotal());
   }
 
   function buildCheckout() {
@@ -843,6 +934,10 @@
     if (mode === "delivery" && !geo) {
       return toast(t("chooseAddressFirst"));
     }
+    if (!isOpen()) return toast(closedText());
+    if (minShortfall() > 0) {
+      return toast(t("addMore") + " " + formatPrice(minShortfall()));
+    }
 
     const items = Object.keys(cart).map(function (id) {
       const it = findItem(id);
@@ -867,7 +962,8 @@
       geoLabel: mode === "delivery" ? geoLabel : "",
       note: note.trim(),
       items: items,
-      total: cartTotal(),
+      total: orderTotal(),
+      deliveryFee: deliveryFee(),
       status: "Yangi",
     };
 

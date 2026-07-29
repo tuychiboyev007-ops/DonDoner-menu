@@ -548,6 +548,24 @@ button {
   min-height: 60px;
 }
 
+/* Ogohlantirish qatori (yopiq / minimal summa) */
+.notice {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(142, 142, 152, 0.14);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.notice--warn {
+  background: rgba(216, 19, 39, 0.1);
+  color: var(--brand);
+  font-weight: 600;
+}
+
 /* ---------- Checkout: sarlavhalar ---------- */
 .co-title {
   font-size: 17px;

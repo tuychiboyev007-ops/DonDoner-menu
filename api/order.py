@@ -23,10 +23,15 @@ import hmac
 import html
 import json
 import os
+import sys
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
+
+# _store shu papkada — Vercel muhitida yo'lni qo'lda ko'rsatamiz
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _store  # noqa: E402
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "").strip()
@@ -102,20 +107,11 @@ def fmt_sum(value):
         return str(value)
 
 
-def order_number(order):
-    """Qisqa, o'sib boruvchi buyurtma raqami."""
-    raw = str(order.get("id") or "").lstrip("#")
-    if raw.isdigit():
-        return "#" + raw[-4:]
-    # Zaxira: vaqtdan olingan raqam
-    return "#" + str(int(datetime.now(TASHKENT_TZ).timestamp()))[-4:]
-
-
-def build_card(order, user):
+def build_card(order, user, number=None):
     """Buyurtma kartochkasi (reference ko'rinishida)."""
     L = []
     L.append("🆕 <b>Yangi zakaz!</b>")
-    L.append(f"📦 <b>{esc(order_number(order))}</b>")
+    L.append(f"📦 <b>#{number}</b>")
     L.append("━━━━━━━━━━━━━━━")
 
     for it in order.get("items", []):
@@ -170,7 +166,7 @@ def build_card(order, user):
     return "\n".join(L)
 
 
-def build_buttons(order):
+def build_buttons(order, path):
     """Kartochka tagidagi tugmalar."""
     rows = []
     g = order.get("geo") or {}
@@ -181,10 +177,21 @@ def build_buttons(order):
                 "url": f"https://maps.google.com/?q={g['lat']},{g['lng']}",
             }
         ])
+    # Holat tugmalari — callback_data 64 baytdan oshmasligi kerak
+    ref = path or ""
     rows.append([
-        {"text": "✅ Olaman", "callback_data": "take:" + order_number(order).lstrip("#")}
+        {"text": "✅ Olaman", "callback_data": f"st:accepted:{ref}"},
     ])
-    return {"inline_keyboard": rows} if rows else None
+    rows.append([
+        {"text": "👨‍🍳 Tayyorlanmoqda", "callback_data": f"st:cooking:{ref}"},
+        {"text": "🛵 Yo'lda", "callback_data": f"st:onway:{ref}"},
+    ])
+    rows.append([
+        {"text": "🏁 Yetkazildi", "callback_data": f"st:done:{ref}"},
+        {"text": "❌ Bekor", "callback_data": f"st:cancelled:{ref}"},
+    ])
+    rows.append([{"text": "📋 Bugungi ro'yxat", "callback_data": "list:today"}])
+    return {"inline_keyboard": rows}
 
 
 class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
@@ -207,9 +214,13 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             # Telegram'dan tashqarida ochilgan yoki imzo noto'g'ri
             return self._send(403, {"ok": False, "error": "tekshiruvdan o'tmadi"})
 
-        # 1) Buyurtmani restoranga
-        card = build_card(order, user)
-        keyboard = build_buttons(order)
+        # 1) Bazaga saqlaymiz — kunlik tartib raqamini shu yerdan olamiz
+        record = _store.save_order(order, user)
+        number = record.get("number", 1)
+
+        # 2) Buyurtmani restoranga
+        card = build_card(order, user, number)
+        keyboard = build_buttons(order, record.get("path", ""))
         ok, err = send_message(ORDERS_BOT_TOKEN, ORDERS_CHAT_ID, card, keyboard)
         if not ok:
             print(f"[WARN] buyurtma yuborilmadi: {err}")
@@ -218,17 +229,18 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             if not ok:
                 return self._send(502, {"ok": False, "error": "yuborilmadi"})
 
-        # 2) Mijozga tasdiq
+        # 3) Mijozga tasdiq
         chat_id = user.get("id")
         if chat_id:
             send_message(
                 BOT_TOKEN,
                 chat_id,
-                "✅ <b>Buyurtmangiz qabul qilindi!</b>\n"
+                f"✅ <b>Buyurtmangiz qabul qilindi!</b>\n"
+                f"Raqami: <b>#{number}</b>\n\n"
                 "Tez orada operator siz bilan bog'lanadi. Rahmat! 🙌",
             )
 
-        self._send(200, {"ok": True})
+        self._send(200, {"ok": True, "number": number})
 
     def do_GET(self):  # noqa: N802
         self._send(200, {"ok": True, "info": "buyurtma qabul qilish nuqtasi"})

@@ -86,6 +86,15 @@ const I18N = {
     workHours: "Ish vaqti",
     ordersCount: "ta buyurtma",
     saved: "Saqlandi ✅",
+    closedNow: "Hozir yopiqmiz",
+    opensAt: "Ertaga soat",
+    opensToday: "Bugun soat",
+    willOpen: "da ochamiz",
+    minOrderText: "Minimal buyurtma",
+    deliveryFeeText: "Yetkazish",
+    free: "BEPUL",
+    addMore: "Yana",
+    toMinOrder: "qo'shsangiz buyurtma bera olasiz",
   },
 
   ru: {
@@ -160,6 +169,15 @@ const I18N = {
     workHours: "Часы работы",
     ordersCount: "заказов",
     saved: "Сохранено ✅",
+    closedNow: "Сейчас закрыто",
+    opensAt: "Завтра в",
+    opensToday: "Сегодня в",
+    willOpen: "откроемся",
+    minOrderText: "Минимальный заказ",
+    deliveryFeeText: "Доставка",
+    free: "БЕСПЛАТНО",
+    addMore: "Добавьте ещё",
+    toMinOrder: "для оформления заказа",
   },
 };
 

@@ -16,13 +16,19 @@ Muhit o'zgaruvchilari:
 """
 
 import os
+import sys
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
 import telebot
 from telebot import types
 
+# _store shu papkada — Vercel muhitida yo'lni qo'lda ko'rsatamiz
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _store  # noqa: E402
+
 ORDERS_BOT_TOKEN = os.environ.get("ORDERS_BOT_TOKEN", "").strip()
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "").strip()
 
 TASHKENT_TZ = timezone(timedelta(hours=5))
@@ -30,46 +36,113 @@ TASHKENT_TZ = timezone(timedelta(hours=5))
 bot = telebot.TeleBot(ORDERS_BOT_TOKEN or "0:none", parse_mode="HTML", threaded=False)
 
 
-@bot.callback_query_handler(func=lambda c: (c.data or "").startswith("take:"))
-def cb_take(call):
-    """«✅ Olaman» — buyurtmani kim olganini kartochkaga yozib qo'yadi."""
+# Holat nomlari: mijozga va xodimga ko'rinadigan matnlar
+STATUS_LABELS = {
+    "accepted": ("✅ Qabul qilindi", "✅ Buyurtmangiz qabul qilindi!"),
+    "cooking": ("👨‍🍳 Tayyorlanmoqda", "👨‍🍳 Buyurtmangiz tayyorlanmoqda!"),
+    "onway": ("🛵 Yo'lda", "🛵 Kuryer yo'lga chiqdi! Tez orada yetib boradi."),
+    "done": ("🏁 Yetkazildi", "🏁 Buyurtmangiz yetkazildi. Yoqimli ishtaha! 🥙"),
+    "cancelled": ("❌ Bekor qilindi", "❌ Afsuski, buyurtmangiz bekor qilindi. Iltimos, biz bilan bog'laning."),
+}
+
+
+def notify_customer(chat_id, text):
+    """Mijozga asosiy bot orqali xabar yuboradi."""
+    if not (BOT_TOKEN and chat_id):
+        return
+    try:
+        telebot.TeleBot(BOT_TOKEN, parse_mode="HTML", threaded=False).send_message(
+            chat_id, text
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[WARN] mijozga xabar: {exc}")
+
+
+@bot.callback_query_handler(func=lambda c: (c.data or "").startswith("st:"))
+def cb_status(call):
+    """Holat tugmalari: qabul qilindi / tayyorlanmoqda / yo'lda / yetkazildi."""
+    try:
+        _, status, path = (call.data or "").split(":", 2)
+    except ValueError:
+        return bot.answer_callback_query(call.id, "Noto'g'ri amal")
+
+    label, customer_text = STATUS_LABELS.get(status, ("", ""))
+    if not label:
+        return bot.answer_callback_query(call.id, "Noma'lum holat")
+
     who = call.from_user.first_name or "Xodim"
     if call.from_user.username:
         who += f" (@{call.from_user.username})"
     stamp = datetime.now(TASHKENT_TZ).strftime("%H:%M")
 
     try:
-        bot.answer_callback_query(call.id, "Qabul qilindi ✅")
+        bot.answer_callback_query(call.id, label)
     except Exception:  # noqa: BLE001
         pass
 
+    # Bazada holatni yangilaymiz va mijozga xabar beramiz
+    record = _store.update_status(path, status, who) if path else None
+    if record and customer_text:
+        user = record.get("user") or {}
+        num = record.get("number", "")
+        notify_customer(user.get("id"), f"{customer_text}\n\nRaqami: <b>#{num}</b>")
+
+    # Kartochkaga holat qatorini qo'shamiz
     original = call.message.html_text or call.message.text or ""
-    if "✅ Qabul qildi:" in original:
-        return  # allaqachon olingan
+    line = f"{label} · {who} · {stamp}"
+    if line in original:
+        return
+    updated = f"{original}\n{line}"
 
-    updated = f"{original}\n━━━━━━━━━━━━━━━\n✅ <b>Qabul qildi:</b> {who} · {stamp}"
-
-    # Tugmalardan «Olaman»ni olib tashlaymiz, xarita havolasi qolsin
-    markup = call.message.reply_markup
-    rows = []
-    if markup and markup.keyboard:
-        for row in markup.keyboard:
-            keep = [b for b in row if not (b.callback_data or "").startswith("take:")]
-            if keep:
-                rows.append(keep)
-    new_markup = types.InlineKeyboardMarkup()
-    for row in rows:
-        new_markup.row(*row)
+    # Bajarilgan/bekor qilingan bo'lsa — tugmalarni olib tashlaymiz
+    keep_buttons = status not in ("done", "cancelled")
+    markup = call.message.reply_markup if keep_buttons else None
 
     try:
         bot.edit_message_text(
-            updated,
-            call.message.chat.id,
-            call.message.message_id,
-            reply_markup=new_markup if rows else None,
+            updated, call.message.chat.id, call.message.message_id, reply_markup=markup
         )
     except Exception as exc:  # noqa: BLE001
         print(f"[WARN] kartochka yangilanmadi: {exc}")
+
+
+@bot.callback_query_handler(func=lambda c: (c.data or "") == "list:today")
+def cb_list_today(call):
+    """Bugungi buyurtmalar ro'yxati va qisqa hisobot."""
+    try:
+        bot.answer_callback_query(call.id)
+    except Exception:  # noqa: BLE001
+        pass
+    bot.send_message(call.message.chat.id, build_report_text())
+
+
+def build_report_text(day=None):
+    """Kunlik hisobot matni."""
+    rep = _store.day_report(day)
+    records = _store.load_orders(day)
+    if not records:
+        return f"📋 <b>{rep['day']}</b>\n\nBugun hali buyurtma yo'q."
+
+    lines = [f"📋 <b>Bugungi buyurtmalar</b> · {rep['day']}", ""]
+    for r in records:
+        o = r.get("order") or {}
+        label = STATUS_LABELS.get(r.get("status", ""), ("🆕 Yangi",))[0]
+        total = f"{int(o.get('total') or 0):,}".replace(",", " ")
+        lines.append(f"#{r.get('number')} · {total} so'm · {label}")
+    total = f"{rep['total']:,}".replace(",", " ")
+    lines.append("")
+    lines.append(f"🧾 Jami: <b>{rep['count']} ta</b> · <b>{total} so'm</b>")
+    if rep["top"]:
+        lines.append("")
+        lines.append("🔥 <b>Ko'p buyurtma qilinganlar:</b>")
+        for name, qty in rep["top"]:
+            lines.append(f"  • {name} — {qty} ta")
+    return "\n".join(lines)
+
+
+@bot.message_handler(commands=["report", "hisobot"])
+def cmd_report(message):
+    bot.send_message(message.chat.id, build_report_text())
 
 
 @bot.message_handler(commands=["start", "id"])
@@ -84,7 +157,8 @@ def cmd_start(message):
     else:
         text = (
             "✅ Tayyor! Buyurtmalar shu chatga tushadi.\n\n"
-            f"<b>Chat ID:</b> <code>{chat.id}</code>"
+            f"<b>Chat ID:</b> <code>{chat.id}</code>\n\n"
+            "📋 /report — bugungi buyurtmalar va savdo hisoboti"
         )
     bot.send_message(chat.id, text)
 

@@ -18,6 +18,11 @@ const MENU = {
     botUsername: "DonDoner_bot",
     currency: "so'm",
     delivery: "🚗 Yetkazib berish — BEPUL",
+    // Ish vaqti (Toshkent vaqti). Yopiq bo'lsa buyurtma qabul qilinmaydi.
+    hours: { open: "10:00", close: "23:00" },
+    // Yetkazish shartlari
+    minOrder: 50000, // minimal buyurtma summasi (so'm), 0 = cheklov yo'q
+    deliveryFee: 0, // yetkazish narxi (so'm), 0 = bepul
     instagram: "dondoner.uz",
     telegramChannel: "dondoner_uz",
     branches: [

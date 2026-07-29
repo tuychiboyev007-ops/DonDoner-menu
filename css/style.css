@@ -272,7 +272,8 @@ button {
 .product__media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain — taom to'liq ko'rinadi, chetlari kesilmaydi */
+  object-fit: contain;
 }
 
 .product__body {
@@ -1420,7 +1421,7 @@ button {
 .sheet__media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .sheet__body {

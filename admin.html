@@ -118,11 +118,12 @@
 
   /* Rasm yuklash */
   .photo {
-    position: relative; width: 100%; aspect-ratio: 16/10; border-radius: 14px; overflow: hidden;
+    position: relative; width: 100%; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden;
     background: rgba(130,130,140,.14); display: grid; place-items: center; cursor: pointer;
     border: 2px dashed var(--line);
   }
-  .photo img { width: 100%; height: 100%; object-fit: cover; }
+  /* Rasm kvadrat maydonga to'liq sig'adi — kesilmaydi */
+  .photo img { width: 100%; height: 100%; object-fit: contain; }
   .photo__hint { text-align: center; color: var(--muted); font-size: 14px; padding: 10px; }
   .photo__hint b { display: block; font-size: 34px; margin-bottom: 4px; }
   .photo__badge {
@@ -697,30 +698,113 @@
     box.appendChild(add);
   }
 
-  /* ---------- Rasm yuklash (brauzerda siqib yuboriladi) ---------- */
-  function uploadImage(file, done) {
+  /* ============================================================
+     Rasm yuklash
+     Har qanday rasm bir xil chiroyli ko'rinishga keltiriladi:
+       1. Telefon rasmidagi burilish (EXIF) to'g'rilanadi
+       2. Kvadrat (1:1) qilib olinadi — taom to'liq ko'rinadi, kesilmaydi
+       3. Bo'sh chetlar rasmning o'zidan xira fon bilan to'ldiriladi
+       4. 800×800 ga kichraytirilib, JPEG holida yuboriladi (~150 KB)
+     ============================================================ */
+
+  var OUT_SIZE = 800;
+
+  // Canvas blur qo'llab-quvvatlanadimi (Safari 14+ va Chrome'da bor)
+  var CAN_BLUR = (function () {
+    try {
+      var c = document.createElement("canvas").getContext("2d");
+      c.filter = "blur(2px)";
+      return c.filter === "blur(2px)";
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  // Rasmni burilishi to'g'rilangan holda yuklaydi
+  function loadImage(file, ok, fail) {
+    if (window.createImageBitmap) {
+      createImageBitmap(file, { imageOrientation: "from-image" })
+        .then(ok)
+        .catch(function () { loadViaTag(file, ok, fail); });
+      return;
+    }
+    loadViaTag(file, ok, fail);
+  }
+
+  function loadViaTag(file, ok, fail) {
     var reader = new FileReader();
-    reader.onerror = function () { done(""); };
+    reader.onerror = fail;
     reader.onload = function () {
       var img = new Image();
-      img.onerror = function () { done(""); };
-      img.onload = function () {
-        var maxW = 900;
-        var scale = Math.min(1, maxW / img.width);
-        var canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        var base64 = canvas.toDataURL("image/jpeg", 0.82).split(",")[1];
-        api("upload_image", {
-          filename: file.name, content_type: "image/jpeg", data_base64: base64,
-        }, function (err, res) {
-          done(!err && res.status === 200 && res.data.url ? res.data.url : "");
-        });
-      };
+      img.onload = function () { ok(img); };
+      img.onerror = fail;
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+  }
+
+  // Rasm chetlaridan o'rtacha rang (blur ishlamasa fon uchun)
+  function edgeColor(src) {
+    var s = 24;
+    var c = document.createElement("canvas");
+    c.width = s; c.height = s;
+    var ctx = c.getContext("2d");
+    ctx.drawImage(src, 0, 0, s, s);
+    var px = ctx.getImageData(0, 0, s, s).data;
+    var r = 0, g = 0, b = 0, n = 0;
+    for (var y = 0; y < s; y++) {
+      for (var x = 0; x < s; x++) {
+        // faqat chetlarni olamiz
+        if (x > 2 && x < s - 3 && y > 2 && y < s - 3) continue;
+        var i = (y * s + x) * 4;
+        r += px[i]; g += px[i + 1]; b += px[i + 2]; n++;
+      }
+    }
+    return "rgb(" + Math.round(r / n) + "," + Math.round(g / n) + "," + Math.round(b / n) + ")";
+  }
+
+  function toSquare(src) {
+    var w = src.width, h = src.height;
+    var canvas = document.createElement("canvas");
+    canvas.width = OUT_SIZE;
+    canvas.height = OUT_SIZE;
+    var ctx = canvas.getContext("2d");
+
+    // --- Fon: rasmni to'ldirib chizamiz va xiralashtiramiz ---
+    var cover = Math.max(OUT_SIZE / w, OUT_SIZE / h);
+    var cw = w * cover, chh = h * cover;
+    if (CAN_BLUR) {
+      ctx.filter = "blur(" + Math.round(OUT_SIZE * 0.05) + "px)";
+      ctx.drawImage(src, (OUT_SIZE - cw) / 2, (OUT_SIZE - chh) / 2, cw, chh);
+      ctx.filter = "none";
+    } else {
+      ctx.fillStyle = edgeColor(src);
+      ctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
+    }
+
+    // --- Asosiy rasm: butunlay sig'adi, kesilmaydi ---
+    var fit = Math.min(OUT_SIZE / w, OUT_SIZE / h);
+    var fw = w * fit, fh = h * fit;
+    ctx.drawImage(src, (OUT_SIZE - fw) / 2, (OUT_SIZE - fh) / 2, fw, fh);
+
+    return canvas;
+  }
+
+  function uploadImage(file, done) {
+    loadImage(
+      file,
+      function (src) {
+        var canvas = toSquare(src);
+        if (src.close) src.close(); // ImageBitmap xotirasini bo'shatamiz
+        var base64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+        api("upload_image", {
+          filename: "photo.jpg", content_type: "image/jpeg", data_base64: base64,
+        }, function (err, res) {
+          done(!err && res.status === 200 && res.data.url ? res.data.url : "");
+        });
+      },
+      function () { done(""); }
+    );
   }
 })();
 </script>

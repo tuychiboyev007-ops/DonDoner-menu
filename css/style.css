@@ -5,9 +5,9 @@
    ============================================================ */
 
 :root {
-  --brand: #0e6e55;
-  --brand-dark: #0a5642;
-  --brand-soft: #e6f2ee;
+  --brand: #d81327;
+  --brand-dark: #a80e1e;
+  --brand-soft: #fde8ec;
   --accent: #f77f00;
 
   --bg: var(--tg-theme-bg-color, #f4f5f7);
@@ -70,48 +70,21 @@ button {
   font-weight: 800;
 }
 
-/* ---------- Topbar ---------- */
+/* ---------- Topbar (qora fon + logo) ---------- */
 .topbar {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 14px) 16px 10px;
+  justify-content: center;
+  background: #000;
+  padding: calc(env(safe-area-inset-top) + 12px) 64px 12px;
 }
 
-.topbar__brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.topbar__logo {
-  width: 52px;
+.topbar__logoimg {
   height: 52px;
-  border-radius: 14px;
-  background: var(--brand);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.topbar__name {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.topbar__tagline {
-  margin: 1px 0 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.topbar__actions {
-  display: flex;
-  gap: 8px;
+  max-width: 72%;
+  object-fit: contain;
+  display: block;
 }
 
 .iconbtn {
@@ -123,6 +96,16 @@ button {
   box-shadow: var(--shadow);
   font-size: 18px;
   cursor: pointer;
+}
+
+.iconbtn--ondark {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: calc(env(safe-area-inset-top) / 2);
+  background: #1c1c1e;
+  box-shadow: none;
 }
 
 /* ---------- Yetkazish paneli ---------- */
@@ -279,7 +262,7 @@ button {
 .product__media {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: linear-gradient(135deg, var(--brand-soft), #d8ece4);
+  background: linear-gradient(135deg, var(--brand-soft), #f8ccd4);
   display: grid;
   place-items: center;
   font-size: 54px;
@@ -386,7 +369,7 @@ button {
   background: #2a9d8f;
 }
 .badge--achchiq {
-  background: #d00000;
+  background: #ff5a00;
 }
 
 /* Bo'sh holat */
@@ -441,7 +424,7 @@ button {
   height: 64px;
   border-radius: 10px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--brand-soft), #d8ece4);
+  background: linear-gradient(135deg, var(--brand-soft), #f8ccd4);
   display: grid;
   place-items: center;
   font-size: 28px;
@@ -845,7 +828,7 @@ button {
 
 .sheet__media {
   height: 210px;
-  background: linear-gradient(135deg, var(--brand-soft), #d8ece4);
+  background: linear-gradient(135deg, var(--brand-soft), #f8ccd4);
   display: grid;
   place-items: center;
   font-size: 96px;

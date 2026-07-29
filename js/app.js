@@ -105,7 +105,7 @@
     try {
       tg.ready();
       tg.expand();
-      if (tg.setHeaderColor) tg.setHeaderColor("#0e6e55");
+      if (tg.setHeaderColor) tg.setHeaderColor("#000000");
     } catch (e) {}
   }
 
@@ -162,8 +162,6 @@
 
   function renderHeader() {
     const r = window.MENU.restaurant;
-    document.getElementById("restName").textContent = r.name;
-    document.getElementById("restTagline").textContent = r.tagline;
     document.title = r.name + " — Menyu";
     document.getElementById("footer").innerHTML =
       `<div>📍 ${escapeHtml(r.address)}</div>` +

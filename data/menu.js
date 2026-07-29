@@ -14,7 +14,7 @@
 const MENU = {
   restaurant: {
     name: "DonDoner",
-    tagline: "o'tinda doner 🔥",
+    tagline: "Turkcha ishtaha — O'zbekona mehmondo'stlik",
     botUsername: "DonDoner_bot",
     currency: "so'm",
     phone: "+998 90 000 00 00",

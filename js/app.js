@@ -315,19 +315,60 @@
     document.getElementById("footer").innerHTML = html;
   }
 
+  // Kategoriya nomining bosh harfi — kafel ichida ko'rsatiladi
+  function catInitial(name) {
+    return (name || "?").trim().charAt(0).toLocaleUpperCase("uz");
+  }
+
+  function setActiveChip(catId) {
+    chipsRoot.querySelectorAll(".chip").forEach(function (c) {
+      c.classList.toggle("is-active", c.dataset.target === catId);
+    });
+  }
+
   function renderChips() {
     chipsRoot.innerHTML = "";
     window.MENU.categories.forEach(function (cat, i) {
-      const chip = el("button", "chip", cat.icon + " " + cat.name);
+      const chip = el("button", "chip");
+      chip.appendChild(el("span", "chip__tile", escapeHtml(catInitial(cat.name))));
+      chip.appendChild(el("span", "chip__label", escapeHtml(cat.name)));
       if (i === 0) chip.classList.add("is-active");
       chip.dataset.target = cat.id;
       chip.addEventListener("click", function () {
         haptic("light");
+        setActiveChip(cat.id);
         const s = document.getElementById("cat-" + cat.id);
         if (s) s.scrollIntoView({ behavior: "smooth", block: "start" });
       });
       chipsRoot.appendChild(chip);
     });
+  }
+
+  /* Sahifa surilganda faol kategoriya o'zi almashadi.
+     Kafel qatoridan pastda turgan eng yuqoridagi bo'lim tanlanadi. */
+  function setupCategorySpy() {
+    let ticking = false;
+    window.addEventListener(
+      "scroll",
+      function () {
+        if (ticking || currentPage !== "home") return;
+        ticking = true;
+        requestAnimationFrame(function () {
+          ticking = false;
+          const line = (chipsRoot.getBoundingClientRect().bottom || 0) + 8;
+          let current = null;
+          menuRoot.querySelectorAll(".section").forEach(function (s) {
+            if (s.getBoundingClientRect().top <= line) current = s.dataset.cat;
+          });
+          if (!current) {
+            const first = menuRoot.querySelector(".section");
+            current = first ? first.dataset.cat : null;
+          }
+          if (current) setActiveChip(current);
+        });
+      },
+      { passive: true }
+    );
   }
 
   function renderMenu() {
@@ -347,9 +388,7 @@
       const section = el("section", "section");
       section.id = "cat-" + cat.id;
       section.dataset.cat = cat.id;
-      section.appendChild(
-        el("h2", "section__title", `<span>${cat.icon}</span> ${escapeHtml(cat.name)}`)
-      );
+      section.appendChild(el("h2", "section__title", escapeHtml(cat.name)));
 
       const grid = el("div", "grid");
       items.forEach(function (it) {
@@ -1793,6 +1832,7 @@
     setupControls();
     setupPicker();
     setupAdminGesture();
+    setupCategorySpy();
     document.documentElement.lang = lang;
     applyStaticLabels();
     refreshCartUI();

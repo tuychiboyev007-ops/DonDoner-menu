@@ -330,9 +330,22 @@
   }
 
   function setActiveChip(catId) {
+    let active = null;
     chipsRoot.querySelectorAll(".chip").forEach(function (c) {
-      c.classList.toggle("is-active", c.dataset.target === catId);
+      const on = c.dataset.target === catId;
+      c.classList.toggle("is-active", on);
+      if (on) active = c;
     });
+    if (!active) return;
+
+    // Bo'limlar ko'p — faol kafel ekrandan chiqib ketmasligi uchun
+    // kategoriya qatorini o'zi surib, uni o'rtaga keltiramiz
+    const centered = active.offsetLeft - (chipsRoot.clientWidth - active.offsetWidth) / 2;
+    const max = chipsRoot.scrollWidth - chipsRoot.clientWidth;
+    const left = Math.max(0, Math.min(max, centered));
+    if (Math.abs(chipsRoot.scrollLeft - left) > 4) {
+      chipsRoot.scrollTo({ left: left, behavior: "smooth" });
+    }
   }
 
   function renderChips() {

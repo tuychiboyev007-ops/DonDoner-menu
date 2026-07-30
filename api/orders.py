@@ -40,12 +40,14 @@ bot = telebot.TeleBot(ORDERS_BOT_TOKEN or "0:none", parse_mode="HTML", threaded=
 
 
 # Holat nomlari: mijozga va xodimga ko'rinadigan matnlar
+# Har bir holat uchun: (xodim kartochkasidagi yozuv — o'zbekcha,
+#                        mijozga boradigan xabar — ruscha)
 STATUS_LABELS = {
-    "accepted": ("✅ Qabul qilindi", "✅ Buyurtmangiz qabul qilindi!"),
-    "cooking": ("👨‍🍳 Tayyorlanmoqda", "👨‍🍳 Buyurtmangiz tayyorlanmoqda!"),
-    "onway": ("🛵 Yo'lda", "🛵 Kuryer yo'lga chiqdi! Tez orada yetib boradi."),
-    "done": ("🏁 Yetkazildi", "🏁 Buyurtmangiz yetkazildi. Yoqimli ishtaha! 🥙"),
-    "cancelled": ("❌ Bekor qilindi", "❌ Afsuski, buyurtmangiz bekor qilindi. Iltimos, biz bilan bog'laning."),
+    "accepted": ("✅ Qabul qilindi", "✅ Ваш заказ принят!"),
+    "cooking": ("👨‍🍳 Tayyorlanmoqda", "👨‍🍳 Ваш заказ готовится!"),
+    "onway": ("🛵 Yo'lda", "🛵 Курьер выехал! Скоро будет у вас."),
+    "done": ("🏁 Yetkazildi", "🏁 Заказ доставлен. Приятного аппетита! 🥙"),
+    "cancelled": ("❌ Bekor qilindi", "❌ К сожалению, ваш заказ отменён. Пожалуйста, свяжитесь с нами."),
 }
 
 
@@ -104,7 +106,7 @@ def customer_view_keyboard(number):
         return None
     url = WEBAPP_URL.rstrip("/") + "/?order=" + str(number)
     kb = types.InlineKeyboardMarkup()
-    kb.add(types.InlineKeyboardButton("📋 Buyurtmani ko'rish", web_app=types.WebAppInfo(url)))
+    kb.add(types.InlineKeyboardButton("📋 Посмотреть заказ", web_app=types.WebAppInfo(url)))
     return kb
 
 

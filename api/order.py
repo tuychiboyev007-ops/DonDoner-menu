@@ -227,7 +227,7 @@ def build_confirm_keyboard(number):
     url = WEBAPP_URL.rstrip("/") + "/?order=" + str(number)
     return {
         "inline_keyboard": [
-            [{"text": "📋 Buyurtmani ko'rish", "web_app": {"url": url}}]
+            [{"text": "📋 Посмотреть заказ", "web_app": {"url": url}}]
         ]
     }
 
@@ -295,11 +295,11 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             send_message(
                 BOT_TOKEN,
                 chat_id,
-                f"✅ <b>Buyurtmangiz qabul qilindi!</b>\n"
-                f"Raqami: <b>#{number}</b>\n\n"
-                "📋 Buyurtma holatini pastdagi tugma orqali yoki "
-                "«Buyurtmalar» bo'limida kuzatib borishingiz mumkin.\n\n"
-                "Tez orada operator siz bilan bog'lanadi. Rahmat! 🙌",
+                f"✅ <b>Ваш заказ принят!</b>\n"
+                f"Номер: <b>#{number}</b>\n\n"
+                "📋 Следить за статусом можно по кнопке ниже "
+                "или в разделе «Заказы».\n\n"
+                "Оператор скоро свяжется с вами. Спасибо! 🙌",
                 build_confirm_keyboard(number),
             )
 

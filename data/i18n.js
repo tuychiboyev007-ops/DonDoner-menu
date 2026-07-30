@@ -27,6 +27,9 @@ const I18N = {
     menuWord: "Menyu",
     mapFailed: "Xarita yuklanmadi — manzilni qidiruvdan tanlang",
     currency: "so'm",
+    badgeHit: "Hit",
+    badgeNew: "Yangi",
+    badgeSpicy: "Achchiq",
 
     // Taom
     addToCart: "Savatga qo'shish",
@@ -143,6 +146,9 @@ const I18N = {
     menuWord: "Меню",
     mapFailed: "Карта не загрузилась — выберите адрес через поиск",
     currency: "сум",
+    badgeHit: "Хит",
+    badgeNew: "Новинка",
+    badgeSpicy: "Острое",
 
     addToCart: "Добавить в корзину",
     choose: "Выбрать",

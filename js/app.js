@@ -99,6 +99,13 @@
     return "badge " + (map[badge] || "");
   }
 
+  // Yorliq bazada doim "Hit"/"Yangi"/"Achchiq" bo'lib turadi (rangi shunga bog'liq),
+  // ekranda esa tanlangan tilda ko'rsatiladi
+  function badgeText(badge) {
+    const map = { Hit: "badgeHit", Yangi: "badgeNew", Achchiq: "badgeSpicy" };
+    return map[badge] ? t(map[badge]) : badge;
+  }
+
   function mediaContent(item, fallbackEmoji) {
     if (item.image) {
       return `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" />`;
@@ -416,7 +423,7 @@
 
     const media = el("div", "product__media", mediaContent(item, catIcon));
     if (item.badge) {
-      media.appendChild(el("span", badgeClass(item.badge), escapeHtml(item.badge)));
+      media.appendChild(el("span", badgeClass(item.badge), escapeHtml(badgeText(item.badge))));
     }
     media.addEventListener("click", function () {
       openSheet(item, catIcon);

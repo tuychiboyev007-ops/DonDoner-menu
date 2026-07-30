@@ -24,6 +24,9 @@ const I18N = {
     pickupAtBranch: "Filialdan olib ketish",
     searchFood: "Taom qidirish…",
     nothingFound: "Hech narsa topilmadi",
+    menuWord: "Menyu",
+    mapFailed: "Xarita yuklanmadi — manzilni qidiruvdan tanlang",
+    currency: "so'm",
 
     // Taom
     addToCart: "Savatga qo'shish",
@@ -137,6 +140,9 @@ const I18N = {
     pickupAtBranch: "Самовывоз из филиала",
     searchFood: "Поиск блюда…",
     nothingFound: "Ничего не найдено",
+    menuWord: "Меню",
+    mapFailed: "Карта не загрузилась — выберите адрес через поиск",
+    currency: "сум",
 
     addToCart: "Добавить в корзину",
     choose: "Выбрать",

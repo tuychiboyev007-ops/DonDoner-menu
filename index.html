@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#ffffff" />
-  <title>DonDoner — Menyu</title>
+  <title>DonDoner — Меню</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- ?v= raqamini har yangilanishda oshiring — kesh muammosini oldini oladi -->
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-  <link rel="stylesheet" href="css/style.css?v=20" />
+  <link rel="stylesheet" href="css/style.css?v=21" />
 </head>
 <body>
   <!-- ======== BOSH SAHIFA ======== -->
@@ -22,14 +22,14 @@
       />
       <span class="topbar__name" id="brandName">DonDöner</span>
       <div class="topbar__actions">
-        <button class="iconbtn" id="bellBtn" aria-label="Buyurtmalarim">
+        <button class="iconbtn" id="bellBtn" aria-label="Мои заказы">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
         </button>
-        <button class="iconbtn" id="searchBtn" aria-label="Qidirish">
+        <button class="iconbtn" id="searchBtn" aria-label="Поиск">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7" />
@@ -42,11 +42,11 @@
     <!-- Yetkazish / olib ketish -->
     <div class="delivery">
       <div class="delivery__info">
-        <span class="delivery__label">Manzil</span>
-        <span class="delivery__value" id="deliveryAddr">Manzilni tanlang…</span>
+        <span class="delivery__label">Адрес</span>
+        <span class="delivery__value" id="deliveryAddr">Выберите адрес…</span>
       </div>
       <button class="modebtn" id="modeToggle" data-mode="delivery">
-        <span class="modebtn__text">Yetkazish</span>
+        <span class="modebtn__text">Доставка</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m6 9 6 6 6-6" />
@@ -56,11 +56,11 @@
 
     <!-- Qidiruv (yashirin, tugma bosilganda ochiladi) -->
     <div class="searchbar" id="searchBar" hidden>
-      <input type="search" id="searchInput" placeholder="Taom qidirish…" autocomplete="off" />
+      <input type="search" id="searchInput" placeholder="Поиск блюда…" autocomplete="off" />
     </div>
 
     <!-- Kategoriya chiplar -->
-    <nav class="chips" id="chips" aria-label="Kategoriyalar"></nav>
+    <nav class="chips" id="chips" aria-label="Категории"></nav>
 
     <!-- Menyu bo'limlari -->
     <main class="menu" id="menu"></main>
@@ -70,36 +70,36 @@
 
   <!-- ======== SAVAT ======== -->
   <section class="page page--cart" id="page-cart">
-    <header class="pagehead"><h2>Savat</h2></header>
+    <header class="pagehead"><h2>Корзина</h2></header>
     <div class="cart" id="cartBody"></div>
   </section>
 
   <!-- ======== BUYURTMALAR ======== -->
   <section class="page page--orders" id="page-orders">
-    <header class="pagehead"><h2>Buyurtmalar</h2></header>
+    <header class="pagehead"><h2>Заказы</h2></header>
     <div class="orders" id="ordersBody"></div>
   </section>
 
   <!-- ======== PROFIL ======== -->
   <section class="page page--profile" id="page-profile">
-    <header class="pagehead"><h2>Profil</h2></header>
+    <header class="pagehead"><h2>Профиль</h2></header>
     <div class="profile" id="profileBody"></div>
   </section>
 
   <!-- ======== PASTKI NAVIGATSIYA ======== -->
   <nav class="tabbar" id="tabbar">
     <button class="tabbar__btn is-active" data-page="home">
-      <span class="tabbar__icon">🏠</span><span class="tabbar__label">Bosh sahifa</span>
+      <span class="tabbar__icon">🏠</span><span class="tabbar__label">Главная</span>
     </button>
     <button class="tabbar__btn" data-page="cart">
-      <span class="tabbar__icon">🛒</span><span class="tabbar__label">Savat</span>
+      <span class="tabbar__icon">🛒</span><span class="tabbar__label">Корзина</span>
       <span class="tabbar__badge" id="cartBadge" hidden>0</span>
     </button>
     <button class="tabbar__btn" data-page="orders">
-      <span class="tabbar__icon">📋</span><span class="tabbar__label">Buyurtmalar</span>
+      <span class="tabbar__icon">📋</span><span class="tabbar__label">Заказы</span>
     </button>
     <button class="tabbar__btn" data-page="profile">
-      <span class="tabbar__icon">👤</span><span class="tabbar__label">Profil</span>
+      <span class="tabbar__icon">👤</span><span class="tabbar__label">Профиль</span>
     </button>
   </nav>
 
@@ -107,7 +107,7 @@
   <div class="sheet" id="sheet" hidden>
     <div class="sheet__backdrop" data-close></div>
     <div class="sheet__panel" role="dialog" aria-modal="true">
-      <button class="sheet__close" data-close aria-label="Yopish">✕</button>
+      <button class="sheet__close" data-close aria-label="Закрыть">✕</button>
       <div class="sheet__media" id="sheetMedia"></div>
       <div class="sheet__body">
         <div class="sheet__row">
@@ -117,7 +117,7 @@
         <p class="sheet__weight" id="sheetWeight"></p>
         <p class="sheet__desc" id="sheetDesc"></p>
         <div class="sheet__variants" id="sheetVariants" hidden></div>
-        <button class="btn btn--primary sheet__add" id="sheetAdd">Savatga qo'shish</button>
+        <button class="btn btn--primary sheet__add" id="sheetAdd">Добавить в корзину</button>
       </div>
     </div>
   </div>
@@ -125,15 +125,15 @@
   <!-- ======== MANZIL TANLASH (to'liq ekran) ======== -->
   <section class="picker" id="picker" hidden>
     <header class="picker__head">
-      <button class="picker__back" id="pickerBack" aria-label="Orqaga">←</button>
-      <h2 class="picker__title">Yangi manzil</h2>
+      <button class="picker__back" id="pickerBack" aria-label="Назад">←</button>
+      <h2 class="picker__title">Новый адрес</h2>
     </header>
 
     <div class="picker__search">
       <input
         type="search"
         id="pickerInput"
-        placeholder="Manzilni kiriting"
+        placeholder="Введите адрес"
         autocomplete="off"
       />
       <ul class="picker__results" id="pickerResults" hidden></ul>
@@ -142,19 +142,19 @@
     <div class="picker__map" id="pickerMap">
       <!-- Markazdagi qo'zg'almas nuqta: xaritani surasiz, nuqta joyida qoladi -->
       <div class="picker__pin" aria-hidden="true"></div>
-      <button class="picker__locate" id="pickerLocate" aria-label="Meni topish">➤</button>
+      <button class="picker__locate" id="pickerLocate" aria-label="Найти меня">➤</button>
     </div>
 
     <div class="picker__foot">
-      <div class="picker__addr" id="pickerAddr">Manzil aniqlanmoqda…</div>
-      <button class="btn btn--primary" id="pickerDone">Davom etish</button>
+      <div class="picker__addr" id="pickerAddr">Определяем адрес…</div>
+      <button class="btn btn--primary" id="pickerDone">Продолжить</button>
     </div>
   </section>
 
   <!-- ======== ICHKI EKRAN (Filiallar, Biz haqimizda, ...) ======== -->
   <section class="subpage" id="subpage" hidden>
     <header class="subpage__head">
-      <button class="subpage__back" id="subBack" aria-label="Orqaga">←</button>
+      <button class="subpage__back" id="subBack" aria-label="Назад">←</button>
       <h2 class="subpage__title" id="subTitle"></h2>
     </header>
     <div class="subpage__body" id="subBody"></div>
@@ -163,7 +163,7 @@
   <!-- ======== BUYURTMA TAFSILOTI ======== -->
   <section class="subpage" id="orderPage" hidden>
     <header class="subpage__head">
-      <button class="subpage__back" id="orderBack" aria-label="Orqaga">←</button>
+      <button class="subpage__back" id="orderBack" aria-label="Назад">←</button>
       <h2 class="subpage__title" id="orderTitle"></h2>
     </header>
     <div class="subpage__body" id="orderBody"></div>
@@ -173,8 +173,8 @@
   <div class="toast" id="toast" hidden></div>
 
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="data/i18n.js?v=20"></script>
-  <script src="data/menu.js?v=20"></script>
-  <script src="js/app.js?v=20"></script>
+  <script src="data/i18n.js?v=21"></script>
+  <script src="data/menu.js?v=21"></script>
+  <script src="js/app.js?v=21"></script>
 </body>
 </html>

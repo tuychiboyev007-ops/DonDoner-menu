@@ -12,7 +12,6 @@
   "use strict";
 
   const tg = window.Telegram && window.Telegram.WebApp;
-  const CURRENCY = (window.MENU && window.MENU.restaurant.currency) || "so'm";
   const LS_CART = "dondoner_cart";
   const LS_ORDERS = "dondoner_orders";
   const LS_ADDR = "dondoner_addr";
@@ -35,7 +34,9 @@
   let skipNextLookup = false; // qidiruvdan tanlangan nom saqlanib qolsin
   // Tuzilmali manzil maydonlari (saqlanadi)
   let addrParts = load(LS_ADDR, { house: "", flat: "", floor: "", entrance: "", note: "" });
-  let lang = localStorage.getItem(LS_LANG) || "uz";
+  // Standart til — ruscha. Foydalanuvchi Profil > Til orqali o'zgartirsa,
+  // tanlovi localStorage'da saqlanadi va shundan keyin o'sha til ishlatiladi.
+  let lang = localStorage.getItem(LS_LANG) || "ru";
   let profile = load(LS_PROFILE, { name: "", phone: "" });
   const savedGeo = load(LS_GEO, null);
   if (savedGeo && savedGeo.lat) {
@@ -73,8 +74,9 @@
     renderAll();
   }
 
+  // Valyuta tanlangan tilga qarab yoziladi ("so'm" / "сум")
   function formatPrice(v) {
-    return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " " + CURRENCY;
+    return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " " + t("currency");
   }
 
   function escapeHtml(str) {
@@ -297,7 +299,7 @@
 
   function renderHeader() {
     const r = window.MENU.restaurant;
-    document.title = r.name + " — Menyu";
+    document.title = r.name + " — " + t("menuWord");
     const brand = document.getElementById("brandName");
     if (brand && r.name) brand.textContent = r.name;
     let html = (r.branches || [])
@@ -568,7 +570,7 @@
         el(
           "div",
           "empty",
-          '<div class="empty__icon">🛒</div><div class="empty__text">Savat bo\'sh.<br>Menyudan taom tanlang.</div>'
+          '<div class="empty__icon">🛒</div><div class="empty__text">' + t("cartEmpty") + "</div>"
         )
       );
       return;
@@ -858,8 +860,7 @@
 
     const mapEl = document.getElementById("pickerMap");
     if (typeof L === "undefined") {
-      document.getElementById("pickerAddr").textContent =
-        "Xarita yuklanmadi — manzilni qidiruvdan tanlang";
+      document.getElementById("pickerAddr").textContent = t("mapFailed");
       return;
     }
 
@@ -979,7 +980,7 @@
   }
 
   function confirmPicker() {
-    if (!pickerGeo) return toast("Xaritadan joyni tanlang");
+    if (!pickerGeo) return toast(t("chooseAddressFirst"));
     geo = pickerGeo;
     geoLabel = pickerLabel;
     save(LS_GEO, { lat: geo.lat, lng: geo.lng, label: geoLabel });
@@ -1030,6 +1031,8 @@
     document.querySelector(".picker__title").textContent = t("newAddress");
     document.querySelector("#pickerInput").placeholder = t("enterAddress");
     document.querySelector("#pickerDone").textContent = t("continue");
+    const pa = document.getElementById("pickerAddr");
+    if (pa && !pickerLabel) pa.textContent = t("detecting");
     document.querySelector("#sheetAdd").textContent = t("addToCart");
     const dv = document.getElementById("deliveryAddr");
     if (dv && !geoLabel) dv.textContent = t("chooseAddress");

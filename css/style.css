@@ -261,7 +261,11 @@ button {
 
 .product__media {
   position: relative;
+  width: 100%;
   aspect-ratio: 1 / 1;
+  /* overflow + absolute rasm: maydon har doim kvadrat qoladi,
+     rasm balandligi kartochkani cho'zib yubormaydi */
+  overflow: hidden;
   background: rgba(142, 142, 152, 0.14);
   display: grid;
   place-items: center;
@@ -270,6 +274,8 @@ button {
 }
 
 .product__media img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   /* contain — taom to'liq ko'rinadi, chetlari kesilmaydi */
@@ -1412,6 +1418,7 @@ button {
 
 .sheet__media {
   height: 210px;
+  overflow: hidden;
   background: rgba(142, 142, 152, 0.14);
   display: grid;
   place-items: center;

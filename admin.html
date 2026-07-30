@@ -700,25 +700,17 @@
 
   /* ============================================================
      Rasm yuklash
-     Har qanday rasm bir xil chiroyli ko'rinishga keltiriladi:
+     Har qanday rasm bir xil toza ko'rinishga keltiriladi:
        1. Telefon rasmidagi burilish (EXIF) to'g'rilanadi
        2. Kvadrat (1:1) qilib olinadi — taom to'liq ko'rinadi, kesilmaydi
-       3. Bo'sh chetlar rasmning o'zidan xira fon bilan to'ldiriladi
-       4. 800×800 ga kichraytirilib, JPEG holida yuboriladi (~150 KB)
+       3. Bo'sh chetlar ilova bilan bir xil neytral fon rangida qoladi
+          (rasmning o'zini xiralashtirib cho'zish g'alati ko'rinar edi)
+       4. 800×800 ga kichraytirilib, JPEG holida yuboriladi
      ============================================================ */
 
   var OUT_SIZE = 800;
-
-  // Canvas blur qo'llab-quvvatlanadimi (Safari 14+ va Chrome'da bor)
-  var CAN_BLUR = (function () {
-    try {
-      var c = document.createElement("canvas").getContext("2d");
-      c.filter = "blur(2px)";
-      return c.filter === "blur(2px)";
-    } catch (e) {
-      return false;
-    }
-  })();
+  // Ilovadagi joy-to'ldiruvchi fon rangi bilan bir xil (css/style.css)
+  var PAD_COLOR = "#e4e4e8";
 
   // Rasmni burilishi to'g'rilangan holda yuklaydi
   function loadImage(file, ok, fail) {
@@ -743,26 +735,6 @@
     reader.readAsDataURL(file);
   }
 
-  // Rasm chetlaridan o'rtacha rang (blur ishlamasa fon uchun)
-  function edgeColor(src) {
-    var s = 24;
-    var c = document.createElement("canvas");
-    c.width = s; c.height = s;
-    var ctx = c.getContext("2d");
-    ctx.drawImage(src, 0, 0, s, s);
-    var px = ctx.getImageData(0, 0, s, s).data;
-    var r = 0, g = 0, b = 0, n = 0;
-    for (var y = 0; y < s; y++) {
-      for (var x = 0; x < s; x++) {
-        // faqat chetlarni olamiz
-        if (x > 2 && x < s - 3 && y > 2 && y < s - 3) continue;
-        var i = (y * s + x) * 4;
-        r += px[i]; g += px[i + 1]; b += px[i + 2]; n++;
-      }
-    }
-    return "rgb(" + Math.round(r / n) + "," + Math.round(g / n) + "," + Math.round(b / n) + ")";
-  }
-
   function toSquare(src) {
     var w = src.width, h = src.height;
     var canvas = document.createElement("canvas");
@@ -770,19 +742,10 @@
     canvas.height = OUT_SIZE;
     var ctx = canvas.getContext("2d");
 
-    // --- Fon: rasmni to'ldirib chizamiz va xiralashtiramiz ---
-    var cover = Math.max(OUT_SIZE / w, OUT_SIZE / h);
-    var cw = w * cover, chh = h * cover;
-    if (CAN_BLUR) {
-      ctx.filter = "blur(" + Math.round(OUT_SIZE * 0.05) + "px)";
-      ctx.drawImage(src, (OUT_SIZE - cw) / 2, (OUT_SIZE - chh) / 2, cw, chh);
-      ctx.filter = "none";
-    } else {
-      ctx.fillStyle = edgeColor(src);
-      ctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
-    }
+    ctx.fillStyle = PAD_COLOR;
+    ctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
 
-    // --- Asosiy rasm: butunlay sig'adi, kesilmaydi ---
+    // Rasm butunlay sig'adi, kesilmaydi, cho'zilmaydi
     var fit = Math.min(OUT_SIZE / w, OUT_SIZE / h);
     var fw = w * fit, fh = h * fit;
     ctx.drawImage(src, (OUT_SIZE - fw) / 2, (OUT_SIZE - fh) / 2, fw, fh);

@@ -175,44 +175,122 @@ def cb_list_today(call):
     bot.send_message(call.message.chat.id, build_report_text())
 
 
-def build_report_text(day=None):
-    """Kunlik hisobot matni."""
-    rep = _store.day_report(day)
-    records = _store.load_orders(day)
-    if not records:
-        return f"📋 <b>{rep['day']}</b>\n\nBugun hali buyurtma yo'q."
+def esc(text):
+    """HTML uchun xavfsiz qilish — taom nomidagi < > & xabarni buzmasin."""
+    return (str(text).replace("&", "&amp;")
+            .replace("<", "&lt;").replace(">", "&gt;"))
 
-    lines = [f"📋 <b>Bugungi buyurtmalar</b> · {rep['day']}", ""]
+
+def branch_of(record):
+    """Buyurtma qaysi filialga tegishli (nomi bo'yicha)."""
+    o = record.get("order") or {}
+    return str((o.get("branch") or {}).get("label") or "")
+
+
+def branch_for_chat(chat_id):
+    """Shu chat qaysi filialning guruhi? Topilmasa — None (umumiy chat)."""
+    menu = _store.load_menu() or {}
+    for b in (menu.get("restaurant") or {}).get("branches") or []:
+        if str(b.get("chatId") or "").strip() == str(chat_id):
+            return b
+    return None
+
+
+def summarize(records):
+    """Ro'yxat bo'yicha: nechta, qancha, top taomlar."""
+    total = 0
+    items = {}
+    for r in records:
+        o = r.get("order") or {}
+        if r.get("status") != "cancelled":
+            total += int(o.get("total") or 0)
+        for it in o.get("items", []):
+            name = it.get("name", "-")
+            items[name] = items.get(name, 0) + int(it.get("qty") or 1)
+    top = sorted(items.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    return len(records), total, top
+
+
+def money(v):
+    return f"{int(v):,}".replace(",", " ")
+
+
+def build_report_text(day=None, branch_label=None):
+    """Kunlik hisobot.
+
+    branch_label berilsa — faqat o'sha filial. Berilmasa (umumiy chat) —
+    hammasi va filiallar bo'yicha taqsimot.
+    """
+    records = _store.load_orders(day)
+    rep_day = day or _store.today_key()
+
+    if branch_label is not None:
+        records = [r for r in records if branch_of(r) == branch_label]
+
+    head = f"📋 <b>Bugungi buyurtmalar</b> · {rep_day}"
+    if branch_label:
+        head += f"\n🏬 {esc(branch_label)}"
+
+    if not records:
+        return head + "\n\nBugun hali buyurtma yo'q."
+
+    lines = [head, ""]
     for r in records:
         o = r.get("order") or {}
         label = STATUS_LABELS.get(r.get("status", ""), ("🆕 Yangi",))[0]
-        total = f"{int(o.get('total') or 0):,}".replace(",", " ")
-        lines.append(f"#{r.get('number')} · {total} so'm · {label}")
-    total = f"{rep['total']:,}".replace(",", " ")
+        lines.append(f"#{r.get('number')} · {money(o.get('total') or 0)} so'm · {label}")
+
+    count, total, top = summarize(records)
     lines.append("")
-    lines.append(f"🧾 Jami: <b>{rep['count']} ta</b> · <b>{total} so'm</b>")
-    if rep["top"]:
+    lines.append(f"🧾 Jami: <b>{count} ta</b> · <b>{money(total)} so'm</b>")
+
+    # Umumiy chatda — filiallar kesimi
+    if branch_label is None:
+        by_branch = {}
+        for r in records:
+            by_branch.setdefault(branch_of(r) or "—", []).append(r)
+        if len(by_branch) > 1:
+            lines.append("")
+            lines.append("🏬 <b>Filiallar bo'yicha:</b>")
+            for name in sorted(by_branch):
+                c, t, _ = summarize(by_branch[name])
+                lines.append(f"  • {esc(name)} — {c} ta · {money(t)} so'm")
+
+    if top:
         lines.append("")
         lines.append("🔥 <b>Ko'p buyurtma qilinganlar:</b>")
-        for name, qty in rep["top"]:
-            lines.append(f"  • {name} — {qty} ta")
+        for name, qty in top:
+            lines.append(f"  • {esc(name)} — {qty} ta")
     return "\n".join(lines)
 
 
 @bot.message_handler(commands=["report", "hisobot"])
 def cmd_report(message):
-    bot.send_message(message.chat.id, build_report_text())
+    # Filial guruhida — faqat o'sha filial hisoboti
+    br = branch_for_chat(message.chat.id)
+    label = br.get("label") if br else None
+    bot.send_message(message.chat.id, build_report_text(branch_label=label))
 
 
 @bot.message_handler(commands=["start", "id"])
 def cmd_start(message):
     chat = message.chat
     if chat.type in ("group", "supergroup"):
-        text = (
-            "✅ Buyurtmalar shu guruhga tushadi.\n\n"
-            f"<b>Guruh ID:</b> <code>{chat.id}</code>\n\n"
-            "Shu raqamni <code>ORDERS_CHAT_ID</code> sozlamasiga yozing."
-        )
+        br = branch_for_chat(chat.id)
+        if br:
+            text = (
+                f"✅ Bu guruh <b>{esc(br.get('label') or '')}</b> filialiga ulangan.\n"
+                "Faqat shu filialning buyurtmalari tushadi.\n\n"
+                f"<b>Guruh ID:</b> <code>{chat.id}</code>\n\n"
+                "📋 /report — shu filialning bugungi hisoboti"
+            )
+        else:
+            text = (
+                "ℹ️ Bu guruh hali biror filialga ulanmagan.\n\n"
+                f"<b>Guruh ID:</b> <code>{chat.id}</code>\n\n"
+                "Admin panel → 🏬 Filiallar → kerakli filialning "
+                "«Buyurtmalar guruhi ID» maydoniga shu raqamni yozing."
+            )
     else:
         text = (
             "✅ Tayyor! Buyurtmalar shu chatga tushadi.\n\n"

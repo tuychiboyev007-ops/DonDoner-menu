@@ -110,6 +110,42 @@ def fmt_sum(value):
         return str(value)
 
 
+def branch_chat_id(order):
+    """Buyurtma qaysi filial guruhiga ketishini aniqlaydi.
+
+    Filial admin panelda o'z guruh ID siga ega bo'lsa — o'shanga,
+    bo'lmasa bo'sh qaytaradi va umumiy chat ishlatiladi.
+    """
+    br = order.get("branch") or {}
+    if not br:
+        return ""
+    menu = _store.load_menu() or {}
+    branches = (menu.get("restaurant") or {}).get("branches") or []
+    if not branches:
+        return ""
+
+    # Avval barqaror ID bo'yicha, keyin nom bo'yicha, oxirida tartib raqami
+    wanted_id = str(br.get("id") or "")
+    if wanted_id:
+        for b in branches:
+            if str(b.get("id") or "") == wanted_id:
+                return str(b.get("chatId") or "").strip()
+
+    label = str(br.get("label") or "")
+    if label:
+        for b in branches:
+            if str(b.get("label") or "") == label:
+                return str(b.get("chatId") or "").strip()
+
+    try:
+        idx = int(br.get("index"))
+        if 0 <= idx < len(branches):
+            return str(branches[idx].get("chatId") or "").strip()
+    except (TypeError, ValueError):
+        pass
+    return ""
+
+
 def apply_promo(order):
     """Chegirmani serverda qayta hisoblab, buyurtma summasini tuzatadi.
 
@@ -284,7 +320,8 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
         # 2) Buyurtmani restoranga
         card = build_card(order, user, number)
         keyboard = build_buttons(order, record.get("path", ""))
-        ok, err = send_message(ORDERS_BOT_TOKEN, ORDERS_CHAT_ID, card, keyboard)
+        target = branch_chat_id(order) or ORDERS_CHAT_ID
+        ok, err = send_message(ORDERS_BOT_TOKEN, target, card, keyboard)
         if not ok:
             print(f"[WARN] buyurtma yuborilmadi: {err}")
             # Zaxira: asosiy bot orqali adminga

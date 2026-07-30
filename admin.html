@@ -324,6 +324,31 @@
     }
     return item.price || 0;
   }
+  /* Tugagan taom filiallar ro'yxati bilan belgilanadi: item.outAt = ["b1"].
+     Eski `item.out = true` — hamma filialda tugagan degani. */
+  function itemOutAt(item, branchId) {
+    if (item.out === true && !item.outAt) return true;
+    return (item.outAt || []).indexOf(branchId) !== -1;
+  }
+
+  function setItemOutAt(item, branchId, out) {
+    var brs = (MENU.restaurant.branches || []).map(function (b) { return b.id || ""; });
+    // Eski formatni yangisiga o'tkazamiz
+    if (item.out === true && !item.outAt) item.outAt = brs.slice();
+    delete item.out;
+    var list = item.outAt || [];
+    var i = list.indexOf(branchId);
+    if (out && i === -1) list.push(branchId);
+    if (!out && i !== -1) list.splice(i, 1);
+    if (list.length) item.outAt = list;
+    else delete item.outAt;
+  }
+
+  function anyOut(item) {
+    if (item.out === true && !item.outAt) return true;
+    return (item.outAt || []).length > 0;
+  }
+
   // Narxi yo'q mahsulot mijozga ko'rsatilmaydi
   function isReady(item) {
     if (item.variants && item.variants.length) {
@@ -520,10 +545,10 @@
       var thumb = item.image
         ? '<span class="row__thumb"><img src="' + esc(item.image) + '" /></span>'
         : '<span class="row__thumb">' + esc(cat.icon || "🍽") + "</span>";
-      var out = item.out
+      var out = anyOut(item)
         ? '<span class="row__out">tugadi</span>'
         : (!isReady(item) ? '<span class="row__out row__out--noprice">narxsiz</span>' : "");
-      var b = el("button", "row" + (item.out || !isReady(item) ? " row--out" : ""),
+      var b = el("button", "row" + (anyOut(item) || !isReady(item) ? " row--out" : ""),
         thumb +
         '<span class="row__mid"><b>' + esc(item.name || "(nomsiz)") + out + "</b><span>" +
         esc(priceText(item)) + "</span></span>" +
@@ -631,28 +656,51 @@
       box.appendChild(warn);
     }
 
-    /* --- Bor / tugadi --- */
+    /* --- Bor / tugadi (har filial uchun alohida) --- */
     var stockCard = el("div", "card");
-    var stockF = el("div", "f", "<label>Holati</label>");
-    var stockSeg = el("div", "seg");
-    [
-      { out: false, text: "✅ Bor" },
-      { out: true, text: "🚫 Tugadi" },
-    ].forEach(function (s) {
-      var on = !!item.out === s.out;
-      var btn = el("button", on ? "on" : "", s.text);
-      btn.addEventListener("click", function () {
-        if (s.out) item.out = true;
-        else delete item.out;
-        scheduleSave();
-        render();
+    var brs = MENU.restaurant.branches || [];
+
+    if (brs.length > 1) {
+      stockCard.appendChild(el("div", "f", "<label>Holati — filial bo'yicha</label>"));
+      brs.forEach(function (br) {
+        var bid = br.id || "";
+        var row = el("div", "f");
+        row.appendChild(el("label", null, esc(br.label || "Filial")));
+        var seg = el("div", "seg");
+        [{ out: false, text: "✅ Bor" }, { out: true, text: "🚫 Tugadi" }].forEach(function (o) {
+          var isOut = itemOutAt(item, bid);
+          var btn = el("button", isOut === o.out ? "on" : "", o.text);
+          btn.addEventListener("click", function () {
+            setItemOutAt(item, bid, o.out);
+            scheduleSave();
+            render();
+          });
+          seg.appendChild(btn);
+        });
+        row.appendChild(seg);
+        stockCard.appendChild(row);
       });
-      stockSeg.appendChild(btn);
-    });
-    stockF.appendChild(stockSeg);
-    stockF.appendChild(el("p", "hint",
-      "«Tugadi» tanlansa mijoz uni ko'radi, lekin savatga qo'sha olmaydi. Ertaga qaytadan «Bor» qilib qo'ying."));
-    stockCard.appendChild(stockF);
+      stockCard.appendChild(el("p", "hint",
+        "Har filial o'zining tugagan taomini alohida belgilaydi. Hamma filialda tugagan bo'lsa, " +
+        "taom menyuda kulrang ko'rinadi."));
+    } else {
+      var bid1 = (brs[0] || {}).id || "";
+      var stockF = el("div", "f", "<label>Holati</label>");
+      var stockSeg = el("div", "seg");
+      [{ out: false, text: "✅ Bor" }, { out: true, text: "🚫 Tugadi" }].forEach(function (o) {
+        var btn = el("button", itemOutAt(item, bid1) === o.out ? "on" : "", o.text);
+        btn.addEventListener("click", function () {
+          setItemOutAt(item, bid1, o.out);
+          scheduleSave();
+          render();
+        });
+        stockSeg.appendChild(btn);
+      });
+      stockF.appendChild(stockSeg);
+      stockF.appendChild(el("p", "hint",
+        "«Tugadi» tanlansa mijoz uni ko'radi, lekin savatga qo'sha olmaydi."));
+      stockCard.appendChild(stockF);
+    }
     box.appendChild(stockCard);
 
     /* --- Narx: bitta yoki o'lchamlar --- */
@@ -798,12 +846,23 @@
   function renderBranches(box) {
     setTitle("🏬 Filiallar");
     var list = MENU.restaurant.branches || (MENU.restaurant.branches = []);
+    // Eski filiallarda ID bo'lmasligi mumkin — bir martalik to'ldiramiz
+    var added = false;
+    list.forEach(function (b, i) {
+      if (!b.id) { b.id = "b" + (i + 1); added = true; }
+    });
+    if (added) scheduleSave();
     list.forEach(function (b, i) {
       var card = el("div", "card");
       card.innerHTML =
         '<div class="f"><label>Nomi</label><input data-k="label" value="' + esc(b.label || "") + '" placeholder="1-filial" /></div>' +
         '<div class="f"><label>Manzil</label><input data-k="address" value="' + esc(b.address || "") + '" /></div>' +
-        '<div class="f"><label>Telefon</label><input data-k="phone" value="' + esc(b.phone || "") + '" placeholder="+998 90 000 00 00" /></div>';
+        '<div class="f"><label>Telefon</label><input data-k="phone" value="' + esc(b.phone || "") + '" placeholder="+998 90 000 00 00" /></div>' +
+        '<div class="f"><label>Buyurtmalar guruhi ID</label>' +
+        '<input data-k="chatId" value="' + esc(b.chatId || "") + '" placeholder="-1001234567890" />' +
+        '<p class="hint">Shu filial buyurtmalari tushadigan Telegram guruh. ' +
+        'Guruh ochib, buyurtma botini qo\'shing va guruhda <b>/id</b> deb yozing — bot raqamni aytadi. ' +
+        'Bo\'sh qoldirilsa umumiy chatga tushadi.</p></div>';
       card.querySelectorAll("input").forEach(function (inp) {
         inp.addEventListener("input", function () { b[inp.dataset.k] = inp.value; scheduleSave(); });
       });
@@ -822,7 +881,8 @@
 
     var add = el("button", "btn btn--add", "➕ Filial qo'shish");
     add.addEventListener("click", function () {
-      list.push({ label: (list.length + 1) + "-filial", address: "", phone: "" });
+      list.push({ id: "b" + uid(), label: (list.length + 1) + "-filial",
+                  address: "", phone: "", chatId: "" });
       scheduleSave();
       render();
     });

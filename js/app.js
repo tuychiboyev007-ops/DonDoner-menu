@@ -24,6 +24,7 @@
   let orders = load(LS_ORDERS, []); // [{id, date, items, total, mode, ...}]
   let mode = "delivery"; // delivery | pickup
   let activeItem = null; // sheet uchun
+  const LS_BRANCH = "dondoner_branch";
   let selectedBranch = 0; // tanlangan filial indeksi (birinchisi standart)
   let payment = "cash"; // cash | card
   let geo = null; // tanlangan joylashuv: { lat, lng }
@@ -276,7 +277,7 @@
 
   function addToCart(id) {
     const it = findItem(id);
-    if (it && it.out) return toast(t("outOfStock"));
+    if (isOut(it)) return toast(t("outOfStock"));
     cart[id] = (cart[id] || 0) + 1;
     save(LS_CART, cart);
     refreshCartUI();
@@ -286,8 +287,7 @@
   // Savatdagi, ammo shu orada tugab qolgan taomlar
   function outItemsInCart() {
     return Object.keys(cart).filter(function (key) {
-      const it = findItem(key);
-      return it && it.out;
+      return isOut(findItem(key));
     });
   }
   function decFromCart(id) {
@@ -355,6 +355,66 @@
     const left = Math.max(0, Math.min(max, centered));
     if (Math.abs(chipsRoot.scrollLeft - left) > 4) {
       chipsRoot.scrollTo({ left: left, behavior: "smooth" });
+    }
+  }
+
+  /* ---- Filial va taom mavjudligi ----
+     Tugagan taom `item.outAt = ["b1"]` ko'rinishida saqlanadi.
+     Eski `item.out = true` — hamma filialda tugagan degani. */
+  function branches() {
+    return (window.MENU.restaurant.branches || []);
+  }
+
+  function currentBranch() {
+    const list = branches();
+    return list[selectedBranch] || list[0] || null;
+  }
+
+  function currentBranchId() {
+    const b = currentBranch();
+    return b ? (b.id || "") : "";
+  }
+
+  // Taom tanlangan filialda tugaganmi?
+  function isOut(item, branchId) {
+    if (!item) return false;
+    if (item.out === true && !item.outAt) return true; // eski format
+    const list = item.outAt || [];
+    if (!list.length) return false;
+    const bid = branchId === undefined ? currentBranchId() : branchId;
+    return list.indexOf(bid) !== -1;
+  }
+
+  function setBranch(idx) {
+    const list = branches();
+    if (!list.length) return;
+    selectedBranch = ((idx % list.length) + list.length) % list.length;
+    localStorage.setItem(LS_BRANCH, String(selectedBranch));
+    paintBranchBar();
+    renderMenu();
+    if (currentPage === "cart") renderCart();
+  }
+
+  function paintBranchBar() {
+    const bar = document.getElementById("branchBar");
+    if (!bar) return;
+    const list = branches();
+    if (list.length < 2) { bar.hidden = true; return; }
+    bar.hidden = false;
+    const b = currentBranch();
+    document.getElementById("branchBarName").textContent = b ? b.label : "";
+  }
+
+  function setupBranchBar() {
+    const saved = parseInt(localStorage.getItem(LS_BRANCH), 10);
+    if (!isNaN(saved) && branches()[saved]) selectedBranch = saved;
+    paintBranchBar();
+    const bar = document.getElementById("branchBar");
+    if (bar) {
+      bar.addEventListener("click", function () {
+        haptic("light");
+        setBranch(selectedBranch + 1);
+      });
     }
   }
 
@@ -459,10 +519,11 @@
   }
 
   function buildProduct(item, catIcon) {
-    const card = el("article", "product" + (item.out ? " product--out" : ""));
+    const gone = isOut(item);
+    const card = el("article", "product" + (gone ? " product--out" : ""));
 
     const media = el("div", "product__media", mediaContent(item, catIcon));
-    if (item.out) {
+    if (gone) {
       media.appendChild(el("span", "product__outbadge", t("outOfStock")));
     } else if (item.badge) {
       media.appendChild(el("span", badgeClass(item.badge), escapeHtml(badgeText(item.badge))));
@@ -487,7 +548,7 @@
     );
 
     // Tugagan taom: ko'rinadi, lekin savatga qo'shib bo'lmaydi
-    if (item.out) {
+    if (gone) {
       const off = el("button", "product__add product__add--out", t("outOfStock"));
       off.disabled = true;
       body.appendChild(off);
@@ -583,8 +644,9 @@
 
     // Tugagan taomni oynadan ham qo'shib bo'lmaydi
     const addBtn = document.getElementById("sheetAdd");
-    addBtn.disabled = !!item.out;
-    addBtn.textContent = item.out ? t("outOfStock") : t("addToCart");
+    const gone = isOut(item);
+    addBtn.disabled = gone;
+    addBtn.textContent = gone ? t("outOfStock") : t("addToCart");
 
     updateSheetPrice();
     sheet.hidden = false;
@@ -1051,6 +1113,9 @@
     wrap.querySelectorAll(".branch-opt").forEach(function (b) {
       b.addEventListener("click", function () {
         selectedBranch = parseInt(b.dataset.idx, 10) || 0;
+        localStorage.setItem(LS_BRANCH, String(selectedBranch));
+        paintBranchBar();
+        renderMenu();
         wrap.querySelectorAll(".branch-opt").forEach(function (x) {
           x.classList.toggle("is-active", x === b);
         });
@@ -1357,7 +1422,13 @@
       mode: mode,
       payment: payment,
       branch: branch
-        ? { label: branch.label, address: branch.address, phone: branch.phone }
+        ? {
+            id: branch.id || "",
+            index: selectedBranch,
+            label: branch.label,
+            address: branch.address,
+            phone: branch.phone,
+          }
         : null,
       name: name,
       phone: phone,
@@ -2088,6 +2159,7 @@
     setupPicker();
     setupAdminGesture();
     setupCategorySpy();
+    setupBranchBar();
     pingVisit();
     document.documentElement.lang = lang;
     applyStaticLabels();

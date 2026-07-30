@@ -239,6 +239,49 @@ button {
   border-color: var(--brand);
 }
 
+/* ---------- Filial tanlash (bosh sahifada) ---------- */
+.branchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--page);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.branchbar__ico {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.branchbar__name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.branchbar svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.branchbar:active {
+  transform: scale(0.99);
+  background: var(--tile);
+}
+
 /* ---------- Kategoriyalar: kvadrat kafel + tagida nomi ---------- */
 .chips {
   position: sticky;

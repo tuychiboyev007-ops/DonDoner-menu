@@ -21,6 +21,7 @@ const I18N = {
     chooseAddress: "Manzilni tanlang…",
     delivery: "Yetkazish",
     pickup: "Olib ketish",
+    pickupAtBranch: "Filialdan olib ketish",
     searchFood: "Taom qidirish…",
     nothingFound: "Hech narsa topilmadi",
 
@@ -133,6 +134,7 @@ const I18N = {
     chooseAddress: "Выберите адрес…",
     delivery: "Доставка",
     pickup: "Самовывоз",
+    pickupAtBranch: "Самовывоз из филиала",
     searchFood: "Поиск блюда…",
     nothingFound: "Ничего не найдено",
 

@@ -12,6 +12,12 @@
 
   --bg: var(--tg-theme-bg-color, #f4f5f7);
   --card: var(--tg-theme-secondary-bg-color, #ffffff);
+
+  /* Bosh sahifa uslubi: oq fon, och kulrang kartochka, rasm uchun oq maydon.
+     Faqat bosh sahifada ishlatiladi — boshqa ekranlar o'z ko'rinishida qoladi. */
+  --page: #ffffff;
+  --tile: #f2f2f4;
+  --tile-inner: #ffffff;
   --text: var(--tg-theme-text-color, #16181c);
   --muted: var(--tg-theme-hint-color, #8a8f98);
   --link: var(--tg-theme-link-color, var(--brand));
@@ -21,6 +27,15 @@
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
   --tabbar-h: 62px;
+}
+
+/* Qorong'i temada bosh sahifa ham qorayadi — oq maydonlar ko'zni qamashtirmasin */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #17181c;
+    --tile: #212329;
+    --tile-inner: #2b2d34;
+  }
 }
 
 * {
@@ -60,6 +75,11 @@ button {
   display: block;
 }
 
+/* Bosh sahifa namunadagidek oq fonda — kartochkalar och kulrang bo'lib ajralib turadi */
+.page--home {
+  background: var(--page);
+}
+
 .pagehead {
   padding: calc(env(safe-area-inset-top) + 16px) 20px 8px;
 }
@@ -70,20 +90,21 @@ button {
   font-weight: 800;
 }
 
-/* ---------- Topbar (qora fon + logo) ---------- */
+/* ---------- Topbar (oq fon: kvadrat logo + nom + ikonkalar) ---------- */
 .topbar {
-  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: #000;
-  padding: calc(env(safe-area-inset-top) + 12px) 64px 12px;
+  gap: 12px;
+  background: var(--page);
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 10px;
 }
 
 .topbar__logoimg {
+  width: 52px;
   height: 52px;
-  max-width: 72%;
-  object-fit: contain;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 15px;
   display: block;
   /* Logoni tez 3 marta bosish admin panelni ochadi (yashirin imo-ishora):
      tanlanish, surish va bosish chaqnashini o'chiramiz — mijoz sezmasin */
@@ -93,25 +114,45 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+.topbar__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .iconbtn {
   width: 42px;
   height: 42px;
   border: none;
   border-radius: 50%;
-  background: var(--card);
-  box-shadow: var(--shadow);
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  place-items: center;
   font-size: 18px;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
-.iconbtn--ondark {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-top: calc(env(safe-area-inset-top) / 2);
-  background: #1c1c1e;
-  box-shadow: none;
+.iconbtn svg {
+  width: 25px;
+  height: 25px;
+}
+
+.iconbtn:active {
+  background: rgba(128, 128, 128, 0.15);
 }
 
 /* ---------- Yetkazish paneli ---------- */
@@ -130,42 +171,44 @@ button {
 }
 
 .delivery__label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
 }
 
 .delivery__value {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.segmented {
+/* Yetkazish/olib ketish — bitta konturli tugma, bosilsa almashadi */
+.modebtn {
   display: flex;
-  background: var(--card);
-  border-radius: 999px;
-  padding: 3px;
-  box-shadow: var(--shadow);
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: var(--page);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.modebtn svg {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 
-.segmented__btn {
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 7px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.segmented__btn.is-active {
-  background: var(--brand);
-  color: #fff;
+.modebtn:active {
+  transform: scale(0.97);
+  background: var(--tile);
 }
 
 /* ---------- Qidiruv ---------- */
@@ -197,7 +240,7 @@ button {
   gap: 8px;
   overflow-x: auto;
   padding: 10px 16px;
-  background: var(--bg);
+  background: var(--page);
   border-bottom: 1px solid var(--line);
   scrollbar-width: none;
 }
@@ -209,7 +252,7 @@ button {
 .chip {
   flex: 0 0 auto;
   border: none;
-  background: var(--card);
+  background: var(--tile);
   color: var(--text);
   font-size: 14px;
   font-weight: 600;
@@ -217,7 +260,6 @@ button {
   border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: var(--shadow);
   transition: background 0.15s, color 0.15s, transform 0.1s;
 }
 
@@ -241,9 +283,10 @@ button {
 }
 
 .section__title {
-  font-size: 22px;
+  font-size: 27px;
   font-weight: 800;
-  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -257,10 +300,9 @@ button {
 }
 
 .product {
-  background: var(--card);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
+  background: var(--tile);
+  border-radius: 20px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
 }
@@ -272,7 +314,8 @@ button {
   /* overflow + absolute rasm: maydon har doim kvadrat qoladi,
      rasm balandligi kartochkani cho'zib yubormaydi */
   overflow: hidden;
-  background: rgba(142, 142, 152, 0.14);
+  background: var(--tile-inner);
+  border-radius: 14px;
   display: grid;
   place-items: center;
   font-size: 54px;
@@ -289,27 +332,34 @@ button {
 }
 
 .product__body {
-  padding: 10px 12px 12px;
+  padding: 12px 6px 0;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
+/* Namunadagidek: avval yirik qora narx, keyin taom nomi */
 .product__price {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
-  color: var(--brand);
+  letter-spacing: -0.01em;
+  color: var(--text);
+  /* Chegirma/«dan» yozuvi sig'masa yangi qatorga tushsin — chetidan kesilmasin */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
 }
 
 .product__name {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 3px 0 2px;
+  font-size: 15px;
+  font-weight: 500;
+  margin: 4px 0 2px;
   line-height: 1.3;
 }
 
 .product__weight {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   margin-bottom: 10px;
 }
@@ -317,12 +367,12 @@ button {
 .product__add {
   margin-top: auto;
   border: none;
-  background: rgba(142, 142, 152, 0.14);
+  background: var(--tile-inner);
   color: var(--brand);
   font-size: 22px;
   font-weight: 700;
-  height: 40px;
-  border-radius: 12px;
+  height: 46px;
+  border-radius: 14px;
   cursor: pointer;
   transition: transform 0.1s, background 0.15s;
 }
@@ -338,8 +388,8 @@ button {
   align-items: center;
   justify-content: space-between;
   background: var(--brand);
-  border-radius: 12px;
-  height: 40px;
+  border-radius: 14px;
+  height: 46px;
   overflow: hidden;
 }
 
@@ -1312,8 +1362,10 @@ button {
   right: 0;
   z-index: 50;
   display: flex;
-  background: var(--card);
-  border-top: 1px solid var(--line);
+  background: var(--page);
+  /* Namunadagidek: yuqori burchaklari yumaloq, ustidan yengil soya bilan «suzuvchi» panel */
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -2px 18px rgba(0, 0, 0, 0.08);
   padding-bottom: env(safe-area-inset-bottom);
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
 }
@@ -1514,7 +1566,12 @@ button {
 }
 
 /* Chegirma narxlari */
-.product__old,
+.product__old {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.72em;
+}
+
 .sheet__old {
   color: var(--muted);
   font-weight: 500;

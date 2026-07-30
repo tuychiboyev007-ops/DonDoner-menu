@@ -298,6 +298,8 @@
   function renderHeader() {
     const r = window.MENU.restaurant;
     document.title = r.name + " — Menyu";
+    const brand = document.getElementById("brandName");
+    if (brand && r.name) brand.textContent = r.name;
     let html = (r.branches || [])
       .map(function (b) {
         return (
@@ -959,6 +961,15 @@
   }
 
   // HTML'dagi qo'zg'almas yozuvlar
+  // Yetkazish/olib ketish tugmasidagi matnni joriy holatga moslaydi
+  function paintModeBtn() {
+    const btn = document.getElementById("modeToggle");
+    if (!btn) return;
+    btn.dataset.mode = mode;
+    const label = btn.querySelector(".modebtn__text");
+    if (label) label.textContent = mode === "pickup" ? t("pickup") : t("delivery");
+  }
+
   function applyStaticLabels() {
     const map = {
       "page-cart": "cart",
@@ -976,9 +987,7 @@
     });
     document.querySelector("#searchInput").placeholder = t("searchFood");
     document.querySelector(".delivery__label").textContent = t("address");
-    document.querySelectorAll(".segmented__btn").forEach(function (b) {
-      b.textContent = b.dataset.mode === "pickup" ? t("pickup") : t("delivery");
-    });
+    paintModeBtn();
     document.querySelector(".picker__title").textContent = t("newAddress");
     document.querySelector("#pickerInput").placeholder = t("enterAddress");
     document.querySelector("#pickerDone").textContent = t("continue");
@@ -1659,17 +1668,19 @@
 
   /* ============ Yetkazish/olib ketish, qidiruv ============ */
   function setupControls() {
-    document.getElementById("modeToggle").addEventListener("click", function (e) {
-      const b = e.target.closest(".segmented__btn");
-      if (!b) return;
-      mode = b.dataset.mode;
-      document.querySelectorAll(".segmented__btn").forEach(function (x) {
-        x.classList.toggle("is-active", x === b);
-      });
+    // Bitta tugma: bosilganda yetkazish ↔ olib ketish almashadi
+    document.getElementById("modeToggle").addEventListener("click", function () {
+      mode = mode === "pickup" ? "delivery" : "pickup";
+      paintModeBtn();
       const addr = document.getElementById("deliveryAddr");
-      addr.textContent = mode === "pickup" ? "Filialdan olib ketish" : "Manzilni tanlang…";
+      addr.textContent = mode === "pickup" ? t("pickupAtBranch") : t("chooseAddress");
       if (currentPage === "cart") renderCart();
       haptic("light");
+    });
+
+    // Qo'ng'iroqcha — buyurtmalar sahifasiga olib boradi
+    document.getElementById("bellBtn").addEventListener("click", function () {
+      switchPage("orders");
     });
 
     const searchBtn = document.getElementById("searchBtn");

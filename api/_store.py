@@ -78,10 +78,18 @@ def put_blob(pathname, payload):
         return ""
 
 
-def get_blob(url):
-    """Saqlangan JSON faylni o'qiydi."""
+def get_blob(url, fresh=False):
+    """Saqlangan JSON faylni o'qiydi.
+
+    fresh=True — yaqinda yozilgan fayl uchun. Blob URL'i CDN'da bir
+    necha soniya keshlanib turadi, shuning uchun noyob so'rov qo'shamiz.
+    """
     try:
+        if fresh and url:
+            sep = "&" if "?" in url else "?"
+            url = f"{url}{sep}_={uuid.uuid4().hex}"
         req = urllib.request.Request(url)
+        req.add_header("Cache-Control", "no-cache")
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception as exc:  # noqa: BLE001
@@ -332,7 +340,7 @@ def save_visit(user):
     want = visit_path(uid)
     for b in list_blobs(want):
         if b.get("pathname") == want:
-            old = get_blob(b.get("url", "")) or {}
+            old = get_blob(b.get("url", ""), fresh=True) or {}
             notified_day = old.get("notified_day", "")
             break
 
@@ -382,7 +390,7 @@ def load_visits():
     """Barcha kutilayotgan tashriflar (o'chirish uchun blob URL bilan)."""
     out = []
     for b in list_blobs(VISIT_PREFIX):
-        data = get_blob(b.get("url", ""))
+        data = get_blob(b.get("url", ""), fresh=True)
         if data and data.get("id"):
             data["_url"] = b.get("url", "")
             out.append(data)

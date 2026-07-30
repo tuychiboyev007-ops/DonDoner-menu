@@ -6,31 +6,63 @@ admin.html shu manzilga so'rov yuboradi:
 
     POST /api/admin
     Header: X-Admin-Pin: <PIN>
-    Body:   {"action": "get_menu" | "save_menu" | "upload_image", ...}
+    Body:   {"action": "...", ...}
 
 Amallar:
-  get_menu      → hozirgi saqlangan menyuni qaytaradi
-  save_menu     → {"menu": {...}} — butun menyuni saqlaydi
-  upload_image  → {"filename", "content_type", "data_base64"} —
-                   rasmni Blob'ga yuklaydi, ochiq URL qaytaradi
+  get_menu        → hozirgi saqlangan menyuni qaytaradi
+  save_menu       → {"menu": {...}} — butun menyuni saqlaydi
+  upload_image    → {"filename", "content_type", "data_base64"} —
+                     rasmni Blob'ga yuklaydi, ochiq URL qaytaradi
+  get_promos      → chegirma kodlari ro'yxati
+  save_promos     → {"codes": [...]} — kodlarni saqlaydi
+  broadcast_count → nechta mijozga xabar ketishini aytadi
+  broadcast       → {"text": "..."} — barcha mijozlarga xabar yuboradi
 
-Muhit o'zgaruvchisi:
+Muhit o'zgaruvchilari:
   ADMIN_PIN — panelga kirish uchun maxfiy PIN (sozlanmasa — hamma so'rov
               rad etiladi, xavfsizlik uchun standart yo'q)
+  BOT_TOKEN — reklama xabarini yuborish uchun (mijoz boti)
 """
 
 import base64
 import json
 import os
 import sys
+import time
+import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _store  # noqa: E402
 
 ADMIN_PIN = os.environ.get("ADMIN_PIN", "").strip()
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 MAX_BODY = 8 * 1024 * 1024  # rasm base64 uchun ~8MB yetarli
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
+
+
+def broadcast(text):
+    """Buyurtma bergan barcha mijozlarga xabar yuboradi.
+
+    Telegram sekundiga ~30 xabarga ruxsat beradi, shuning uchun har
+    xabardan keyin qisqa pauza qilamiz. Bloklab qo'ygan mijozlar
+    xatolik beradi — ular shunchaki «failed» ga qo'shiladi.
+    """
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    sent = failed = 0
+    for uid in _store.all_customer_ids():
+        fields = {"chat_id": uid, "text": text, "parse_mode": "HTML"}
+        data = urllib.parse.urlencode(fields).encode("utf-8")
+        try:
+            with urllib.request.urlopen(url, data=data, timeout=10) as resp:
+                ok = json.loads(resp.read().decode("utf-8")).get("ok")
+            sent += 1 if ok else 0
+            failed += 0 if ok else 1
+        except Exception:  # noqa: BLE001 — bitta mijoz uchun to'xtamaymiz
+            failed += 1
+        time.sleep(0.05)
+    return sent, failed
 
 
 class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
@@ -58,6 +90,44 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
                 return self._send(400, {"ok": False, "error": "menyu bo'sh yoki noto'g'ri"})
             _store.save_menu(menu)
             return self._send(200, {"ok": True})
+
+        if action == "get_promos":
+            return self._send(200, {"ok": True, "codes": _store.load_promos()})
+
+        if action == "save_promos":
+            codes = payload.get("codes")
+            if not isinstance(codes, list):
+                return self._send(400, {"ok": False, "error": "ro'yxat kutilgan edi"})
+            clean = []
+            for c in codes[:100]:
+                if not isinstance(c, dict):
+                    continue
+                code = str(c.get("code") or "").strip().upper()
+                if not code:
+                    continue
+                clean.append({
+                    "code": code,
+                    "type": "fixed" if c.get("type") == "fixed" else "percent",
+                    "value": max(0, int(c.get("value") or 0)),
+                    "minOrder": max(0, int(c.get("minOrder") or 0)),
+                    "active": bool(c.get("active", True)),
+                })
+            _store.save_promos(clean)
+            return self._send(200, {"ok": True, "codes": clean})
+
+        if action == "broadcast_count":
+            return self._send(200, {"ok": True, "count": len(_store.all_customer_ids())})
+
+        if action == "broadcast":
+            text = str(payload.get("text") or "").strip()
+            if not text:
+                return self._send(400, {"ok": False, "error": "xabar bo'sh"})
+            if len(text) > 3500:
+                return self._send(400, {"ok": False, "error": "xabar juda uzun"})
+            if not BOT_TOKEN:
+                return self._send(500, {"ok": False, "error": "BOT_TOKEN sozlanmagan"})
+            sent, failed = broadcast(text)
+            return self._send(200, {"ok": True, "sent": sent, "failed": failed})
 
         if action == "upload_image":
             filename = payload.get("filename") or "image.jpg"

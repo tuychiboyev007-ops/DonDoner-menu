@@ -50,6 +50,13 @@
       }
     },
     {
+      "src": "api/promo.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": "api/_store.py"
+      }
+    },
+    {
       "src": "{index.html,admin.html,css/**,js/**,data/**,images/**,vendor/**}",
       "use": "@vercel/static"
     }
@@ -82,6 +89,10 @@
     {
       "src": "/api/admin",
       "dest": "/api/admin.py"
+    },
+    {
+      "src": "/api/promo",
+      "dest": "/api/promo.py"
     },
     {
       "src": "/",

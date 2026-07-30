@@ -139,6 +139,21 @@
   }
   .seg button.on { border-color: var(--brand); background: rgba(216,19,39,.09); color: var(--brand); }
 
+  /* Tugagan mahsulot ro'yxatda */
+  .row--out .row__thumb { opacity: .45; }
+  .warn {
+    border: 1.5px solid rgba(247,127,0,.45); background: rgba(247,127,0,.09);
+  }
+  .warn b { display: block; font-size: 15px; margin-bottom: 4px; }
+  .warn p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+
+  .row__out--noprice { background: rgba(247,127,0,.15); color: #b25b00; }
+  .row__out {
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+    background: rgba(224,49,49,.12); color: #e03131; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em; vertical-align: middle;
+  }
+
   /* O'lchamlar */
   .vrow { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
   .vrow input { padding: 12px; border: 1.5px solid var(--line); border-radius: 11px;
@@ -269,6 +284,7 @@
   var PIN_KEY = "dondoner_admin_pin";
   var pin = sessionStorage.getItem(PIN_KEY) || "";
   var MENU = null;
+  var promos = null;          // chegirma kodlari (serverdan yuklanadi)
   var view = { name: "home", ci: 0, ii: 0 };
   var saveTimer = null;
 
@@ -307,6 +323,14 @@
     }
     return item.price || 0;
   }
+  // Narxi yo'q mahsulot mijozga ko'rsatilmaydi
+  function isReady(item) {
+    if (item.variants && item.variants.length) {
+      return item.variants.some(function (v) { return Number(v.price) > 0; });
+    }
+    return Number(item.price) > 0;
+  }
+
   function priceText(item) {
     var p = money(minPrice(item)) + " so'm";
     if (item.variants && item.variants.length > 1) p += " dan";
@@ -370,6 +394,8 @@
       document.getElementById("app").hidden = false;
       setSaveState("", "tayyor");
       go("home");
+      // Chegirma kodlari — bosh ekranda sonini ko'rsatish uchun
+      loadPromos(function () { if (view.name === "home") render(); });
     });
   }
 
@@ -409,6 +435,8 @@
     if (view.name === "item") return renderItem(box);
     if (view.name === "settings") return renderSettings(box);
     if (view.name === "branches") return renderBranches(box);
+    if (view.name === "promos") return renderPromos(box);
+    if (view.name === "broadcast") return renderBroadcast(box);
   }
 
   function setTitle(text) {
@@ -424,6 +452,10 @@
     s.appendChild(navRow("⚙️", "Restoran sozlamalari", "Nomi, ish vaqti, yetkazish", function () { go("settings"); }));
     s.appendChild(navRow("🏬", "Filiallar",
       ((MENU.restaurant.branches || []).length) + " ta filial", function () { go("branches"); }));
+    s.appendChild(navRow("🏷", "Chegirma kodlari",
+      promos === null ? "yuklanmoqda…" : promos.length + " ta kod", function () { go("promos"); }));
+    s.appendChild(navRow("📣", "Reklama xabari",
+      "Barcha mijozlarga yuborish", function () { go("broadcast"); }));
     box.appendChild(s);
 
     box.appendChild(el("div", "title", "Menyu — kategoriyalar"));
@@ -484,9 +516,13 @@
       var thumb = item.image
         ? '<span class="row__thumb"><img src="' + esc(item.image) + '" /></span>'
         : '<span class="row__thumb">' + esc(cat.icon || "🍽") + "</span>";
-      var b = el("button", "row",
+      var out = item.out
+        ? '<span class="row__out">tugadi</span>'
+        : (!isReady(item) ? '<span class="row__out row__out--noprice">narxsiz</span>' : "");
+      var b = el("button", "row" + (item.out || !isReady(item) ? " row--out" : ""),
         thumb +
-        '<span class="row__mid"><b>' + esc(item.name || "(nomsiz)") + "</b><span>" + esc(priceText(item)) + "</span></span>" +
+        '<span class="row__mid"><b>' + esc(item.name || "(nomsiz)") + out + "</b><span>" +
+        esc(priceText(item)) + "</span></span>" +
         '<span class="row__arrow">›</span>');
       b.addEventListener("click", function () { go("item", view.ci, ii); });
       list.appendChild(b);
@@ -582,6 +618,38 @@
     main.querySelector("#iWeight").addEventListener("input", function (e) {
       item.weight = e.target.value; scheduleSave();
     });
+
+    /* --- Narx kiritilmagan bo'lsa ogohlantiramiz --- */
+    if (!isReady(item)) {
+      var warn = el("div", "card warn",
+        "<b>⚠️ Narx kiritilmagan</b><p>Narx qo'yilmaguncha bu mahsulot mijozlarga " +
+        "ko'rinmaydi. Pastdan narxini yozing.</p>");
+      box.appendChild(warn);
+    }
+
+    /* --- Bor / tugadi --- */
+    var stockCard = el("div", "card");
+    var stockF = el("div", "f", "<label>Holati</label>");
+    var stockSeg = el("div", "seg");
+    [
+      { out: false, text: "✅ Bor" },
+      { out: true, text: "🚫 Tugadi" },
+    ].forEach(function (s) {
+      var on = !!item.out === s.out;
+      var btn = el("button", on ? "on" : "", s.text);
+      btn.addEventListener("click", function () {
+        if (s.out) item.out = true;
+        else delete item.out;
+        scheduleSave();
+        render();
+      });
+      stockSeg.appendChild(btn);
+    });
+    stockF.appendChild(stockSeg);
+    stockF.appendChild(el("p", "hint",
+      "«Tugadi» tanlansa mijoz uni ko'radi, lekin savatga qo'sha olmaydi. Ertaga qaytadan «Bor» qilib qo'ying."));
+    stockCard.appendChild(stockF);
+    box.appendChild(stockCard);
 
     /* --- Narx: bitta yoki o'lchamlar --- */
     var hasV = !!(item.variants && item.variants.length);
@@ -755,6 +823,150 @@
       render();
     });
     box.appendChild(add);
+  }
+
+  /* ============ 6. CHEGIRMA KODLARI ============ */
+  function renderPromos(box) {
+    setTitle("Chegirma kodlari");
+
+    if (promos === null) {
+      box.appendChild(el("div", "empty", "Yuklanmoqda…"));
+      loadPromos(function () { render(); });
+      return;
+    }
+
+    box.appendChild(el("div", "card",
+      "<p class=\"hint\" style=\"margin:0\">Mijoz savatda kodni kiritadi. " +
+      "Foizli (10%) yoki aniq summali (15 000 so'm) bo'lishi mumkin. " +
+      "«Minimal summa» — kod ishlashi uchun savatdagi eng kam summa (0 = cheklovsiz).</p>"));
+
+    promos.forEach(function (pr, i) {
+      var card = el("div", "card");
+      card.innerHTML =
+        '<div class="f"><label>Kod</label>' +
+        '<input class="pCode" value="' + esc(pr.code || "") + '" placeholder="DONER10" /></div>' +
+        '<div class="f"><label>Chegirma turi</label>' +
+        '<div class="seg">' +
+        '<button class="pPct ' + (pr.type === "fixed" ? "" : "on") + '">Foiz (%)</button>' +
+        '<button class="pFix ' + (pr.type === "fixed" ? "on" : "") + '">Summa</button>' +
+        "</div></div>" +
+        '<div class="f2">' +
+        '<div class="f"><label>Qiymati</label>' +
+        '<input class="pVal" inputmode="numeric" value="' + (pr.value || 0) + '" /></div>' +
+        '<div class="f"><label>Minimal summa</label>' +
+        '<input class="pMin" inputmode="numeric" value="' + (pr.minOrder || 0) + '" /></div>' +
+        "</div>" +
+        '<div class="f"><label>Holati</label><div class="seg">' +
+        '<button class="pOn ' + (pr.active === false ? "" : "on") + '">✅ Ishlaydi</button>' +
+        '<button class="pOff ' + (pr.active === false ? "on" : "") + '">⏸ To\'xtatilgan</button>' +
+        "</div></div>";
+
+      card.querySelector(".pCode").addEventListener("input", function (e) {
+        pr.code = e.target.value.toUpperCase(); savePromos();
+      });
+      card.querySelector(".pVal").addEventListener("input", function (e) {
+        pr.value = parseInt(e.target.value, 10) || 0; savePromos();
+      });
+      card.querySelector(".pMin").addEventListener("input", function (e) {
+        pr.minOrder = parseInt(e.target.value, 10) || 0; savePromos();
+      });
+      card.querySelector(".pPct").addEventListener("click", function () {
+        pr.type = "percent"; savePromos(); render();
+      });
+      card.querySelector(".pFix").addEventListener("click", function () {
+        pr.type = "fixed"; savePromos(); render();
+      });
+      card.querySelector(".pOn").addEventListener("click", function () {
+        pr.active = true; savePromos(); render();
+      });
+      card.querySelector(".pOff").addEventListener("click", function () {
+        pr.active = false; savePromos(); render();
+      });
+
+      var del = el("button", "btn btn--mini", "🗑 Kodni o'chirish");
+      del.style.cssText = "margin-top:6px;background:transparent;color:#e03131;border:1.5px solid rgba(224,49,49,.4)";
+      del.addEventListener("click", function () {
+        if (!confirm("«" + (pr.code || "") + "» kodi o'chiriladi. Davom etamizmi?")) return;
+        promos.splice(i, 1); savePromos(); render();
+      });
+      card.appendChild(del);
+      box.appendChild(card);
+    });
+
+    if (!promos.length) box.appendChild(el("div", "empty", "Hali chegirma kodi yo'q"));
+
+    var add = el("button", "btn btn--add", "➕ Kod qo'shish");
+    add.addEventListener("click", function () {
+      promos.push({ code: "", type: "percent", value: 10, minOrder: 0, active: true });
+      savePromos();
+      render();
+    });
+    box.appendChild(add);
+  }
+
+  function loadPromos(done) {
+    api("get_promos", {}, function (err, res) {
+      promos = (!err && res.status === 200 && res.data.codes) ? res.data.codes : [];
+      done && done();
+    });
+  }
+
+  function savePromos() {
+    setSaveState("on", "saqlanmoqda…");
+    clearTimeout(savePromos._t);
+    savePromos._t = setTimeout(function () {
+      api("save_promos", { codes: promos }, function (err, res) {
+        if (err || res.status !== 200) return setSaveState("bad", "saqlanmadi!");
+        var d = new Date();
+        setSaveState("ok", "saqlandi " +
+          String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"));
+      });
+    }, 800);
+  }
+
+  /* ============ 7. REKLAMA XABARI ============ */
+  function renderBroadcast(box) {
+    setTitle("Reklama xabari");
+
+    var info = el("div", "card",
+      "<p class=\"hint\" style=\"margin:0\">Xabar botdan <b>buyurtma bergan barcha mijozlarga</b> " +
+      "yuboriladi. Yuborilgandan keyin qaytarib bo'lmaydi \u2014 matnni diqqat bilan tekshiring.</p>");
+    box.appendChild(info);
+
+    var card = el("div", "card");
+    card.innerHTML =
+      '<div class="f"><label>Xabar matni</label>' +
+      '<textarea id="bcText" rows="6" placeholder="Bugun barcha pitsalarga 20% chegirma! 🍕"></textarea>' +
+      '<p class="hint">Qalin matn uchun &lt;b&gt;matn&lt;/b&gt; yozishingiz mumkin.</p></div>';
+    box.appendChild(card);
+
+    var count = el("div", "empty", "Mijozlar soni aniqlanmoqda…");
+    box.appendChild(count);
+    api("broadcast_count", {}, function (err, res) {
+      count.textContent = (!err && res.status === 200)
+        ? res.data.count + " ta mijozga yuboriladi"
+        : "Mijozlar sonini aniqlab bo'lmadi";
+    });
+
+    var send = el("button", "btn", "📣 Yuborish");
+    send.addEventListener("click", function () {
+      var text = (document.getElementById("bcText").value || "").trim();
+      if (!text) return toast("Xabar matnini yozing");
+      if (!confirm("Xabar barcha mijozlarga yuboriladi. Davom etamizmi?\n\n" + text)) return;
+      send.disabled = true;
+      send.textContent = "Yuborilmoqda…";
+      api("broadcast", { text: text }, function (err, res) {
+        send.disabled = false;
+        send.textContent = "📣 Yuborish";
+        if (err || res.status !== 200) {
+          return toast("❌ " + ((res && res.data && res.data.error) || "yuborilmadi"));
+        }
+        document.getElementById("bcText").value = "";
+        toast("✅ " + res.data.sent + " ta yuborildi" +
+          (res.data.failed ? ", " + res.data.failed + " tasi yetmadi" : ""));
+      });
+    });
+    box.appendChild(send);
   }
 
   /* ============================================================

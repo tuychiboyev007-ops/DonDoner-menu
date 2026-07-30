@@ -110,6 +110,52 @@ def fmt_sum(value):
         return str(value)
 
 
+def apply_promo(order):
+    """Chegirmani serverda qayta hisoblab, buyurtma summasini tuzatadi.
+
+    Mijoz tomonidan kelgan `discount` va `total` e'tiborga olinmaydi —
+    faqat kodning o'zi olinadi va hamma narsa qaytadan sanaladi.
+    """
+    items = order.get("items") or []
+    subtotal = 0
+    for it in items:
+        try:
+            subtotal += int(it.get("price") or 0) * int(it.get("qty") or 1)
+        except (TypeError, ValueError):
+            pass
+
+    try:
+        fee = int(order.get("deliveryFee") or 0)
+    except (TypeError, ValueError):
+        fee = 0
+
+    code = ""
+    if isinstance(order.get("promo"), dict):
+        code = str(order["promo"].get("code") or "")
+
+    discount = 0
+    promo = _store.find_promo(code) if code else None
+    if promo:
+        discount, reason = _store.promo_discount(promo, subtotal)
+        if reason:
+            discount = 0
+
+    if discount > 0:
+        order["promo"] = {
+            "code": str(promo.get("code", "")).upper(),
+            "type": promo.get("type", "percent"),
+            "value": int(promo.get("value") or 0),
+            "discount": discount,
+        }
+    else:
+        order.pop("promo", None)
+
+    order["subtotal"] = subtotal
+    order["discount"] = discount
+    order["total"] = max(0, subtotal - discount) + fee
+    return order
+
+
 def build_card(order, user, number=None):
     """Buyurtma kartochkasi (reference ko'rinishida)."""
     L = []
@@ -121,6 +167,10 @@ def build_card(order, user, number=None):
         L.append(f"• {esc(it.get('name', '-'))} ×{it.get('qty', 1)}")
 
     L.append("━━━━━━━━━━━━━━━")
+
+    if order.get("discount"):
+        pr = order.get("promo") or {}
+        L.append(f"🏷 {esc(str(pr.get('code', '')))} − {esc(fmt_sum(order['discount']))}")
 
     pay = "Naqd" if order.get("payment") != "card" else "Karta"
     L.append(f"💰 <b>{esc(fmt_sum(order.get('total', 0)))}</b> · {pay}")
@@ -219,6 +269,10 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
         if not valid:
             # Telegram'dan tashqarida ochilgan yoki imzo noto'g'ri
             return self._send(403, {"ok": False, "error": "tekshiruvdan o'tmadi"})
+
+        # Chegirmani serverda qaytadan hisoblaymiz — mijoz yuborgan
+        # summaga ishonmaymiz (soxta chegirma o'tib ketmasin)
+        apply_promo(order)
 
         # 1) Bazaga saqlaymiz — kunlik tartib raqamini shu yerdan olamiz
         record = _store.save_order(order, user)

@@ -199,6 +199,70 @@ def load_menu():
     return None
 
 
+PROMO_PATH = "promos/current.json"
+
+
+def save_promos(codes):
+    """Chegirma kodlari ro'yxatini saqlaydi."""
+    return put_blob(PROMO_PATH, {"codes": codes})
+
+
+def load_promos():
+    """Chegirma kodlari. Hali qo'shilmagan bo'lsa — bo'sh ro'yxat."""
+    for b in list_blobs("promos/"):
+        if b.get("pathname") == PROMO_PATH:
+            data = get_blob(b.get("url", "")) or {}
+            return data.get("codes", [])
+    return []
+
+
+def find_promo(code):
+    """Kodni topadi (katta-kichik harf farqsiz). Topilmasa — None."""
+    want = (code or "").strip().upper()
+    if not want:
+        return None
+    for p in load_promos():
+        if str(p.get("code", "")).strip().upper() == want:
+            return p
+    return None
+
+
+def promo_discount(promo, subtotal):
+    """Kodga ko'ra chegirma summasi. Yaroqsiz bo'lsa (0, sabab) qaytaradi."""
+    if not promo:
+        return 0, "not_found"
+    if not promo.get("active", True):
+        return 0, "inactive"
+    min_order = int(promo.get("minOrder") or 0)
+    if min_order and subtotal < min_order:
+        return 0, "min_order"
+    value = int(promo.get("value") or 0)
+    if value <= 0:
+        return 0, "not_found"
+    if promo.get("type") == "fixed":
+        discount = value
+    else:  # percent
+        discount = subtotal * value // 100
+    # Chegirma buyurtma summasidan oshib ketmasin
+    return max(0, min(discount, subtotal)), ""
+
+
+def all_customer_ids():
+    """Buyurtma bergan barcha mijozlarning Telegram ID lari (takrorsiz)."""
+    ids = []
+    seen = set()
+    for b in list_blobs("users/"):
+        # users/<id>/<fayl>.json
+        parts = str(b.get("pathname", "")).split("/")
+        if len(parts) < 2 or not parts[1]:
+            continue
+        uid = parts[1]
+        if uid not in seen:
+            seen.add(uid)
+            ids.append(uid)
+    return ids
+
+
 def save_image(filename, raw_bytes, content_type):
     """Mahsulot rasmini Blob'ga yuklaydi, ochiq URL qaytaradi."""
     if not BLOB_TOKEN:

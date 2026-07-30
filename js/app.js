@@ -275,10 +275,20 @@
   }
 
   function addToCart(id) {
+    const it = findItem(id);
+    if (it && it.out) return toast(t("outOfStock"));
     cart[id] = (cart[id] || 0) + 1;
     save(LS_CART, cart);
     refreshCartUI();
     haptic("light");
+  }
+
+  // Savatdagi, ammo shu orada tugab qolgan taomlar
+  function outItemsInCart() {
+    return Object.keys(cart).filter(function (key) {
+      const it = findItem(key);
+      return it && it.out;
+    });
   }
   function decFromCart(id) {
     if (!cart[id]) return;
@@ -348,9 +358,26 @@
     }
   }
 
+  /* Narxi kiritilmagan mahsulot mijozga ko'rsatilmaydi.
+     Admin panelda yangi mahsulot narxsiz yaratiladi — narx qo'yilgunicha
+     u menyuda chiqmaydi, ya'ni yarim tayyor taom mijozga ko'rinmaydi. */
+  function isReady(item) {
+    if (item.variants && item.variants.length) {
+      return item.variants.some(function (v) { return Number(v.price) > 0; });
+    }
+    return Number(item.price) > 0;
+  }
+
+  function readyItems(cat) {
+    return (cat.items || []).filter(isReady);
+  }
+
   function renderChips() {
     chipsRoot.innerHTML = "";
-    window.MENU.categories.forEach(function (cat, i) {
+    // Faqat kamida bitta tayyor taomi bor bo'limlar ko'rsatiladi
+    window.MENU.categories.filter(function (c) {
+      return readyItems(c).length > 0;
+    }).forEach(function (cat, i) {
       const chip = el("button", "chip");
       chip.appendChild(el("span", "chip__tile", escapeHtml(catInitial(cat.name))));
       chip.appendChild(el("span", "chip__label", escapeHtml(cat.name)));
@@ -398,7 +425,7 @@
     const q = searchQuery.trim().toLowerCase();
 
     window.MENU.categories.forEach(function (cat) {
-      const items = cat.items.filter(function (it) {
+      const items = readyItems(cat).filter(function (it) {
         if (!q) return true;
         return (
           it.name.toLowerCase().includes(q) ||
@@ -432,10 +459,12 @@
   }
 
   function buildProduct(item, catIcon) {
-    const card = el("article", "product");
+    const card = el("article", "product" + (item.out ? " product--out" : ""));
 
     const media = el("div", "product__media", mediaContent(item, catIcon));
-    if (item.badge) {
+    if (item.out) {
+      media.appendChild(el("span", "product__outbadge", t("outOfStock")));
+    } else if (item.badge) {
       media.appendChild(el("span", badgeClass(item.badge), escapeHtml(badgeText(item.badge))));
     }
     media.addEventListener("click", function () {
@@ -456,6 +485,16 @@
     body.appendChild(
       el("div", "product__weight", escapeHtml(item.weight || item.desc || ""))
     );
+
+    // Tugagan taom: ko'rinadi, lekin savatga qo'shib bo'lmaydi
+    if (item.out) {
+      const off = el("button", "product__add product__add--out", t("outOfStock"));
+      off.disabled = true;
+      body.appendChild(off);
+      card.appendChild(media);
+      card.appendChild(body);
+      return card;
+    }
 
     // O'lchamli taomlar: avval tanlash oynasi ochiladi
     if (hasVariants) {
@@ -542,6 +581,11 @@
       box.innerHTML = "";
     }
 
+    // Tugagan taomni oynadan ham qo'shib bo'lmaydi
+    const addBtn = document.getElementById("sheetAdd");
+    addBtn.disabled = !!item.out;
+    addBtn.textContent = item.out ? t("outOfStock") : t("addToCart");
+
     updateSheetPrice();
     sheet.hidden = false;
     document.body.style.overflow = "hidden";
@@ -626,6 +670,13 @@
       cartRoot.appendChild(row);
     });
 
+    // «Ichimlik qo'shasizmi?» — savatda yo'q ichimliklarni taklif qilamiz
+    const upsell = buildUpsell();
+    if (upsell) cartRoot.appendChild(upsell);
+
+    // Chegirma kodi
+    cartRoot.appendChild(buildPromoBox());
+
     // Jami
     const summary = el("div", "cart-summary");
     summary.appendChild(
@@ -635,6 +686,16 @@
         `<span>${t("products")} (${cartCount()})</span><span>${formatPrice(cartTotal())}</span>`
       )
     );
+    if (promoDiscount() > 0) {
+      summary.appendChild(
+        el(
+          "div",
+          "cart-summary__row cart-summary__row--promo",
+          `<span>${t("discount")} · ${escapeHtml(promo.code)}</span>` +
+          `<span>−${formatPrice(promoDiscount())}</span>`
+        )
+      );
+    }
     if (deliveryFee() > 0) {
       summary.appendChild(
         el(
@@ -672,7 +733,22 @@
     // Yopiq yoki minimal summa yetmasa — buyurtma berilmaydi
     const r = window.MENU.restaurant;
     const shortfall = minShortfall();
-    if (!isOpen()) {
+    const outKeys = outItemsInCart();
+    if (outKeys.length) {
+      // Savatga solingandan keyin tugab qolgan bo'lsa — buyurtmani to'xtatamiz
+      goBtn.disabled = true;
+      goBtn.textContent = t("outOfStock");
+      const names = outKeys.map(keyName).join(", ");
+      const box = el("div", "notice notice--warn", escapeHtml(t("outInCart") + ": " + names));
+      const rm = el("button", "btn btn--mini notice__btn", t("removeOut"));
+      rm.addEventListener("click", function () {
+        outKeys.forEach(function (k) { delete cart[k]; });
+        save(LS_CART, cart);
+        refreshCartUI();
+      });
+      box.appendChild(rm);
+      cartRoot.appendChild(box);
+    } else if (!isOpen()) {
       goBtn.disabled = true;
       goBtn.textContent = t("closedNow");
       cartRoot.appendChild(el("div", "notice notice--warn", escapeHtml(closedText())));
@@ -698,15 +774,150 @@
     cartRoot.appendChild(bar);
   }
 
+  /* Chegirma kodi maydoni. Kod qo'llanilgan bo'lsa — uni ko'rsatib,
+     «bekor qilish» tugmasini beradi. */
+  function buildPromoBox() {
+    const wrap = el("div", "promo");
+
+    if (promo) {
+      wrap.classList.add("promo--on");
+      wrap.appendChild(el("div", "promo__applied",
+        "✅ <b>" + escapeHtml(promo.code) + "</b> — " +
+        (promo.type === "percent" ? promo.value + "%" : formatPrice(promo.value))));
+      const off = el("button", "promo__clear", t("cancel"));
+      off.addEventListener("click", function () {
+        promo = null;
+        renderCart();
+      });
+      wrap.appendChild(off);
+      return wrap;
+    }
+
+    const input = el("input", "promo__input");
+    input.type = "text";
+    input.placeholder = t("promoPlaceholder");
+    input.autocomplete = "off";
+    input.setAttribute("autocapitalize", "characters");
+
+    const btn = el("button", "promo__btn", t("promoApply"));
+    const msg = el("div", "promo__msg");
+
+    function submit() {
+      const code = input.value.trim();
+      if (!code) return;
+      btn.disabled = true;
+      msg.textContent = "";
+      applyPromo(code, function (ok, err, minOrder) {
+        btn.disabled = false;
+        if (ok) {
+          haptic("medium");
+          renderCart();
+          toast(t("promoOk"));
+          return;
+        }
+        msg.textContent =
+          err === "min_order"
+            ? t("promoMinOrder") + " " + formatPrice(minOrder || 0)
+            : err === "inactive"
+            ? t("promoInactive")
+            : t("promoBad");
+      });
+    }
+
+    btn.addEventListener("click", submit);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); submit(); }
+    });
+
+    const row = el("div", "promo__row");
+    row.appendChild(input);
+    row.appendChild(btn);
+    wrap.appendChild(row);
+    wrap.appendChild(msg);
+    return wrap;
+  }
+
+  /* Savatda ichimlik bo'lmasa — pastda gorizontal taklif qatori chiqadi.
+     «drinks» bo'limi bo'lmasa yoki hammasi savatda bo'lsa, hech narsa ko'rsatilmaydi. */
+  const UPSELL_CAT = "drinks";
+  const UPSELL_MAX = 8;
+
+  function buildUpsell() {
+    const cat = (window.MENU.categories || []).filter(function (c) {
+      return c.id === UPSELL_CAT;
+    })[0];
+    if (!cat) return null;
+
+    const offer = readyItems(cat).filter(function (it) {
+      return !it.out && !cart[it.id] && !(it.variants && it.variants.length);
+    }).slice(0, UPSELL_MAX);
+    if (!offer.length) return null;
+
+    const wrap = el("div", "upsell");
+    wrap.appendChild(el("div", "upsell__title", t("addDrink")));
+    const row = el("div", "upsell__row");
+    offer.forEach(function (it) {
+      const c = el("button", "upsell__card");
+      c.appendChild(el("div", "upsell__media", mediaContent(it, cat.icon)));
+      c.appendChild(el("div", "upsell__name", escapeHtml(it.name)));
+      c.appendChild(el("div", "upsell__price", formatPrice(minPrice(it))));
+      c.addEventListener("click", function () {
+        addToCart(it.id);
+        toast(it.name + " " + t("addedToCart"));
+      });
+      row.appendChild(c);
+    });
+    wrap.appendChild(row);
+    return wrap;
+  }
+
   // Yetkazish narxi (olib ketishda 0)
   function deliveryFee() {
     const r = window.MENU.restaurant;
     return mode === "delivery" ? Number(r.deliveryFee || 0) : 0;
   }
 
+  /* ---- Chegirma kodi ----
+     promo = {code, discount, type, value} yoki null.
+     Savat o'zgarganda chegirma qayta hisoblanadi (foizli kod uchun muhim). */
+  let promo = null;
+
+  // Chegirmani har safar qaytadan hisoblaymiz — savat o'zgarsa foizli
+  // kod ham o'zgaradi. Formula server bilan bir xil.
+  function promoDiscount() {
+    if (!promo) return 0;
+    const sub = cartTotal();
+    if (promo.minOrder && sub < promo.minOrder) return 0;
+    const raw = promo.type === "fixed"
+      ? Number(promo.value || 0)
+      : Math.floor((sub * Number(promo.value || 0)) / 100);
+    return Math.max(0, Math.min(raw, sub));
+  }
+
   // Yakuniy summa
   function orderTotal() {
-    return cartTotal() + deliveryFee();
+    return Math.max(0, cartTotal() - promoDiscount()) + deliveryFee();
+  }
+
+  function applyPromo(code, done) {
+    fetch("/api/promo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code, subtotal: cartTotal() }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok) {
+          promo = {
+            code: d.code, type: d.type, value: d.value,
+            minOrder: Number(d.minOrder || 0),
+          };
+          done(true);
+        } else {
+          done(false, (d && d.error) || "not_found", d && d.minOrder);
+        }
+      })
+      .catch(function () { done(false, "network"); });
   }
 
   // Minimal summagacha qancha yetmayapti
@@ -1155,6 +1366,10 @@
       geoLabel: mode === "delivery" ? geoLabel : "",
       note: note.trim(),
       items: items,
+      subtotal: cartTotal(),
+      discount: promoDiscount(),
+      // Server kodni qaytadan tekshiradi va summani o'zi hisoblaydi
+      promo: promo ? { code: promo.code } : null,
       total: orderTotal(),
       deliveryFee: deliveryFee(),
       status: "Yangi",
@@ -1164,6 +1379,7 @@
     orders.unshift(order);
     save(LS_ORDERS, orders);
     cart = {};
+    promo = null;
     save(LS_CART, cart);
     refreshCartUI();
     haptic("medium");

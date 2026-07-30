@@ -167,6 +167,43 @@
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
   .empty { text-align: center; color: var(--muted); padding: 30px 16px; font-size: 15px; }
   [hidden] { display: none !important; }
+
+  /* ---------- Rasmni kesish oynasi ---------- */
+  .crop {
+    position: fixed; inset: 0; z-index: 200; background: #000; color: #fff;
+    display: flex; flex-direction: column;
+  }
+  .crop__head { padding: calc(env(safe-area-inset-top) + 18px) 20px 6px; text-align: center; }
+  .crop__head h2 { margin: 0; font-size: 18px; font-weight: 800; }
+  .crop__head p { margin: 4px 0 0; font-size: 12px; color: #9a9a9a; }
+  .crop__stage {
+    flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+    position: relative; touch-action: none; padding: 14px;
+  }
+  .crop__frame {
+    position: relative; width: min(84vw, 420px); aspect-ratio: 1 / 1;
+    overflow: hidden; border-radius: 14px;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.78);
+  }
+  .crop__frame img {
+    position: absolute; top: 0; left: 0; transform-origin: 0 0;
+    will-change: transform; -webkit-user-drag: none; user-select: none;
+    pointer-events: none; max-width: none;
+  }
+  .crop__grid { position: absolute; inset: 0; pointer-events: none; }
+  .crop__grid::before, .crop__grid::after {
+    content: ""; position: absolute; background: rgba(255, 255, 255, 0.45);
+  }
+  .crop__grid::before { left: 33.333%; top: 0; width: 1px; height: 100%; box-shadow: 33.333% 0 0 rgba(255, 255, 255, 0.45); }
+  .crop__grid::after { top: 33.333%; left: 0; height: 1px; width: 100%; box-shadow: 0 33.333% 0 rgba(255, 255, 255, 0.45); }
+  .crop__controls { display: flex; align-items: center; gap: 12px; padding: 10px 26px; }
+  .crop__controls input[type="range"] { flex: 1; accent-color: var(--brand); }
+  .crop__zicon { font-size: 15px; color: #9a9a9a; width: 16px; text-align: center; flex-shrink: 0; }
+  .crop__actions {
+    display: flex; gap: 10px; padding: 6px 20px calc(env(safe-area-inset-bottom) + 18px);
+  }
+  .crop__actions .btn { margin: 0; }
+  .crop__cancel { background: rgba(255, 255, 255, 0.12); color: #fff; }
 </style>
 </head>
 <body>
@@ -195,6 +232,29 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ===== RASMNI KESISH ===== -->
+<div class="crop" id="cropOverlay" hidden>
+  <div class="crop__head">
+    <h2>Rasmni kesing</h2>
+    <p>Suring · zoom qiling · ramkaga moslang (1:1)</p>
+  </div>
+  <div class="crop__stage" id="cropStage">
+    <div class="crop__frame" id="cropFrame">
+      <img id="cropImg" draggable="false" alt="" />
+      <div class="crop__grid"></div>
+    </div>
+  </div>
+  <div class="crop__controls">
+    <span class="crop__zicon">－</span>
+    <input type="range" id="cropZoom" min="0" max="100" value="0" />
+    <span class="crop__zicon">＋</span>
+  </div>
+  <div class="crop__actions">
+    <button class="btn crop__cancel" id="cropCancel">Bekor</button>
+    <button class="btn" id="cropConfirm">✂️ Kesish</button>
+  </div>
+</div>
 
 <script src="data/menu.js"></script>
 <script>
@@ -478,9 +538,7 @@
     fileInput.addEventListener("change", function () {
       var f = fileInput.files[0];
       if (!f) return;
-      photo.innerHTML = '<div class="photo__hint"><b>⏳</b>Yuklanmoqda…</div>';
-      photo.appendChild(fileInput);
-      uploadImage(f, function (url) {
+      openCropper(f, function (url) {
         if (!url) { paintPhoto(); return toast("❌ Rasm yuklanmadi"); }
         item.image = url;
         paintPhoto();
@@ -490,6 +548,7 @@
     });
     photo.addEventListener("click", function (e) {
       if (e.target === fileInput) return;
+      fileInput.value = "";
       fileInput.click();
     });
     paintPhoto();
@@ -699,18 +758,15 @@
   }
 
   /* ============================================================
-     Rasm yuklash
-     Har qanday rasm bir xil toza ko'rinishga keltiriladi:
-       1. Telefon rasmidagi burilish (EXIF) to'g'rilanadi
-       2. Kvadrat (1:1) qilib olinadi — taom to'liq ko'rinadi, kesilmaydi
-       3. Bo'sh chetlar ilova bilan bir xil neytral fon rangida qoladi
-          (rasmning o'zini xiralashtirib cho'zish g'alati ko'rinar edi)
-       4. 800×800 ga kichraytirilib, JPEG holida yuboriladi
+     Rasm yuklash — qo'lda kesish (crop) oynasi bilan
+       1. Fayl ochiladi, telefon rasmidagi burilish (EXIF) to'g'rilanadi
+       2. Foydalanuvchi surib / kattalashtirib kvadrat ramkaga moslaydi
+       3. «Kesish» bosilganda faqat ramka ichidagi qism 800×800 qilib
+          serverga yuboriladi
      ============================================================ */
 
   var OUT_SIZE = 800;
-  // Ilovadagi joy-to'ldiruvchi fon rangi bilan bir xil (css/style.css)
-  var PAD_COLOR = "#e4e4e8";
+  var cropState = null;
 
   // Rasmni burilishi to'g'rilangan holda yuklaydi
   function loadImage(file, ok, fail) {
@@ -735,40 +791,190 @@
     reader.readAsDataURL(file);
   }
 
-  function toSquare(src) {
-    var w = src.width, h = src.height;
-    var canvas = document.createElement("canvas");
-    canvas.width = OUT_SIZE;
-    canvas.height = OUT_SIZE;
-    var ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = PAD_COLOR;
-    ctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
-
-    // Rasm butunlay sig'adi, kesilmaydi, cho'zilmaydi
-    var fit = Math.min(OUT_SIZE / w, OUT_SIZE / h);
-    var fw = w * fit, fh = h * fit;
-    ctx.drawImage(src, (OUT_SIZE - fw) / 2, (OUT_SIZE - fh) / 2, fw, fh);
-
-    return canvas;
-  }
-
-  function uploadImage(file, done) {
+  // Faylni ochib, kesish oynasini ko'rsatadi. onDone(url) — «Kesish»
+  // muvaffaqiyatli bo'lganda chaqiriladi; Bekor qilinsa umuman chaqirilmaydi.
+  function openCropper(file, onDone) {
     loadImage(
       file,
       function (src) {
-        var canvas = toSquare(src);
-        if (src.close) src.close(); // ImageBitmap xotirasini bo'shatamiz
-        var base64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
-        api("upload_image", {
-          filename: "photo.jpg", content_type: "image/jpeg", data_base64: base64,
-        }, function (err, res) {
-          done(!err && res.status === 200 && res.data.url ? res.data.url : "");
-        });
+        // Burilishi to'g'rilangan holda bitta canvas'ga tushiramiz —
+        // shu canvas ham preview, ham yakuniy kesish uchun manba bo'ladi
+        var w = src.width, h = src.height;
+        var canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(src, 0, 0, w, h);
+        if (src.close) src.close();
+        startCropUI(canvas, onDone);
       },
-      function () { done(""); }
+      function () { toast("Rasmni ochib bo'lmadi"); }
     );
   }
+
+  function startCropUI(canvas, onDone) {
+    var overlay = document.getElementById("cropOverlay");
+    var frame = document.getElementById("cropFrame");
+    var imgEl = document.getElementById("cropImg");
+    var zoomInput = document.getElementById("cropZoom");
+
+    imgEl.src = canvas.toDataURL("image/jpeg", 0.9);
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+
+    requestAnimationFrame(function () {
+      var fw = frame.clientWidth, fh = frame.clientHeight;
+      var minScale = Math.max(fw / canvas.width, fh / canvas.height);
+      cropState = {
+        canvas: canvas, onDone: onDone,
+        natW: canvas.width, natH: canvas.height,
+        fw: fw, fh: fh,
+        minScale: minScale, maxScale: minScale * 4, scale: minScale,
+        tx: (fw - canvas.width * minScale) / 2,
+        ty: (fh - canvas.height * minScale) / 2,
+      };
+      zoomInput.value = 0;
+      applyCropTransform();
+    });
+  }
+
+  function clampCropOffset() {
+    var s = cropState;
+    var w = s.natW * s.scale, h = s.natH * s.scale;
+    var minTx = Math.min(0, s.fw - w);
+    var minTy = Math.min(0, s.fh - h);
+    if (s.tx > 0) s.tx = 0;
+    if (s.tx < minTx) s.tx = minTx;
+    if (s.ty > 0) s.ty = 0;
+    if (s.ty < minTy) s.ty = minTy;
+  }
+
+  function applyCropTransform() {
+    if (!cropState) return;
+    clampCropOffset();
+    var img = document.getElementById("cropImg");
+    img.style.width = cropState.natW + "px";
+    img.style.height = cropState.natH + "px";
+    img.style.transform =
+      "translate(" + cropState.tx + "px," + cropState.ty + "px) scale(" + cropState.scale + ")";
+  }
+
+  // Ramkadagi (fx, fy) nuqta rasmning bir xil joyida qolgan holda kattalashtiradi
+  function setCropScale(newScale, fx, fy) {
+    var s = cropState;
+    newScale = Math.max(s.minScale, Math.min(s.maxScale, newScale));
+    var imgX = (fx - s.tx) / s.scale;
+    var imgY = (fy - s.ty) / s.scale;
+    s.scale = newScale;
+    s.tx = fx - imgX * newScale;
+    s.ty = fy - imgY * newScale;
+    applyCropTransform();
+    document.getElementById("cropZoom").value = Math.round(
+      ((s.scale - s.minScale) / (s.maxScale - s.minScale || 1)) * 100
+    );
+  }
+
+  /* ---- Surish (1 barmoq) va siqib-kattalashtirish (2 barmoq) ---- */
+  (function () {
+    var stage = document.getElementById("cropStage");
+    var pointers = {};
+    var dragStart = null;
+    var pinchStart = null;
+
+    function frameXY(clientX, clientY) {
+      var r = document.getElementById("cropFrame").getBoundingClientRect();
+      return { x: clientX - r.left, y: clientY - r.top };
+    }
+
+    stage.addEventListener("pointerdown", function (e) {
+      if (!cropState) return;
+      stage.setPointerCapture(e.pointerId);
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ids = Object.keys(pointers);
+      if (ids.length === 1) {
+        dragStart = { x: e.clientX, y: e.clientY, tx: cropState.tx, ty: cropState.ty };
+        pinchStart = null;
+      } else if (ids.length === 2) {
+        dragStart = null;
+        var p = ids.map(function (id) { return pointers[id]; });
+        var dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+        var fxy = frameXY((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2);
+        pinchStart = { dist: dist, scale: cropState.scale, fx: fxy.x, fy: fxy.y };
+      }
+    });
+
+    stage.addEventListener("pointermove", function (e) {
+      if (!cropState || !pointers[e.pointerId]) return;
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ids = Object.keys(pointers);
+      if (ids.length === 1 && dragStart) {
+        cropState.tx = dragStart.tx + (e.clientX - dragStart.x);
+        cropState.ty = dragStart.ty + (e.clientY - dragStart.y);
+        applyCropTransform();
+      } else if (ids.length === 2 && pinchStart) {
+        var p = ids.map(function (id) { return pointers[id]; });
+        var dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+        setCropScale(pinchStart.scale * (dist / (pinchStart.dist || 1)), pinchStart.fx, pinchStart.fy);
+      }
+    });
+
+    function endPointer(e) {
+      delete pointers[e.pointerId];
+      var ids = Object.keys(pointers);
+      if (ids.length === 1 && cropState) {
+        var p = pointers[ids[0]];
+        dragStart = { x: p.x, y: p.y, tx: cropState.tx, ty: cropState.ty };
+        pinchStart = null;
+      } else {
+        dragStart = null;
+        pinchStart = null;
+      }
+    }
+    stage.addEventListener("pointerup", endPointer);
+    stage.addEventListener("pointercancel", endPointer);
+
+    // Sichqoncha g'ildiragi — kompyuterda sinash uchun qulay
+    stage.addEventListener("wheel", function (e) {
+      if (!cropState) return;
+      e.preventDefault();
+      var fxy = frameXY(e.clientX, e.clientY);
+      setCropScale(cropState.scale * (e.deltaY < 0 ? 1.08 : 0.92), fxy.x, fxy.y);
+    }, { passive: false });
+  })();
+
+  document.getElementById("cropZoom").addEventListener("input", function (e) {
+    if (!cropState) return;
+    var s = cropState;
+    setCropScale(s.minScale + (s.maxScale - s.minScale) * (e.target.value / 100), s.fw / 2, s.fh / 2);
+  });
+
+  function closeCropper() {
+    document.getElementById("cropOverlay").hidden = true;
+    document.body.style.overflow = "";
+    cropState = null;
+  }
+
+  document.getElementById("cropCancel").addEventListener("click", closeCropper);
+
+  document.getElementById("cropConfirm").addEventListener("click", function () {
+    if (!cropState) return;
+    var s = cropState;
+    var onDone = s.onDone;
+    var sx = -s.tx / s.scale, sy = -s.ty / s.scale;
+    var sw = s.fw / s.scale, sh = s.fh / s.scale;
+
+    var out = document.createElement("canvas");
+    out.width = OUT_SIZE;
+    out.height = OUT_SIZE;
+    out.getContext("2d").drawImage(s.canvas, sx, sy, sw, sh, 0, 0, OUT_SIZE, OUT_SIZE);
+
+    closeCropper();
+    var base64 = out.toDataURL("image/jpeg", 0.85).split(",")[1];
+    api("upload_image", {
+      filename: "photo.jpg", content_type: "image/jpeg", data_base64: base64,
+    }, function (err, res) {
+      onDone(!err && res.status === 200 && res.data.url ? res.data.url : "");
+    });
+  });
 })();
 </script>
 </body>

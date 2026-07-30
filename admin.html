@@ -154,18 +154,20 @@
     text-transform: uppercase; letter-spacing: .03em; vertical-align: middle;
   }
 
-  /* Hisobot */
-  .rep { padding: 14px 15px; }
-  .rep--muted { opacity: .82; }
-  .rep__name { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
-  .rep__row { display: flex; gap: 10px; }
-  .rep__cell {
-    flex: 1; background: var(--bg); border-radius: 12px; padding: 10px 12px; text-align: center;
+  /* Hisobot — ixcham qatorlar */
+  .rrow {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 15px; border-bottom: 1px solid var(--line);
   }
-  .rep__cell b { display: block; font-size: 20px; font-weight: 800; line-height: 1.2; }
-  .rep__cell span { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .rep__st { font-size: 12px; color: var(--muted); margin-top: 9px; line-height: 1.5; }
-  .rep__top { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .rrow:last-child { border-bottom: none; }
+  .rrow__ico { font-size: 21px; width: 30px; text-align: center; flex-shrink: 0; }
+  .rrow__mid { flex: 1; min-width: 0; }
+  .rrow__mid b { display: block; font-size: 15px; font-weight: 600;
+                 overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rrow__mid span { display: block; font-size: 12px; color: var(--muted); }
+  .rrow__sum { font-size: 17px; font-weight: 800; flex-shrink: 0; white-space: nowrap; }
+  .rrow--sum { background: rgba(216,19,39,.06); }
+  .rrow--sum .rrow__sum { color: var(--brand); }
 
   /* O'lchamlar */
   .vrow { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
@@ -529,11 +531,6 @@
     paintReport(repBox);
   }
 
-  var STATUS_UZ = {
-    new: "Yangi", accepted: "Qabul qilindi", cooking: "Tayyorlanmoqda",
-    onway: "Yo'lda", done: "Yetkazildi", cancelled: "Bekor qilindi",
-  };
-
   function paintReport(box) {
     box.innerHTML = "";
     if (report === null) {
@@ -545,47 +542,28 @@
       return;
     }
     if (report === false) {
-      var bad = el("div", "empty", "Hisobotni olib bo'lmadi");
-      box.appendChild(bad);
+      box.appendChild(el("div", "empty", "Hisobotni olib bo'lmadi"));
       box.appendChild(reloadBtn(box));
       return;
     }
 
-    function card(title, info, muted) {
-      var c = el("div", "card rep" + (muted ? " rep--muted" : ""));
-      c.appendChild(el("div", "rep__name", esc(title)));
-      var row = el("div", "rep__row");
-      row.appendChild(el("div", "rep__cell",
-        "<b>" + info.count + "</b><span>buyurtma</span>"));
-      row.appendChild(el("div", "rep__cell",
-        "<b>" + money(info.total) + "</b><span>so'm</span>"));
-      c.appendChild(row);
-
-      var st = info.statuses || {};
-      var keys = Object.keys(st);
-      if (keys.length) {
-        var line = keys.map(function (k) {
-          return (STATUS_UZ[k] || k) + ": " + st[k];
-        }).join(" · ");
-        c.appendChild(el("div", "rep__st", esc(line)));
-      }
-      if ((info.top || []).length) {
-        c.appendChild(el("div", "rep__top",
-          "🔥 " + info.top.map(function (t) {
-            return esc(t.name) + " ×" + t.qty;
-          }).join(", ")));
-      }
-      return c;
+    function row(icon, name, info, strong) {
+      return el("div", "rrow" + (strong ? " rrow--sum" : ""),
+        '<span class="rrow__ico">' + icon + "</span>" +
+        '<span class="rrow__mid"><b>' + esc(name) + "</b>" +
+        "<span>" + info.count + " ta buyurtma</span></span>" +
+        '<span class="rrow__sum">' + money(info.total) + "</span>");
     }
 
+    var list = el("div", "list");
     (report.branches || []).forEach(function (b) {
-      box.appendChild(card("🏬 " + (b.label || "Filial"), b));
+      list.appendChild(row("🏬", b.label || "Filial", b));
     });
-    if (report.other) box.appendChild(card("❔ Filial ko'rsatilmagan", report.other, true));
+    if (report.other) list.appendChild(row("❔", "Filial ko'rsatilmagan", report.other));
     if ((report.branches || []).length > 1) {
-      box.appendChild(card("📊 Jami (hamma filial)", report.all, true));
+      list.appendChild(row("📊", "Jami", report.all, true));
     }
-    box.appendChild(el("p", "hint", "Sana: " + esc(report.day || "")));
+    box.appendChild(list);
     box.appendChild(reloadBtn(box));
   }
 

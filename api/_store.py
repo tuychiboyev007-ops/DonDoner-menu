@@ -14,6 +14,8 @@ Muhit o'zgaruvchisi:
   BLOB_READ_WRITE_TOKEN — Vercel Blob do'koni tokeni (avtomatik qo'shiladi)
 """
 
+import hashlib
+import hmac
 import json
 import os
 import urllib.parse
@@ -245,6 +247,146 @@ def promo_discount(promo, subtotal):
         discount = subtotal * value // 100
     # Chegirma buyurtma summasidan oshib ketmasin
     return max(0, min(discount, subtotal)), ""
+
+
+def check_init_data(init_data, bot_token):
+    """Telegram Mini App initData imzosini tekshiradi.
+
+    Qaytaradi: (to'g'rimi, foydalanuvchi ma'lumoti)
+    Hujjat: https://core.telegram.org/bots/webapps#validating-data
+    """
+    if not init_data or not bot_token:
+        return False, {}
+    try:
+        pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+        received_hash = ""
+        items = []
+        for key, value in pairs:
+            if key == "hash":
+                received_hash = value
+            else:
+                items.append(f"{key}={value}")
+        if not received_hash:
+            return False, {}
+
+        check_string = "\n".join(sorted(items))
+        secret = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+        calc = hmac.new(secret, check_string.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(calc, received_hash):
+            return False, {}
+
+        user = {}
+        for key, value in pairs:
+            if key == "user":
+                user = json.loads(value)
+        return True, user
+    except Exception as exc:  # noqa: BLE001
+        print(f"[WARN] initData tekshiruvi: {exc}")
+        return False, {}
+
+
+# ---------- «Kirdi-chiqdi» kuzatuvi (buyurtmasiz ketgan mijozlar) ----------
+VISIT_PREFIX = "visits/"
+FOLLOWUP_PATH = "followup/config.json"
+
+DEFAULT_FOLLOWUP = {
+    "enabled": True,
+    "delayMin": 5,      # necha daqiqadan keyin eslatma yuborilsin
+    "text": "👀 Вы заглядывали в наше меню…\n"
+            "Возвращайтесь — у нас есть ещё много вкусного! 🥙",
+}
+
+
+def save_followup_config(cfg):
+    """Eslatma sozlamalarini saqlaydi."""
+    return put_blob(FOLLOWUP_PATH, cfg)
+
+
+def load_followup_config():
+    """Eslatma sozlamalari. Saqlanmagan bo'lsa — standart qiymatlar."""
+    for b in list_blobs("followup/"):
+        if b.get("pathname") == FOLLOWUP_PATH:
+            data = get_blob(b.get("url", "")) or {}
+            cfg = dict(DEFAULT_FOLLOWUP)
+            cfg.update({k: v for k, v in data.items() if k in DEFAULT_FOLLOWUP})
+            return cfg
+    return dict(DEFAULT_FOLLOWUP)
+
+
+def visit_path(user_id):
+    return f"{VISIT_PREFIX}{user_id}.json"
+
+
+def save_visit(user):
+    """Mijoz ilovani ochganini belgilab qo'yadi.
+
+    Bugun allaqachon eslatma yuborilgan bo'lsa, o'sha belgi saqlanib
+    qoladi — bir kunda bir necha marta kirsa ham xabar takrorlanmaydi.
+    """
+    uid = user.get("id")
+    if not uid:
+        return None
+    today = today_key()
+
+    notified_day = ""
+    want = visit_path(uid)
+    for b in list_blobs(want):
+        if b.get("pathname") == want:
+            old = get_blob(b.get("url", "")) or {}
+            notified_day = old.get("notified_day", "")
+            break
+
+    record = {
+        "id": uid,
+        "name": user.get("first_name", ""),
+        "username": user.get("username", ""),
+        "opened_at": datetime.now(TASHKENT_TZ).isoformat(timespec="seconds"),
+        "day": today,
+    }
+    if notified_day == today:
+        record["notified_day"] = notified_day
+    put_blob(want, record)
+    return record
+
+
+def delete_blobs(urls):
+    """Blob fayllarni o'chiradi (to'liq URL bo'yicha)."""
+    urls = [u for u in urls if u]
+    if not urls or not BLOB_TOKEN:
+        return False
+    try:
+        _request(
+            "POST",
+            f"{BLOB_API}/delete",
+            data=json.dumps({"urls": urls}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        return True
+    except Exception as exc:  # noqa: BLE001
+        print(f"[WARN] blob delete: {exc}")
+        return False
+
+
+def clear_visit(user_id):
+    """Buyurtma berilgach yozuvni o'chiradi — eslatma ketmasin."""
+    if not user_id:
+        return
+    want = visit_path(user_id)
+    for b in list_blobs(want):
+        if b.get("pathname") == want:
+            delete_blobs([b.get("url", "")])
+            return
+
+
+def load_visits():
+    """Barcha kutilayotgan tashriflar (o'chirish uchun blob URL bilan)."""
+    out = []
+    for b in list_blobs(VISIT_PREFIX):
+        data = get_blob(b.get("url", ""))
+        if data and data.get("id"):
+            data["_url"] = b.get("url", "")
+            out.append(data)
+    return out
 
 
 def all_customer_ids():

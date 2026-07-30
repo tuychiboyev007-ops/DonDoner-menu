@@ -57,6 +57,20 @@
       }
     },
     {
+      "src": "api/visit.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": "api/_store.py"
+      }
+    },
+    {
+      "src": "api/followup.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": "api/_store.py"
+      }
+    },
+    {
       "src": "{index.html,admin.html,css/**,js/**,data/**,images/**,vendor/**}",
       "use": "@vercel/static"
     }
@@ -93,6 +107,14 @@
     {
       "src": "/api/promo",
       "dest": "/api/promo.py"
+    },
+    {
+      "src": "/api/visit",
+      "dest": "/api/visit.py"
+    },
+    {
+      "src": "/api/followup",
+      "dest": "/api/followup.py"
     },
     {
       "src": "/",

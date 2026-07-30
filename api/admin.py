@@ -15,6 +15,8 @@ Amallar:
                      rasmni Blob'ga yuklaydi, ochiq URL qaytaradi
   get_promos      → chegirma kodlari ro'yxati
   save_promos     → {"codes": [...]} — kodlarni saqlaydi
+  get_followup    → «qaytib keling» eslatmasi sozlamalari
+  save_followup   → {"config": {...}} — eslatma sozlamalarini saqlaydi
   broadcast_count → nechta mijozga xabar ketishini aytadi
   broadcast       → {"text": "..."} — barcha mijozlarga xabar yuboradi
 
@@ -114,6 +116,25 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
                 })
             _store.save_promos(clean)
             return self._send(200, {"ok": True, "codes": clean})
+
+        if action == "get_followup":
+            return self._send(200, {"ok": True, "config": _store.load_followup_config()})
+
+        if action == "save_followup":
+            cfg = payload.get("config")
+            if not isinstance(cfg, dict):
+                return self._send(400, {"ok": False, "error": "sozlama noto'g'ri"})
+            text = str(cfg.get("text") or "").strip()
+            if len(text) > 1000:
+                return self._send(400, {"ok": False, "error": "matn juda uzun"})
+            clean = {
+                "enabled": bool(cfg.get("enabled", True)),
+                # 1 daqiqadan 12 soatgacha
+                "delayMin": max(1, min(720, int(cfg.get("delayMin") or 5))),
+                "text": text or _store.DEFAULT_FOLLOWUP["text"],
+            }
+            _store.save_followup_config(clean)
+            return self._send(200, {"ok": True, "config": clean})
 
         if action == "broadcast_count":
             return self._send(200, {"ok": True, "count": len(_store.all_customer_ids())})

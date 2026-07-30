@@ -1979,6 +1979,22 @@
     });
   }
 
+  /* Ilova ochilganini serverga bildiramiz. Agar mijoz hech narsa
+     buyurtma qilmasdan chiqib ketsa, bot unga eslatma yuboradi.
+     Buyurtma berilsa bu belgi serverda o'chiriladi. */
+  function pingVisit() {
+    let initData = "";
+    try {
+      initData = (tg && tg.initData) || "";
+    } catch (e) {}
+    if (!initData) return; // Telegram'dan tashqarida — kuzatmaymiz
+    fetch("/api/visit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: initData }),
+    }).catch(function () {});
+  }
+
   /* ---- Yashirin imo-ishora: logoni 3 marta bossa admin panel ochiladi ----
      Faqat restoran egasi uchun qulaylik — manzilni qo'lda yozish shart emas.
      Panelning o'zi PIN bilan himoyalangan, shuning uchun bu yerda
@@ -2072,6 +2088,7 @@
     setupPicker();
     setupAdminGesture();
     setupCategorySpy();
+    pingVisit();
     document.documentElement.lang = lang;
     applyStaticLabels();
     refreshCartUI();

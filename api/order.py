@@ -276,6 +276,9 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
 
         # 1) Bazaga saqlaymiz — kunlik tartib raqamini shu yerdan olamiz
         record = _store.save_order(order, user)
+
+        # Buyurtma berdi — «qaytib keling» eslatmasi endi kerak emas
+        _store.clear_visit(user.get("id"))
         number = record.get("number", 1)
 
         # 2) Buyurtmani restoranga

@@ -285,6 +285,7 @@
   var pin = sessionStorage.getItem(PIN_KEY) || "";
   var MENU = null;
   var promos = null;          // chegirma kodlari (serverdan yuklanadi)
+  var followup = null;        // «qaytib keling» eslatmasi sozlamalari
   var view = { name: "home", ci: 0, ii: 0 };
   var saveTimer = null;
 
@@ -437,6 +438,7 @@
     if (view.name === "branches") return renderBranches(box);
     if (view.name === "promos") return renderPromos(box);
     if (view.name === "broadcast") return renderBroadcast(box);
+    if (view.name === "followup") return renderFollowup(box);
   }
 
   function setTitle(text) {
@@ -456,6 +458,8 @@
       promos === null ? "yuklanmoqda…" : promos.length + " ta kod", function () { go("promos"); }));
     s.appendChild(navRow("📣", "Reklama xabari",
       "Barcha mijozlarga yuborish", function () { go("broadcast"); }));
+    s.appendChild(navRow("🔔", "«Qaytib keling» eslatmasi",
+      "Buyurtmasiz chiqib ketganlarga", function () { go("followup"); }));
     box.appendChild(s);
 
     box.appendChild(el("div", "title", "Menyu — kategoriyalar"));
@@ -967,6 +971,74 @@
       });
     });
     box.appendChild(send);
+  }
+
+  /* ============ 8. «QAYTIB KELING» ESLATMASI ============ */
+  function renderFollowup(box) {
+    setTitle("Eslatma");
+
+    if (followup === null) {
+      box.appendChild(el("div", "empty", "Yuklanmoqda…"));
+      api("get_followup", {}, function (err, res) {
+        followup = (!err && res.status === 200 && res.data.config)
+          ? res.data.config
+          : { enabled: true, delayMin: 5, text: "" };
+        render();
+      });
+      return;
+    }
+
+    box.appendChild(el("div", "card",
+      "<p class=\"hint\" style=\"margin:0\">Mijoz ilovani ochib, hech narsa " +
+      "buyurtma qilmasdan chiqib ketsa, belgilangan vaqtdan keyin unga bot " +
+      "shu xabarni yuboradi. Bir mijozga kuniga faqat bir marta.</p>"));
+
+    var card = el("div", "card");
+    var f1 = el("div", "f", "<label>Holati</label>");
+    var seg = el("div", "seg");
+    [{ on: true, text: "✅ Yoqilgan" }, { on: false, text: "⏸ O'chirilgan" }].forEach(function (o) {
+      var btn = el("button", followup.enabled === o.on ? "on" : "", o.text);
+      btn.addEventListener("click", function () {
+        followup.enabled = o.on; saveFollowup(); render();
+      });
+      seg.appendChild(btn);
+    });
+    f1.appendChild(seg);
+    card.appendChild(f1);
+
+    var f2 = el("div", "f",
+      "<label>Necha daqiqadan keyin yuborilsin</label>" +
+      '<input id="fuDelay" inputmode="numeric" value="' + (followup.delayMin || 5) + '" />' +
+      '<p class="hint">Namunadagidek 5 daqiqa tavsiya etiladi. Eng ko\'pi — 720 (12 soat).</p>');
+    card.appendChild(f2);
+
+    var f3 = el("div", "f",
+      "<label>Xabar matni</label>" +
+      '<textarea id="fuText" rows="4"></textarea>');
+    card.appendChild(f3);
+    box.appendChild(card);
+
+    card.querySelector("#fuDelay").addEventListener("input", function (e) {
+      followup.delayMin = parseInt(e.target.value, 10) || 5; saveFollowup();
+    });
+    var ta = card.querySelector("#fuText");
+    ta.value = followup.text || "";
+    ta.addEventListener("input", function (e) {
+      followup.text = e.target.value; saveFollowup();
+    });
+  }
+
+  function saveFollowup() {
+    setSaveState("on", "saqlanmoqda…");
+    clearTimeout(saveFollowup._t);
+    saveFollowup._t = setTimeout(function () {
+      api("save_followup", { config: followup }, function (err, res) {
+        if (err || res.status !== 200) return setSaveState("bad", "saqlanmadi!");
+        var d = new Date();
+        setSaveState("ok", "saqlandi " +
+          String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"));
+      });
+    }, 800);
   }
 
   /* ============================================================

@@ -1,0 +1,42 @@
+# Buyurtmasiz chiqib ketgan mijozlarga eslatma yuborish jadvali.
+#
+# Vercel'ning Hobby tarifida cron kuniga faqat 1 marta ishlaydi,
+# shuning uchun jadvalni GitHub Actions yuritadi (ochiq repo — bepul).
+#
+# Kerakli sozlama: repo → Settings → Secrets and variables → Actions
+#   FOLLOWUP_SECRET — Vercel'dagi bir xil qiymat bilan mos bo'lishi shart
+
+name: Eslatma yuborish
+
+on:
+  schedule:
+    # Har 5 daqiqada. GitHub band paytlarda biroz kechikishi mumkin —
+    # eslatma uchun bu muhim emas.
+    - cron: "*/5 * * * *"
+  # Qo'lda ham ishga tushirish mumkin (Actions → Run workflow)
+  workflow_dispatch:
+
+# Bir vaqtda bittadan ortiq ishga tushmasin
+concurrency:
+  group: followup
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Eslatmalarni yuborish
+        env:
+          SECRET: ${{ secrets.FOLLOWUP_SECRET }}
+        run: |
+          if [ -z "$SECRET" ]; then
+            echo "FOLLOWUP_SECRET sozlanmagan — o'tkazib yuborildi"
+            exit 0
+          fi
+          response=$(curl -sS -w '\n%{http_code}' -X POST \
+            https://dondoner-blush.vercel.app/api/followup \
+            -H "X-Followup-Secret: $SECRET")
+          body=$(echo "$response" | sed '$d')
+          code=$(echo "$response" | tail -n1)
+          echo "javob ($code): $body"
+          [ "$code" = "200" ]

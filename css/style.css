@@ -85,6 +85,12 @@ button {
   max-width: 72%;
   object-fit: contain;
   display: block;
+  /* Logoni tez 3 marta bosish admin panelni ochadi (yashirin imo-ishora):
+     tanlanish, surish va bosish chaqnashini o'chiramiz — mijoz sezmasin */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .iconbtn {

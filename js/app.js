@@ -1690,6 +1690,39 @@
     });
   }
 
+  /* ---- Yashirin imo-ishora: logoni 3 marta bossa admin panel ochiladi ----
+     Faqat restoran egasi uchun qulaylik — manzilni qo'lda yozish shart emas.
+     Panelning o'zi PIN bilan himoyalangan, shuning uchun bu yerda
+     hech qanday qo'shimcha tekshiruv kerak emas. */
+  const ADMIN_TAPS = 3; // necha marta bosish kerak
+  const ADMIN_TAP_GAP = 1200; // bosishlar orasidagi maksimal tanaffus (ms)
+
+  function setupAdminGesture() {
+    const logo = document.querySelector(".topbar__logoimg");
+    if (!logo) return;
+
+    let taps = 0;
+    let timer = null;
+
+    logo.addEventListener("click", function () {
+      taps++;
+      clearTimeout(timer);
+
+      if (taps >= ADMIN_TAPS) {
+        taps = 0;
+        haptic("medium");
+        window.location.href = "admin.html";
+        return;
+      }
+
+      haptic("light");
+      // Ketma-ketlik uzilib qolsa — hisobni nolga qaytaramiz
+      timer = setTimeout(function () {
+        taps = 0;
+      }, ADMIN_TAP_GAP);
+    });
+  }
+
   // Bot xabaridagi «📋 Buyurtmani ko'rish» tugmasi ilovani
   // ?order=<raqam> bilan ochadi — shu buyurtmani darhol ko'rsatamiz
   function openOrderFromLink() {
@@ -1748,6 +1781,7 @@
     setupTabbar();
     setupControls();
     setupPicker();
+    setupAdminGesture();
     document.documentElement.lang = lang;
     applyStaticLabels();
     refreshCartUI();

@@ -13,6 +13,7 @@ Amallar:
   save_menu       → {"menu": {...}} — butun menyuni saqlaydi
   upload_image    → {"filename", "content_type", "data_base64"} —
                      rasmni Blob'ga yuklaydi, ochiq URL qaytaradi
+  get_report      → kunlik hisobot, filiallar bo'yicha alohida
   get_promos      → chegirma kodlari ro'yxati
   save_promos     → {"codes": [...]} — kodlarni saqlaydi
   get_followup    → «qaytib keling» eslatmasi sozlamalari
@@ -42,6 +43,77 @@ ADMIN_PIN = os.environ.get("ADMIN_PIN", "").strip()
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 MAX_BODY = 8 * 1024 * 1024  # rasm base64 uchun ~8MB yetarli
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
+
+
+def _sum_group(records):
+    """Bir guruh buyurtma bo'yicha: soni, savdosi, holatlari, top taomlar.
+
+    Bekor qilingan buyurtma savdoga qo'shilmaydi, lekin soniga kiradi.
+    """
+    total = 0
+    statuses = {}
+    items = {}
+    for r in records:
+        o = r.get("order") or {}
+        st = r.get("status") or "new"
+        statuses[st] = statuses.get(st, 0) + 1
+        if st != "cancelled":
+            try:
+                total += int(o.get("total") or 0)
+            except (TypeError, ValueError):
+                pass
+        for it in o.get("items", []):
+            name = it.get("name", "-")
+            try:
+                qty = int(it.get("qty") or 1)
+            except (TypeError, ValueError):
+                qty = 1
+            items[name] = items.get(name, 0) + qty
+    top = sorted(items.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    return {
+        "count": len(records),
+        "total": total,
+        "statuses": statuses,
+        "top": [{"name": n, "qty": q} for n, q in top],
+    }
+
+
+def day_report_by_branch(day=None):
+    """Kunlik hisobot — har filial uchun alohida."""
+    day = day or _store.today_key()
+    records = _store.load_orders(day)
+
+    menu = _store.load_menu() or {}
+    branches = (menu.get("restaurant") or {}).get("branches") or []
+
+    # Buyurtmalarni filial nomi bo'yicha guruhlaymiz
+    grouped = {}
+    for r in records:
+        o = r.get("order") or {}
+        label = str((o.get("branch") or {}).get("label") or "")
+        grouped.setdefault(label, []).append(r)
+
+    out = []
+    used = set()
+    for b in branches:
+        label = str(b.get("label") or "")
+        used.add(label)
+        info = _sum_group(grouped.get(label, []))
+        info["id"] = b.get("id") or ""
+        info["label"] = label
+        out.append(info)
+
+    # Filiali ko'rsatilmagan yoki o'chirilgan filial buyurtmalari
+    rest = [r for lbl, rs in grouped.items() if lbl not in used for r in rs]
+    other = _sum_group(rest) if rest else None
+
+    return {
+        "ok": True,
+        "day": day,
+        "branches": out,
+        "other": other,
+        "all": _sum_group(records),
+    }
 
 
 def broadcast(text):
@@ -92,6 +164,9 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
                 return self._send(400, {"ok": False, "error": "menyu bo'sh yoki noto'g'ri"})
             _store.save_menu(menu)
             return self._send(200, {"ok": True})
+
+        if action == "get_report":
+            return self._send(200, day_report_by_branch(payload.get("day")))
 
         if action == "get_promos":
             return self._send(200, {"ok": True, "codes": _store.load_promos()})

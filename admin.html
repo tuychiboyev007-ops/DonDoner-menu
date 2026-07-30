@@ -154,6 +154,19 @@
     text-transform: uppercase; letter-spacing: .03em; vertical-align: middle;
   }
 
+  /* Hisobot */
+  .rep { padding: 14px 15px; }
+  .rep--muted { opacity: .82; }
+  .rep__name { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+  .rep__row { display: flex; gap: 10px; }
+  .rep__cell {
+    flex: 1; background: var(--bg); border-radius: 12px; padding: 10px 12px; text-align: center;
+  }
+  .rep__cell b { display: block; font-size: 20px; font-weight: 800; line-height: 1.2; }
+  .rep__cell span { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rep__st { font-size: 12px; color: var(--muted); margin-top: 9px; line-height: 1.5; }
+  .rep__top { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
   /* O'lchamlar */
   .vrow { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
   .vrow input { padding: 12px; border: 1.5px solid var(--line); border-radius: 11px;
@@ -286,6 +299,7 @@
   var MENU = null;
   var promos = null;          // chegirma kodlari (serverdan yuklanadi)
   var followup = null;        // «qaytib keling» eslatmasi sozlamalari
+  var report = null;          // bugungi hisobot (filiallar bo'yicha)
   var view = { name: "home", ci: 0, ii: 0 };
   var saveTimer = null;
 
@@ -507,6 +521,81 @@
       go("cat", MENU.categories.length - 1);
     });
     box.appendChild(add);
+
+    /* --- Eng pastda: bugungi hisobot, filiallar bo'yicha --- */
+    box.appendChild(el("div", "title", "Bugungi hisobot"));
+    var repBox = el("div");
+    box.appendChild(repBox);
+    paintReport(repBox);
+  }
+
+  var STATUS_UZ = {
+    new: "Yangi", accepted: "Qabul qilindi", cooking: "Tayyorlanmoqda",
+    onway: "Yo'lda", done: "Yetkazildi", cancelled: "Bekor qilindi",
+  };
+
+  function paintReport(box) {
+    box.innerHTML = "";
+    if (report === null) {
+      box.appendChild(el("div", "empty", "Yuklanmoqda…"));
+      api("get_report", {}, function (err, res) {
+        report = (!err && res.status === 200 && res.data.branches) ? res.data : false;
+        paintReport(box);
+      });
+      return;
+    }
+    if (report === false) {
+      var bad = el("div", "empty", "Hisobotni olib bo'lmadi");
+      box.appendChild(bad);
+      box.appendChild(reloadBtn(box));
+      return;
+    }
+
+    function card(title, info, muted) {
+      var c = el("div", "card rep" + (muted ? " rep--muted" : ""));
+      c.appendChild(el("div", "rep__name", esc(title)));
+      var row = el("div", "rep__row");
+      row.appendChild(el("div", "rep__cell",
+        "<b>" + info.count + "</b><span>buyurtma</span>"));
+      row.appendChild(el("div", "rep__cell",
+        "<b>" + money(info.total) + "</b><span>so'm</span>"));
+      c.appendChild(row);
+
+      var st = info.statuses || {};
+      var keys = Object.keys(st);
+      if (keys.length) {
+        var line = keys.map(function (k) {
+          return (STATUS_UZ[k] || k) + ": " + st[k];
+        }).join(" · ");
+        c.appendChild(el("div", "rep__st", esc(line)));
+      }
+      if ((info.top || []).length) {
+        c.appendChild(el("div", "rep__top",
+          "🔥 " + info.top.map(function (t) {
+            return esc(t.name) + " ×" + t.qty;
+          }).join(", ")));
+      }
+      return c;
+    }
+
+    (report.branches || []).forEach(function (b) {
+      box.appendChild(card("🏬 " + (b.label || "Filial"), b));
+    });
+    if (report.other) box.appendChild(card("❔ Filial ko'rsatilmagan", report.other, true));
+    if ((report.branches || []).length > 1) {
+      box.appendChild(card("📊 Jami (hamma filial)", report.all, true));
+    }
+    box.appendChild(el("p", "hint", "Sana: " + esc(report.day || "")));
+    box.appendChild(reloadBtn(box));
+  }
+
+  function reloadBtn(box) {
+    var b = el("button", "btn btn--add", "🔄 Yangilash");
+    b.addEventListener("click", function () {
+      report = null;
+      paintReport(box);
+    });
+    return b;
   }
 
   function navRow(ico, title, sub, onClick) {

@@ -195,7 +195,11 @@ def apply_promo(order):
 def build_card(order, user, number=None):
     """Buyurtma kartochkasi (reference ko'rinishida)."""
     L = []
-    L.append("🆕 <b>Yangi zakaz!</b>")
+    if order.get("preorder"):
+        at = str(order.get("preorderAt") or "")
+        L.append("⏰ <b>OLDINDAN BUYURTMA</b>" + (f" — {esc(at)} ga" if at else ""))
+    else:
+        L.append("🆕 <b>Yangi zakaz!</b>")
     L.append(f"📦 <b>#{number}</b>")
     L.append("━━━━━━━━━━━━━━━")
 
@@ -335,8 +339,10 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             send_message(
                 BOT_TOKEN,
                 chat_id,
-                f"✅ <b>Ваш заказ принят!</b>\n"
-                f"Номер: <b>#{number}</b>\n\n"
+                (f"⏰ <b>Предзаказ принят!</b>\n"
+                 f"Приготовим к {esc(str(order.get('preorderAt') or ''))}\n"
+                 if order.get("preorder") else "✅ <b>Ваш заказ принят!</b>\n")
+                + f"Номер: <b>#{number}</b>\n\n"
                 "📋 Следить за статусом можно по кнопке ниже "
                 "или в разделе «Заказы».\n\n"
                 "Оператор скоро свяжется с вами. Спасибо! 🙌",

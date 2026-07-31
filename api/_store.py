@@ -186,6 +186,9 @@ def update_status(path, status, actor=""):
     # Mijoz nusxasini ham yangilaymiz — ilovada holat ko'rinsin
     if record.get("user_path"):
         put_blob(record["user_path"], record)
+    # Bekor qilish savdoni o'zgartiradi — o'sha kunning keshi eskiradi
+    if record.get("day"):
+        drop_day_stats(record["day"])
     return record
 
 
@@ -255,6 +258,114 @@ def promo_discount(promo, subtotal):
         discount = subtotal * value // 100
     # Chegirma buyurtma summasidan oshib ketmasin
     return max(0, min(discount, subtotal)), ""
+
+
+# ---------- Kunlik yig'ma (hafta/oy hisoboti tez ishlashi uchun) ----------
+STATS_PREFIX = "stats/"
+
+
+def stats_path(day):
+    return f"{STATS_PREFIX}{day}.json"
+
+
+def drop_day_stats(day):
+    """Kun yig'masini o'chiradi — buyurtma holati o'zgarganda chaqiriladi."""
+    want = stats_path(day)
+    for b in list_blobs(want):
+        if b.get("pathname") == want:
+            delete_blobs([b.get("url", "")])
+            return
+
+
+def _rollup(records):
+    """Buyurtmalar ro'yxatidan yig'ma hisob."""
+    total = 0
+    items = {}
+    by_branch = {}
+    for r in records:
+        o = r.get("order") or {}
+        label = str((o.get("branch") or {}).get("label") or "")
+        try:
+            amount = int(o.get("total") or 0)
+        except (TypeError, ValueError):
+            amount = 0
+        cancelled = r.get("status") == "cancelled"
+        if not cancelled:
+            total += amount
+
+        b = by_branch.setdefault(label, {"count": 0, "total": 0})
+        b["count"] += 1
+        if not cancelled:
+            b["total"] += amount
+
+        for it in o.get("items", []):
+            name = it.get("name", "-")
+            try:
+                qty = int(it.get("qty") or 1)
+            except (TypeError, ValueError):
+                qty = 1
+            items[name] = items.get(name, 0) + qty
+
+    return {"count": len(records), "total": total,
+            "byBranch": by_branch, "items": items}
+
+
+def day_stats(day):
+    """Bir kunlik yig'ma.
+
+    O'tgan kunlar o'zgarmaydi — ular keshlanadi. Bugungi kun har safar
+    qaytadan hisoblanadi, chunki buyurtmalar hali kelib turibdi.
+    """
+    today = today_key()
+    if day != today:
+        want = stats_path(day)
+        for b in list_blobs(want):
+            if b.get("pathname") == want:
+                cached = get_blob(b.get("url", ""))
+                if cached:
+                    return cached
+
+    data = _rollup(load_orders(day))
+    data["day"] = day
+    if day != today:
+        put_blob(stats_path(day), data)
+    return data
+
+
+def range_stats(days):
+    """Bir necha kunlik yig'ma. days — sana satrlari ro'yxati."""
+    total = 0
+    count = 0
+    items = {}
+    by_branch = {}
+    per_day = []
+    for day in days:
+        d = day_stats(day)
+        count += d.get("count", 0)
+        total += d.get("total", 0)
+        per_day.append({"day": day, "count": d.get("count", 0),
+                        "total": d.get("total", 0)})
+        for name, qty in (d.get("items") or {}).items():
+            items[name] = items.get(name, 0) + qty
+        for label, info in (d.get("byBranch") or {}).items():
+            b = by_branch.setdefault(label, {"count": 0, "total": 0})
+            b["count"] += info.get("count", 0)
+            b["total"] += info.get("total", 0)
+    top = sorted(items.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    return {
+        "count": count,
+        "total": total,
+        "byBranch": by_branch,
+        "top": [{"name": n, "qty": q} for n, q in top],
+        "days": per_day,
+    }
+
+
+def last_days(n):
+    """Bugundan orqaga n kunlik sanalar (eskisidan yangisiga)."""
+    today = datetime.now(TASHKENT_TZ).date()
+    return [(today - timedelta(days=i)).strftime("%Y-%m-%d")
+            for i in range(n - 1, -1, -1)]
 
 
 def check_init_data(init_data, bot_token):

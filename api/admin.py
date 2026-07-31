@@ -13,7 +13,8 @@ Amallar:
   save_menu       → {"menu": {...}} — butun menyuni saqlaydi
   upload_image    → {"filename", "content_type", "data_base64"} —
                      rasmni Blob'ga yuklaydi, ochiq URL qaytaradi
-  get_report      → kunlik hisobot, filiallar bo'yicha alohida
+  get_report      → {"period": "today"|"week"|"month"} — davr hisoboti,
+                     filiallar bo'yicha alohida
   get_promos      → chegirma kodlari ro'yxati
   save_promos     → {"codes": [...]} — kodlarni saqlaydi
   get_followup    → «qaytib keling» eslatmasi sozlamalari
@@ -45,74 +46,54 @@ MAX_BODY = 8 * 1024 * 1024  # rasm base64 uchun ~8MB yetarli
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 
-def _sum_group(records):
-    """Bir guruh buyurtma bo'yicha: soni, savdosi, holatlari, top taomlar.
+PERIOD_DAYS = {"today": 1, "week": 7, "month": 30}
 
-    Bekor qilingan buyurtma savdoga qo'shilmaydi, lekin soniga kiradi.
+
+def report_for(period):
+    """Davr bo'yicha hisobot: bugun / 7 kun / 30 kun.
+
+    Filiallar kesimi menyudagi tartibda qaytariladi, mavjud bo'lmagan
+    filial buyurtmalari «boshqa» bo'limiga tushadi.
     """
-    total = 0
-    statuses = {}
-    items = {}
-    for r in records:
-        o = r.get("order") or {}
-        st = r.get("status") or "new"
-        statuses[st] = statuses.get(st, 0) + 1
-        if st != "cancelled":
-            try:
-                total += int(o.get("total") or 0)
-            except (TypeError, ValueError):
-                pass
-        for it in o.get("items", []):
-            name = it.get("name", "-")
-            try:
-                qty = int(it.get("qty") or 1)
-            except (TypeError, ValueError):
-                qty = 1
-            items[name] = items.get(name, 0) + qty
-    top = sorted(items.items(), key=lambda kv: kv[1], reverse=True)[:5]
-    return {
-        "count": len(records),
-        "total": total,
-        "statuses": statuses,
-        "top": [{"name": n, "qty": q} for n, q in top],
-    }
-
-
-def day_report_by_branch(day=None):
-    """Kunlik hisobot — har filial uchun alohida."""
-    day = day or _store.today_key()
-    records = _store.load_orders(day)
+    days = _store.last_days(PERIOD_DAYS.get(period, 1))
+    stats = _store.range_stats(days)
 
     menu = _store.load_menu() or {}
     branches = (menu.get("restaurant") or {}).get("branches") or []
 
-    # Buyurtmalarni filial nomi bo'yicha guruhlaymiz
-    grouped = {}
-    for r in records:
-        o = r.get("order") or {}
-        label = str((o.get("branch") or {}).get("label") or "")
-        grouped.setdefault(label, []).append(r)
-
+    by_branch = stats.get("byBranch") or {}
     out = []
     used = set()
     for b in branches:
         label = str(b.get("label") or "")
         used.add(label)
-        info = _sum_group(grouped.get(label, []))
-        info["id"] = b.get("id") or ""
-        info["label"] = label
-        out.append(info)
+        info = by_branch.get(label) or {"count": 0, "total": 0}
+        out.append({"id": b.get("id") or "", "label": label,
+                    "count": info["count"], "total": info["total"]})
 
-    # Filiali ko'rsatilmagan yoki o'chirilgan filial buyurtmalari
-    rest = [r for lbl, rs in grouped.items() if lbl not in used for r in rs]
-    other = _sum_group(rest) if rest else None
+    rest = {"count": 0, "total": 0}
+    for label, info in by_branch.items():
+        if label not in used:
+            rest["count"] += info.get("count", 0)
+            rest["total"] += info.get("total", 0)
+
+    # Eng kuchli kun (faqat davr uzun bo'lsa ma'noli)
+    best = None
+    if len(days) > 1:
+        per = [d for d in stats.get("days", []) if d.get("count")]
+        if per:
+            best = max(per, key=lambda d: d["total"])
 
     return {
         "ok": True,
-        "day": day,
+        "period": period,
+        "from": days[0],
+        "to": days[-1],
         "branches": out,
-        "other": other,
-        "all": _sum_group(records),
+        "other": rest if rest["count"] else None,
+        "all": {"count": stats["count"], "total": stats["total"]},
+        "top": stats.get("top") or [],
+        "best": best,
     }
 
 
@@ -166,7 +147,8 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             return self._send(200, {"ok": True})
 
         if action == "get_report":
-            return self._send(200, day_report_by_branch(payload.get("day")))
+            period = payload.get("period") or "today"
+            return self._send(200, report_for(period))
 
         if action == "get_promos":
             return self._send(200, {"ok": True, "codes": _store.load_promos()})

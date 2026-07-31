@@ -493,6 +493,54 @@ button {
   cursor: not-allowed;
 }
 
+/* ---------- Qo'shimchalar (taom oynasida) ---------- */
+.addons {
+  margin: 4px 0 16px;
+}
+
+.addons__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.addon {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.addon:last-child {
+  margin-bottom: 0;
+}
+
+.addon input {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+  margin: 0;
+}
+
+.addon__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.addon__price {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
 /* ---------- Chegirma kodi ---------- */
 .promo {
   background: var(--card);

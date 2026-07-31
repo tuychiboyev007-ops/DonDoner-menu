@@ -124,11 +124,37 @@
     });
   }
   // Savat kaliti "id" yoki "id::O'lcham" ko'rinishida bo'ladi
+  /* Savat kaliti: "id" | "id::O'lcham" | "id::O'lcham::a1|a2"
+     Uchinchi qism — tanlangan qo'shimchalar (extra sir, sous ...). */
   function splitKey(key) {
-    const i = String(key).indexOf("::");
-    return i === -1
-      ? { id: key, variant: "" }
-      : { id: key.slice(0, i), variant: key.slice(i + 2) };
+    const parts = String(key).split("::");
+    return {
+      id: parts[0],
+      variant: parts[1] || "",
+      addons: (parts[2] || "").split("|").filter(Boolean),
+    };
+  }
+
+  function makeKey(id, variant, addonIds) {
+    const a = (addonIds || []).slice().sort();
+    if (!variant && !a.length) return id;
+    return id + "::" + (variant || "") + (a.length ? "::" + a.join("|") : "");
+  }
+
+  // Taomning qo'shimchalari (nomi va narxi bilan)
+  function itemAddons(item) {
+    return (item && item.addons) || [];
+  }
+
+  // Kalitdagi qo'shimchalarni topib beradi
+  function keyAddons(key) {
+    const it = findItem(key);
+    if (!it) return [];
+    const { addons } = splitKey(key);
+    if (!addons.length) return [];
+    return itemAddons(it).filter(function (a) {
+      return addons.indexOf(a.id) !== -1;
+    });
   }
 
   function findItem(key) {
@@ -140,26 +166,33 @@
     return itemIndex[id] ? itemIndex[id].icon : "🍽️";
   }
 
-  // Kalit bo'yicha narx (o'lcham hisobga olinadi)
+  // Kalit bo'yicha narx (o'lcham + qo'shimchalar hisobga olinadi)
   function keyPrice(key) {
     const it = findItem(key);
     if (!it) return 0;
     const { variant } = splitKey(key);
+    let base;
     if (it.variants && it.variants.length) {
       const v = it.variants.filter(function (x) {
         return x.label === variant;
       })[0];
-      return (v || it.variants[0]).price;
+      base = (v || it.variants[0]).price;
+    } else {
+      base = it.price || 0;
     }
-    return it.price || 0;
+    return keyAddons(key).reduce(function (sum, a) {
+      return sum + Number(a.price || 0);
+    }, Number(base) || 0);
   }
 
-  // Kalit bo'yicha to'liq nom ("Pepperoni (Katta)")
+  // Kalit bo'yicha to'liq nom ("Pepperoni (Katta, +Extra sir)")
   function keyName(key) {
     const it = findItem(key);
     if (!it) return "-";
     const { variant } = splitKey(key);
-    return variant ? it.name + " (" + variant + ")" : it.name;
+    const extra = keyAddons(key).map(function (a) { return "+" + a.name; });
+    const bits = (variant ? [variant] : []).concat(extra);
+    return bits.length ? it.name + " (" + bits.join(", ") + ")" : it.name;
   }
 
   // Eng arzon narx — kartochkada "60 000 so'm dan" uchun
@@ -195,6 +228,16 @@
     if (digits.length > 2) out += " " + digits.slice(2, 5);
     if (digits.length > 5) out += " " + digits.slice(5, 7);
     if (digits.length > 7) out += " " + digits.slice(7, 9);
+    return out;
+  }
+
+  // 901234567 -> "90 123 45 67" (+998 alohida ko'rsatiladi)
+  function prettyPhone(digits) {
+    const d = String(digits || "").replace(/\D/g, "").slice(0, 9);
+    let out = d.slice(0, 2);
+    if (d.length > 2) out += " " + d.slice(2, 5);
+    if (d.length > 5) out += " " + d.slice(5, 7);
+    if (d.length > 7) out += " " + d.slice(7, 9);
     return out;
   }
 
@@ -236,6 +279,21 @@
     const open = toMinutes(h.open);
     const close = toMinutes(h.close);
     return close > open ? now >= open && now < close : now >= open || now < close;
+  }
+
+  // Yopiq paytda oldindan buyurtma qabul qilinadimi
+  function preorderOn() {
+    const r = window.MENU.restaurant || {};
+    const h = r.hours || {};
+    // Ish vaqti belgilanmagan bo'lsa restoran doim ochiq — oldindan buyurtma kerak emas
+    if (!h.open || !h.close) return false;
+    return r.preorder !== false;
+  }
+
+  // Oldindan buyurtma qaysi vaqtga: keyingi ochilish soati
+  function preorderAt() {
+    const h = (window.MENU.restaurant || {}).hours || {};
+    return h.open || "";
   }
 
   function closedText() {
@@ -533,7 +591,9 @@
     });
 
     const body = el("div", "product__body");
+    // O'lchami yoki qo'shimchasi bor taom — avval tanlash oynasi ochiladi
     const hasVariants = !!(item.variants && item.variants.length > 1);
+    const hasAddons = itemAddons(item).length > 0;
 
     // Narx: o'lchamli bo'lsa "dan", chegirma bo'lsa eski narx chizilgan holda
     let priceHtml = formatPrice(minPrice(item));
@@ -557,8 +617,7 @@
       return card;
     }
 
-    // O'lchamli taomlar: avval tanlash oynasi ochiladi
-    if (hasVariants) {
+    if (hasVariants || hasAddons) {
       const pick = el("button", "product__add product__add--pick", t("choose"));
       pick.addEventListener("click", function () {
         openSheet(item, catIcon);
@@ -603,6 +662,7 @@
   const sheet = document.getElementById("sheet");
 
   let activeVariant = ""; // oynada tanlangan o'lcham
+  let activeAddons = []; // oynada belgilangan qo'shimchalar (id lar)
 
   function openSheet(item, catIcon) {
     activeItem = item;
@@ -642,6 +702,10 @@
       box.innerHTML = "";
     }
 
+    // Qo'shimchalar (extra sir, sous ...)
+    activeAddons = [];
+    paintAddons(item);
+
     // Tugagan taomni oynadan ham qo'shib bo'lmaydi
     const addBtn = document.getElementById("sheetAdd");
     const gone = isOut(item);
@@ -653,9 +717,44 @@
     document.body.style.overflow = "hidden";
   }
 
+  function paintAddons(item) {
+    const box = document.getElementById("sheetAddons");
+    const list = itemAddons(item).filter(function (a) {
+      return a && a.id && a.name;
+    });
+    if (!list.length) {
+      box.hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+    box.hidden = false;
+    box.innerHTML =
+      '<div class="addons__title">' + escapeHtml(t("addons")) + "</div>" +
+      list.map(function (a) {
+        return (
+          '<label class="addon">' +
+          '<input type="checkbox" value="' + escapeHtml(a.id) + '" />' +
+          '<span class="addon__name">' + escapeHtml(a.name) + "</span>" +
+          '<span class="addon__price">+' + formatPrice(a.price || 0) + "</span>" +
+          "</label>"
+        );
+      }).join("");
+
+    box.querySelectorAll("input").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        const id = cb.value;
+        const i = activeAddons.indexOf(id);
+        if (cb.checked && i === -1) activeAddons.push(id);
+        if (!cb.checked && i !== -1) activeAddons.splice(i, 1);
+        updateSheetPrice();
+        haptic("light");
+      });
+    });
+  }
+
   function sheetKey() {
     if (!activeItem) return "";
-    return activeVariant ? activeItem.id + "::" + activeVariant : activeItem.id;
+    return makeKey(activeItem.id, activeVariant, activeAddons);
   }
 
   function updateSheetPrice() {
@@ -810,7 +909,7 @@
       });
       box.appendChild(rm);
       cartRoot.appendChild(box);
-    } else if (!isOpen()) {
+    } else if (!isOpen() && !preorderOn()) {
       goBtn.disabled = true;
       goBtn.textContent = t("closedNow");
       cartRoot.appendChild(el("div", "notice notice--warn", escapeHtml(closedText())));
@@ -829,6 +928,12 @@
         )
       );
     } else {
+      if (!isOpen()) {
+        // Hozir yopiq — buyurtma ochilish vaqtiga qabul qilinadi
+        goBtn.textContent = t("preorderBtn") + " " + preorderAt();
+        cartRoot.appendChild(el("div", "notice",
+          escapeHtml(closedText() + " · " + t("preorderNote") + " " + preorderAt())));
+      }
       goBtn.addEventListener("click", submitOrder);
     }
 
@@ -992,9 +1097,12 @@
   function buildCheckout() {
     const wrap = el("div", "checkout");
     const user = tgUser();
-    const defaultName = user
+    const tgName = user
       ? [user.first_name, user.last_name].filter(Boolean).join(" ")
       : "";
+    // Avval kiritilgan ma'lumot saqlanadi — har safar qaytadan yozish shart emas
+    const defaultName = profile.name || tgName;
+    const defaultPhone = phoneDigits(profile.phone || "");
     const branches = window.MENU.restaurant.branches || [];
 
     /* --- Yetkazish turi (kartochkalar) --- */
@@ -1059,7 +1167,7 @@
       `<input id="coName" type="text" placeholder="${escapeHtml(t('name'))}" value="${escapeHtml(defaultName)}" /></div>` +
       '<div class="field"><label>' + escapeHtml(t("phone")) + '</label>' +
       '<div class="phone-input"><span class="phone-input__prefix">+998</span>' +
-      '<input id="coPhone" type="tel" inputmode="numeric" placeholder="__ ___ __ __" /></div></div>' +
+      `<input id="coPhone" type="tel" inputmode="numeric" placeholder="__ ___ __ __" value="${escapeHtml(prettyPhone(defaultPhone))}" /></div></div>` +
       '<div class="field"><label>' + escapeHtml(t("orderNote")) + '</label>' +
       `<textarea id="coNote" placeholder="${escapeHtml(t("extraNote"))}"></textarea></div>`;
 
@@ -1099,15 +1207,19 @@
       });
     });
 
+    // Ism — kiritilishi bilan saqlanadi
+    wrap.querySelector("#coName").addEventListener("input", function (e) {
+      profile.name = e.target.value.trim();
+      save(LS_PROFILE, profile);
+    });
+
     // Telefon — faqat raqamlar, +998 alohida turadi
     const phoneInput = wrap.querySelector("#coPhone");
     phoneInput.addEventListener("input", function () {
-      let d = phoneInput.value.replace(/\D/g, "").slice(0, 9);
-      let out = d.slice(0, 2);
-      if (d.length > 2) out += " " + d.slice(2, 5);
-      if (d.length > 5) out += " " + d.slice(5, 7);
-      if (d.length > 7) out += " " + d.slice(7, 9);
-      phoneInput.value = out;
+      const d = phoneInput.value.replace(/\D/g, "").slice(0, 9);
+      phoneInput.value = prettyPhone(d);
+      profile.phone = d ? formatPhone(d) : "";
+      save(LS_PROFILE, profile);
     });
 
     wrap.querySelectorAll(".branch-opt").forEach(function (b) {
@@ -1399,7 +1511,8 @@
     if (mode === "delivery" && !geo) {
       return toast(t("chooseAddressFirst"));
     }
-    if (!isOpen()) return toast(closedText());
+    const preorder = !isOpen();
+    if (preorder && !preorderOn()) return toast(closedText());
     if (minShortfall() > 0) {
       return toast(t("addMore") + " " + formatPrice(minShortfall()));
     }
@@ -1443,6 +1556,8 @@
       promo: promo ? { code: promo.code } : null,
       total: orderTotal(),
       deliveryFee: deliveryFee(),
+      preorder: preorder,
+      preorderAt: preorder ? preorderAt() : "",
       status: "Yangi",
     };
 

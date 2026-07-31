@@ -525,17 +525,37 @@
     box.appendChild(add);
 
     /* --- Eng pastda: bugungi hisobot, filiallar bo'yicha --- */
-    box.appendChild(el("div", "title", "Bugungi hisobot"));
+    box.appendChild(el("div", "title", "Hisobot"));
     var repBox = el("div");
     box.appendChild(repBox);
     paintReport(repBox);
   }
 
+  var repPeriod = "today";
+  var PERIOD_NAME = { today: "Bugun", week: "7 kun", month: "30 kun" };
+
   function paintReport(box) {
     box.innerHTML = "";
+
+    // Davr tanlash
+    var seg = el("div", "seg");
+    ["today", "week", "month"].forEach(function (pd) {
+      var btn = el("button", repPeriod === pd ? "on" : "", PERIOD_NAME[pd]);
+      btn.addEventListener("click", function () {
+        if (repPeriod === pd) return;
+        repPeriod = pd;
+        report = null;
+        paintReport(box);
+      });
+      seg.appendChild(btn);
+    });
+    var segWrap = el("div", "card");
+    segWrap.appendChild(seg);
+    box.appendChild(segWrap);
+
     if (report === null) {
       box.appendChild(el("div", "empty", "Yuklanmoqda…"));
-      api("get_report", {}, function (err, res) {
+      api("get_report", { period: repPeriod }, function (err, res) {
         report = (!err && res.status === 200 && res.data.branches) ? res.data : false;
         paintReport(box);
       });
@@ -564,6 +584,25 @@
       list.appendChild(row("📊", "Jami", report.all, true));
     }
     box.appendChild(list);
+
+    // Qo'shimcha ma'lumot: eng kuchli kun va top taomlar
+    var extra = [];
+    if (report.best) {
+      extra.push("🏆 Eng kuchli kun: " + esc(report.best.day) +
+        " — " + money(report.best.total) + " so'm");
+    }
+    if ((report.top || []).length) {
+      extra.push("🔥 " + report.top.map(function (t) {
+        return esc(t.name) + " ×" + t.qty;
+      }).join(", "));
+    }
+    if (repPeriod !== "today") {
+      extra.push("📅 " + esc(report.from) + " — " + esc(report.to));
+    }
+    if (extra.length) {
+      box.appendChild(el("p", "hint", extra.join("<br>")));
+    }
+
     box.appendChild(reloadBtn(box));
   }
 
@@ -843,6 +882,52 @@
       render();
     });
 
+    /* --- Qo'shimchalar (extra sir, sous ...) --- */
+    var adCard = el("div", "card");
+    adCard.appendChild(el("div", "f",
+      "<label>Qo'shimchalar</label>" +
+      '<p class="hint">Mijoz taom oynasida belgilaydi, narxi asosiy narxga qo\'shiladi. ' +
+      "Masalan: «Extra sir» 5000, «Achchiq sous» 2000.</p>"));
+    var adBody = el("div");
+    adCard.appendChild(adBody);
+
+    function paintAddons() {
+      adBody.innerHTML = "";
+      var list = item.addons || [];
+      list.forEach(function (a, ai) {
+        var r = el("div", "vrow",
+          '<input class="vl" placeholder="Nomi (Extra sir)" value="' + esc(a.name || "") + '" />' +
+          '<input class="vp" inputmode="numeric" placeholder="Narx" value="' + (a.price || "") + '" />' +
+          '<button class="vx">✕</button>');
+        var inp = r.querySelectorAll("input");
+        inp[0].addEventListener("input", function (e) {
+          a.name = e.target.value;
+          if (!a.id) a.id = "ad" + uid();
+          scheduleSave();
+        });
+        inp[1].addEventListener("input", function (e) {
+          a.price = parseInt(e.target.value, 10) || 0; scheduleSave();
+        });
+        r.querySelector(".vx").addEventListener("click", function () {
+          list.splice(ai, 1);
+          if (!list.length) delete item.addons;
+          scheduleSave();
+          paintAddons();
+        });
+        adBody.appendChild(r);
+      });
+      var addA = el("button", "btn btn--add", "➕ Qo'shimcha qo'shish");
+      addA.addEventListener("click", function () {
+        item.addons = item.addons || [];
+        item.addons.push({ id: "ad" + uid(), name: "", price: 0 });
+        scheduleSave();
+        paintAddons();
+      });
+      adBody.appendChild(addA);
+    }
+    paintAddons();
+    box.appendChild(adCard);
+
     /* --- Yorliq --- */
     var badges = ["", "Hit", "Yangi", "Achchiq"];
     var labels = { "": "— yo'q —", Hit: "🔥 Hit", Yangi: "✨ Yangi", Achchiq: "🌶 Achchiq" };
@@ -888,7 +973,7 @@
       '<div class="f"><label>Ochilish vaqti</label><input id="sOpen" value="' + esc(h.open || "") + '" placeholder="08:00" /></div>' +
       '<div class="f"><label>Yopilish vaqti</label><input id="sClose" value="' + esc(h.close || "") + '" placeholder="02:00" /></div>' +
       "</div>" +
-      '<p class="hint">Yopiq vaqtda mijozlar buyurtma bera olmaydi</p>' +
+      '<p class="hint">Ish vaqti bo\'sh qoldirilsa — restoran doim ochiq hisoblanadi</p>' +
       '<div class="f2" style="margin-top:14px">' +
       '<div class="f"><label>Minimal buyurtma</label><input id="sMin" inputmode="numeric" value="' + (r.minOrder || 0) + '" /></div>' +
       '<div class="f"><label>Yetkazish narxi</label><input id="sFee" inputmode="numeric" value="' + (r.deliveryFee || 0) + '" /></div>' +
@@ -907,6 +992,27 @@
     bind("#sMin", function (v) { r.minOrder = parseInt(v, 10) || 0; });
     bind("#sFee", function (v) { r.deliveryFee = parseInt(v, 10) || 0; });
     bind("#sInsta", function (v) { r.instagram = v; });
+
+    /* Yopiq paytda oldindan buyurtma */
+    var pCard = el("div", "card");
+    var pf = el("div", "f", "<label>Yopiq paytda oldindan buyurtma</label>");
+    var pseg = el("div", "seg");
+    [{ on: true, text: "✅ Qabul qilinadi" }, { on: false, text: "🚫 Qabul qilinmaydi" }].forEach(function (o) {
+      var cur = r.preorder !== false;
+      var btn = el("button", cur === o.on ? "on" : "", o.text);
+      btn.addEventListener("click", function () {
+        r.preorder = o.on;
+        scheduleSave();
+        render();
+      });
+      pseg.appendChild(btn);
+    });
+    pf.appendChild(pseg);
+    pf.appendChild(el("p", "hint",
+      "Yoqilsa: yopiq paytda mijoz buyurtma bera oladi va u ochilish vaqtiga qabul qilinadi. " +
+      "Bot kartochkasida «⏰ OLDINDAN BUYURTMA» deb ko'rinadi."));
+    pCard.appendChild(pf);
+    box.appendChild(pCard);
   }
 
   /* ============ 5. FILIALLAR ============ */

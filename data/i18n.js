@@ -47,6 +47,7 @@ const I18N = {
     choose: "Tanlash",
     from: "dan",
     size: "O'lcham",
+    addons: "Qo'shimchalar",
     addedToCart: "savatga qo'shildi",
 
     // Savat
@@ -128,6 +129,8 @@ const I18N = {
     ordersCount: "ta buyurtma",
     saved: "Saqlandi ✅",
     closedNow: "Hozir yopiqmiz",
+    preorderBtn: "Oldindan buyurtma —",
+    preorderNote: "buyurtmangiz shu vaqtga qabul qilinadi:",
     opensAt: "Ertaga soat",
     opensToday: "Bugun soat",
     willOpen: "da ochamiz",
@@ -176,6 +179,7 @@ const I18N = {
     choose: "Выбрать",
     from: "от",
     size: "Размер",
+    addons: "Добавки",
     addedToCart: "добавлено в корзину",
 
     cartEmpty: "Корзина пуста.<br>Выберите блюдо из меню.",
@@ -252,6 +256,8 @@ const I18N = {
     ordersCount: "заказов",
     saved: "Сохранено ✅",
     closedNow: "Сейчас закрыто",
+    preorderBtn: "Предзаказ на",
+    preorderNote: "заказ примем на",
     opensAt: "Завтра в",
     opensToday: "Сегодня в",
     willOpen: "откроемся",

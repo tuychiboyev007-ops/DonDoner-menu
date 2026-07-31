@@ -237,7 +237,7 @@ const MENU = {
               "price": 80000
             }
           ],
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/cbea12b74230.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/4e23d596500d.jpg"
         },
         {
           "id": "pizza-qazili",
@@ -256,7 +256,7 @@ const MENU = {
               "price": 120000
             }
           ],
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/9cbe2b1e1485.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/8569e5d399c6.jpg"
         },
         {
           "id": "pizza-barbeque",
@@ -276,7 +276,7 @@ const MENU = {
             }
           ],
           "badge": "Hit",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/61a149278de9.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/74463c8d401d.jpg"
         },
         {
           "id": "pizza-4sezon",
@@ -288,7 +288,7 @@ const MENU = {
             }
           ],
           "badge": "Hit",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/fe0bee7af570.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/abb3f1e0c937.jpg"
         },
         {
           "id": "pizza-cheese",
@@ -307,7 +307,7 @@ const MENU = {
               "price": 75000
             }
           ],
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/9d6811ffeaa9.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/4ca27f37bf43.jpg"
         },
         {
           "id": "pizza-doner",
@@ -326,7 +326,7 @@ const MENU = {
               "price": 100000
             }
           ],
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/22ac4b6d7eb8.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/1a62e1f71b86.jpg"
         },
         {
           "id": "pizza-assorti",
@@ -345,7 +345,7 @@ const MENU = {
               "price": 100000
             }
           ],
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5192eb63f731.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/bcda7b24def5.jpg"
         },
         {
           "id": "pizza-tovuqli",
@@ -364,7 +364,7 @@ const MENU = {
               "price": 70000
             }
           ],
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c8c61f6f9878.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/0671b505bb66.jpg"
         },
         {
           "id": "pizza-indeyka",
@@ -383,7 +383,7 @@ const MENU = {
               "price": 95000
             }
           ],
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/05cf73ba489a.jpg"
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/dca52ccabed2.jpg"
         }
       ]
     },

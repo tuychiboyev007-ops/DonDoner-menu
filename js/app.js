@@ -490,6 +490,64 @@
     return (cat.items || []).filter(isReady);
   }
 
+  /* Kategoriya kartochkasi uchun rasm.
+     Bo'limning o'z rasmi bo'lsa — o'sha, bo'lmasa bo'limdagi rasmi bor
+     birinchi taomniki. Shunday qilib admin panelda hech nima
+     sozlamasdan ham har bo'lim o'z suratiga ega bo'ladi. */
+  function catImage(cat) {
+    if (cat.image) return cat.image;
+    const withImg = readyItems(cat).filter(function (it) { return !!it.image; })[0];
+    return withImg ? withImg.image : "";
+  }
+
+  function visibleCategories() {
+    return window.MENU.categories.filter(function (c) {
+      return readyItems(c).length > 0;
+    });
+  }
+
+  // Kategoriyalar ekrani: kattaroq rasm + nom, ikki ustunda
+  function buildCategoriesGrid() {
+    const grid = el("div", "catgrid");
+    visibleCategories().forEach(function (cat) {
+      const card = el("button", "catgrid__item");
+      const img = catImage(cat);
+      card.appendChild(
+        el(
+          "span",
+          "catgrid__media",
+          img
+            ? `<img src="${img}" alt="${escapeHtml(cat.name)}" loading="lazy" />`
+            : escapeHtml(cat.icon || "🍽️")
+        )
+      );
+      card.appendChild(el("span", "catgrid__name", escapeHtml(cat.name)));
+      card.addEventListener("click", function () {
+        haptic("light");
+        closeSub();
+        goToCategory(cat.id);
+      });
+      grid.appendChild(card);
+    });
+    return grid;
+  }
+
+  // Bo'limga o'tish: bosh sahifaga qaytib, o'sha bo'limga suriladi
+  function goToCategory(catId) {
+    const jump = function () {
+      setActiveChip(catId);
+      const s = document.getElementById("cat-" + catId);
+      if (s) s.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    if (currentPage !== "home") {
+      // switchPage sahifani tepaga suradi — undan keyin suramiz
+      switchPage("home");
+      requestAnimationFrame(jump);
+    } else {
+      jump();
+    }
+  }
+
   function renderChips() {
     chipsRoot.innerHTML = "";
     // Faqat kamida bitta tayyor taomi bor bo'limlar ko'rsatiladi
@@ -1991,7 +2049,11 @@
     const r = window.MENU.restaurant;
     haptic("light");
 
-    if (screen === "branches") {
+    if (screen === "categories") {
+      title.textContent = t("categories");
+      body.innerHTML = "";
+      body.appendChild(buildCategoriesGrid());
+    } else if (screen === "branches") {
       title.textContent = t("branches");
       body.innerHTML = (r.branches || [])
         .map(function (b) {
@@ -2140,6 +2202,11 @@
       addr.textContent = mode === "pickup" ? t("pickupAtBranch") : t("chooseAddress");
       if (currentPage === "cart") renderCart();
       haptic("light");
+    });
+
+    // Kafel tugmasi — barcha bo'limlar rasmi bilan ochiladi
+    document.getElementById("catsBtn").addEventListener("click", function () {
+      openSub("categories");
     });
 
     // Qo'ng'iroqcha — buyurtmalar sahifasiga olib boradi

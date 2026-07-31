@@ -1619,6 +1619,62 @@ button {
   padding: 4px 16px calc(env(safe-area-inset-bottom) + 24px);
 }
 
+/* ---- Kategoriyalar ekrani ---- */
+.catgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  padding-top: 4px;
+}
+
+.catgrid__item {
+  border: none;
+  background: transparent;
+  padding: 8px 4px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.catgrid__item:active {
+  transform: scale(0.97);
+}
+
+.catgrid__media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  /* Suratlar oq fonli — kafel ham oq bo'lsa rasm chekkasi bilinmaydi.
+     Qorong'i mavzuda ham oq qoladi: aks holda oq surat to'q kvadrat
+     ichida turgandek ko'rinadi. */
+  background: #fff;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 56px;
+  overflow: hidden;
+}
+
+.catgrid__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.catgrid__name {
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  color: var(--muted);
+}
+
 /* Ma'lumot kartochkasi */
 .info-card {
   background: var(--card);

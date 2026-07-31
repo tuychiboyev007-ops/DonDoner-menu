@@ -645,6 +645,66 @@
       cat.name = e.target.value; setTitle((cat.icon || "🍽") + " " + (cat.name || "")); scheduleSave();
     });
 
+    /* --- Bo'lim rasmi (mijozdagi «Категории» ekranida ko'rinadi) --- */
+    box.appendChild(el("div", "title", "Bo'lim rasmi"));
+    var catPhoto = el("div", "photo");
+    // Rasm qo'yilmagan bo'lsa — bo'limdagi rasmi bor birinchi mahsulotniki
+    function autoImage() {
+      var first = (cat.items || []).filter(function (it) {
+        return it.image && isReady(it);
+      })[0];
+      return first ? first.image : "";
+    }
+    function paintCatPhoto() {
+      var auto = autoImage();
+      catPhoto.innerHTML = cat.image
+        ? '<img src="' + esc(cat.image) + '" /><span class="photo__badge">Almashtirish</span>'
+        : (auto
+            ? '<img src="' + esc(auto) + '" /><span class="photo__badge">Avtomatik</span>'
+            : '<div class="photo__hint"><b>📷</b>Rasm yuklash uchun bosing</div>');
+      catPhoto.appendChild(catFile);
+    }
+    var catFile = document.createElement("input");
+    catFile.type = "file";
+    catFile.accept = "image/*";
+    catFile.hidden = true;
+    catFile.addEventListener("change", function () {
+      var f = catFile.files[0];
+      if (!f) return;
+      openCropper(f, function (url) {
+        if (!url) { paintCatPhoto(); return toast("❌ Rasm yuklanmadi"); }
+        cat.image = url;
+        paintCatPhoto();
+        scheduleSave();
+        toast("Rasm yuklandi ✅");
+      });
+    });
+    catPhoto.addEventListener("click", function (e) {
+      if (e.target === catFile) return;
+      catFile.value = "";
+      catFile.click();
+    });
+    paintCatPhoto();
+
+    var catPhotoCard = el("div", "card");
+    catPhotoCard.appendChild(catPhoto);
+    catPhotoCard.appendChild(el("div", "hint",
+      cat.image
+        ? "Mijozning «Kategoriyalar» ekranida shu rasm ko'rinadi."
+        : "Hozir bo'limdagi birinchi mahsulot rasmi ishlatilmoqda. " +
+          "Boshqasini xohlasangiz — bosib yuklang."));
+    if (cat.image) {
+      var catRm = el("button", "btn btn--mini", "Avtomatik rasmga qaytarish");
+      catRm.style.cssText = "margin-top:10px;background:transparent;color:#e03131;border:1.5px solid rgba(224,49,49,.4)";
+      catRm.addEventListener("click", function () {
+        cat.image = "";
+        scheduleSave();
+        render();
+      });
+      catPhotoCard.appendChild(catRm);
+    }
+    box.appendChild(catPhotoCard);
+
     box.appendChild(el("div", "title", "Mahsulotlar (" + (cat.items || []).length + ")"));
     var list = el("div", "list");
     (cat.items || []).forEach(function (item, ii) {

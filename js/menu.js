@@ -62,24 +62,29 @@
     return (cat.items || []).filter(isReady);
   }
 
-  // Taom shu filialda tugaganmi? (eski `out: true` — hamma filialda)
+  /* Taom tugaganmi?
+     Menyuda filial ko'rsatilmaydi, shuning uchun «tugadi» belgisi
+     faqat taom HAMMA filialda tugaganda chiqadi. Aks holda bir
+     filialda bor taomni yo'q deb ko'rsatib, mijozni bekorga
+     qaytargan bo'lardik.
+     `?b=` berilgan bo'lsa (eski chop etilgan QR kodlar) — o'sha
+     filialga qarab hisoblanadi. */
   function isOut(item) {
     if (item.out === true && !item.outAt) return true;
     var list = item.outAt || [];
-    return list.length ? list.indexOf(branchId) !== -1 : false;
+    if (!list.length) return false;
+    if (branchId) return list.indexOf(branchId) !== -1;
+    var all = (restaurant().branches || []).map(function (b) {
+      return b.id || "";
+    });
+    if (!all.length) return false;
+    return all.every(function (id) {
+      return list.indexOf(id) !== -1;
+    });
   }
 
   function restaurant() {
     return (window.MENU && window.MENU.restaurant) || {};
-  }
-
-  function branch() {
-    var list = restaurant().branches || [];
-    if (!list.length) return null;
-    for (var i = 0; i < list.length; i++) {
-      if ((list[i].id || "") === branchId) return list[i];
-    }
-    return list[0];
   }
 
   // O'lchamlar har biri alohida qatorda: nomi chapda, narxi o'ngda
@@ -101,14 +106,10 @@
 
   function coverPage() {
     var r = restaurant();
-    var b = branch();
     var h = r.hours || {};
 
+    // Menyu ikkala filialda bir xil — filial nomi ko'rsatilmaydi
     var lines = [];
-    if (b) {
-      lines.push("<b>" + esc(b.label) + "</b> · " + esc(b.address));
-      if (b.phone) lines.push(esc(b.phone));
-    }
     if (h.open && h.close) lines.push(esc(h.open) + " – " + esc(h.close));
 
     var sec = document.createElement("section");

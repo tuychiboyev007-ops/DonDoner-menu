@@ -19,6 +19,19 @@
   const LS_LANG = "dondoner_lang";
   const LS_PROFILE = "dondoner_profile";
 
+  /* ---- QR (elektron menyu) rejimi ----
+     Restoran stolidagi QR kod shu manzilga olib keladi:
+         index.html?qr=1&b=b1
+     Bu rejimda savat, buyurtma va yetkazish umuman ko'rinmaydi —
+     mijoz shunchaki menyuni ko'radi. Buyurtma faqat Telegram ichida
+     ishlaydi (server initData imzosini talab qiladi), shuning uchun
+     QR rejimida savatni ko'rsatish mijozni chalg'itadi.
+     `b` — filial id'si: har filialning QR kodi o'z narx va
+     «tugadi» belgilarini ko'rsatsin. */
+  const qrParams = new URLSearchParams(location.search);
+  const qrMode = qrParams.get("qr") === "1";
+  const qrBranch = qrParams.get("b") || "";
+
   /* ============ Holat ============ */
   let cart = load(LS_CART, {}); // { itemId: qty }
   let orders = load(LS_ORDERS, []); // [{id, date, items, total, mode, ...}]
@@ -1461,6 +1474,7 @@
     renderChips();
     renderMenu();
     renderHeader();
+    if (qrMode) paintQrHead();
     if (currentPage === "cart") renderCart();
     else if (currentPage === "orders") renderOrders();
     else if (currentPage === "profile") renderProfile();
@@ -1492,7 +1506,10 @@
       if (label) label.textContent = t(tabs[b.dataset.page]);
     });
     document.querySelector("#searchInput").placeholder = t("searchFood");
-    document.querySelector(".delivery__label").textContent = t("address");
+    // QR rejimida yetkazish qatori filial ma'lumotiga almashtirilgan —
+    // uning ichidagi yozuvlar endi yo'q
+    const dlabel = document.querySelector(".delivery__label");
+    if (dlabel) dlabel.textContent = t("address");
     paintModeBtn();
     document.querySelector(".picker__title").textContent = t("newAddress");
     document.querySelector("#pickerInput").placeholder = t("enterAddress");
@@ -2194,15 +2211,23 @@
 
   /* ============ Yetkazish/olib ketish, qidiruv ============ */
   function setupControls() {
-    // Bitta tugma: bosilganda yetkazish ↔ olib ketish almashadi
-    document.getElementById("modeToggle").addEventListener("click", function () {
-      mode = mode === "pickup" ? "delivery" : "pickup";
-      paintModeBtn();
-      const addr = document.getElementById("deliveryAddr");
-      addr.textContent = mode === "pickup" ? t("pickupAtBranch") : t("chooseAddress");
-      if (currentPage === "cart") renderCart();
-      haptic("light");
-    });
+    // Bitta tugma: bosilganda yetkazish ↔ olib ketish almashadi.
+    // QR rejimida yetkazish qatori olib tashlangan — tugma bo'lmasligi
+    // mumkin, shuning uchun tekshiramiz (aks holda bu yerda uzilib,
+    // pastdagi tugmalar umuman ulanmay qoladi).
+    const modeBtn = document.getElementById("modeToggle");
+    if (modeBtn) {
+      modeBtn.addEventListener("click", function () {
+        mode = mode === "pickup" ? "delivery" : "pickup";
+        paintModeBtn();
+        const addr = document.getElementById("deliveryAddr");
+        if (addr) {
+          addr.textContent = mode === "pickup" ? t("pickupAtBranch") : t("chooseAddress");
+        }
+        if (currentPage === "cart") renderCart();
+        haptic("light");
+      });
+    }
 
     // Kafel tugmasi — barcha bo'limlar rasmi bilan ochiladi
     document.getElementById("catsBtn").addEventListener("click", function () {
@@ -2333,6 +2358,7 @@
     }
     initTelegram();
     buildIndex();
+    if (qrMode) applyQrMode();
     renderHeader();
     renderChips();
     renderMenu();
@@ -2347,6 +2373,53 @@
     applyStaticLabels();
     refreshCartUI();
     openOrderFromLink();
+  }
+
+  /* Elektron menyu rejimi: filialni QR'dan olamiz, savatni tozalaymiz
+     va sahifani «faqat ko'rish» holatiga o'tkazamiz. */
+  function applyQrMode() {
+    document.body.classList.add("is-qr");
+
+    if (qrBranch) {
+      const idx = branches().findIndex(function (b) {
+        return (b.id || "") === qrBranch;
+      });
+      if (idx >= 0) {
+        selectedBranch = idx;
+        localStorage.setItem(LS_BRANCH, String(idx));
+      }
+    }
+
+    // Savat ko'rinmaydi — ichida qolgan narsa chalkashlik keltirmasin
+    cart = {};
+    save(LS_CART, cart);
+
+    paintQrHead();
+  }
+
+  // Yetkazish qatori o'rniga: filial nomi, manzili va ish vaqti
+  function paintQrHead() {
+    const b = currentBranch();
+    const h = (window.MENU.restaurant || {}).hours || {};
+    const bar = document.querySelector(".delivery");
+    if (!bar) return;
+    const parts = [];
+    if (b) parts.push(escapeHtml(b.label) + " · " + escapeHtml(b.address));
+    if (h.open && h.close) parts.push("🕐 " + escapeHtml(h.open) + " – " + escapeHtml(h.close));
+    bar.innerHTML =
+      '<div class="qrhead">' +
+      '<div class="qrhead__title">' + escapeHtml(t("menuWord")) + "</div>" +
+      '<div class="qrhead__sub">' + parts.join(" · ") + "</div>" +
+      "</div>" +
+      '<button type="button" class="qrlang" id="qrLang">' +
+      (lang === "ru" ? "UZ" : "RU") +
+      "</button>";
+    const btn = document.getElementById("qrLang");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        setLang(lang === "ru" ? "uz" : "ru");
+      });
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);

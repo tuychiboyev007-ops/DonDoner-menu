@@ -40,8 +40,10 @@
       .replace(/"/g, "&quot;");
   }
 
-  function money(v) {
-    return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " " + t("currency");
+  // Menyuda valyuta har narxda takrorlanmaydi — u sahifa boshida
+  // bir marta aytiladi (qog'oz menyulardagi odat)
+  function num(v) {
+    return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   }
 
   /* ---- Menyu ma'lumoti ---- */
@@ -88,8 +90,8 @@
       })
       .map(function (v) {
         return (
-          '<span class="sz"><i>' + esc(v.label) + "</i><b>" +
-          money(Number(v.price)) + "</b></span>"
+          '<span class="sz"><i>' + esc(v.label) + '</i>' +
+          '<span class="lead"></span><b>' + num(Number(v.price)) + "</b></span>"
         );
       });
     return parts.length ? '<div class="' + cls + '">' + parts.join("") + "</div>" : "";
@@ -126,22 +128,24 @@
     var sized = item.variants && item.variants.length;
     var desc = item.desc || item.weight || "";
 
-    var html =
-      '<div class="plain__row' + (out ? " is-out" : "") + '">' +
-      '<div class="plain__lead">' +
-      '<div class="plain__name">' + esc(item.name) + "</div>";
-    if (desc) html += '<div class="plain__desc">' + esc(desc) + "</div>";
-    if (sized) html += sizesHtml(item, "plain__sizes");
-    if (out) html += '<span class="outmark">' + esc(t("outOfStock")) + "</span>";
+    var html = '<div class="row' + (out ? " is-out" : "") + '">';
+
+    // Yuqori qator: nomi — nuqtali chiziq — narxi.
+    // O'lchamli taomda narx pastdagi qatorlarda bo'lgani uchun
+    // bu yerda chiziq ham, narx ham chizilmaydi.
+    html += '<div class="row__top"><span class="row__name">' + esc(item.name) + "</span>";
+    if (!sized) {
+      html += '<span class="lead"></span><span class="row__price">' + num(Number(item.price));
+      if (item.oldPrice) {
+        html += '<s class="row__old">' + num(Number(item.oldPrice)) + "</s>";
+      }
+      html += "</span>";
+    }
     html += "</div>";
 
-    if (!sized) {
-      html += '<div class="plain__price">' + money(Number(item.price));
-      if (item.oldPrice) {
-        html += '<span class="plain__old">' + money(Number(item.oldPrice)) + "</span>";
-      }
-      html += "</div>";
-    }
+    if (desc) html += '<div class="row__desc">' + esc(desc) + "</div>";
+    if (sized) html += sizesHtml(item, "row__sizes");
+    if (out) html += '<span class="outmark">' + esc(t("outOfStock")) + "</span>";
     return html + "</div>";
   }
 
@@ -154,6 +158,7 @@
   // Rasmsiz, qog'oz menyudagidek: nomi chapda, narxi o'ngda
   function catPage(cat) {
     var body =
+      '<div class="sheetnote">' + esc(t("pricesIn")) + "</div>" +
       '<div class="plain">' + readyItems(cat).map(plainRow).join("") + "</div>";
 
     var sec = document.createElement("section");

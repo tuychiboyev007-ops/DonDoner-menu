@@ -114,13 +114,17 @@
 
     var sec = document.createElement("section");
     sec.className = "pg cover";
+    // Logotipda nom allaqachon bor — matn bilan takrorlanmaydi
     sec.innerHTML =
-      '<img class="cover__logo" src="images/logo.jpg" alt="' + esc(r.name || "DonDöner") + '" />' +
-      '<h1 class="cover__name">' + esc(r.name || "DonDöner") + "</h1>" +
+      '<div class="cover__inner">' +
+      '<img class="cover__mark" src="images/logo-mark.png" alt="' +
+      esc(r.name || "DonDöner") + '" />' +
+      '<div class="orn"><i></i><b>◆</b><i></i></div>' +
       '<p class="cover__hi">' + esc(t("welcome")) + "</p>" +
       '<p class="cover__tag">' + esc(r.tagline || "") + "</p>" +
       '<div class="cover__hint">⇄ ' + esc(t("swipeHint")) + "</div>" +
-      '<div class="cover__branch">' + lines.join("<br />") + "</div>";
+      (lines.length ? '<div class="cover__meta">' + lines.join("<br />") + "</div>" : "") +
+      "</div>";
     return sec;
   }
 
@@ -148,6 +152,46 @@
     if (sized) html += sizesHtml(item, "row__sizes");
     if (out) html += '<span class="outmark">' + esc(t("outOfStock")) + "</span>";
     return html + "</div>";
+  }
+
+  // Menyu oxiridagi yakuniy sahifa — aloqa va xayrlashuv
+  function endPage() {
+    var r = restaurant();
+    var h = r.hours || {};
+    var phones = (r.branches || [])
+      .map(function (b) {
+        return b.phone;
+      })
+      .filter(Boolean);
+
+    var meta = [];
+    if (h.open && h.close) meta.push(esc(h.open) + " – " + esc(h.close));
+    if (r.delivery) meta.push(esc(r.delivery));
+
+    var sec = document.createElement("section");
+    sec.className = "pg cover";
+    sec.innerHTML =
+      '<div class="cover__inner">' +
+      '<img class="cover__mark cover__mark--sm" src="images/logo-mark.png" alt="" />' +
+      '<div class="orn"><i></i><b>◆</b><i></i></div>' +
+      '<p class="cover__hi">' + esc(t("bonAppetit")) + "</p>" +
+      '<p class="cover__tag">' + esc(t("thanks")) + "</p>" +
+      (phones.length
+        ? '<div class="cover__phones">' +
+          phones
+            .map(function (ph) {
+              return '<a href="tel:' + esc(ph.replace(/\s/g, "")) + '">' + esc(ph) + "</a>";
+            })
+            .join("") +
+          "</div>"
+        : "") +
+      (meta.length ? '<div class="cover__meta">' + meta.join("<br />") + "</div>" : "") +
+      (r.instagram
+        ? '<a class="cover__ig" href="https://instagram.com/' + esc(r.instagram) +
+          '" target="_blank" rel="noopener">@' + esc(r.instagram) + "</a>"
+        : "") +
+      "</div>";
+    return sec;
   }
 
   // Har sahifaning pastidagi yozuv — bepul yetkazish, bo'lmasa shior
@@ -232,8 +276,9 @@
     cats.forEach(function (cat) {
       book.appendChild(catPage(cat));
     });
+    book.appendChild(endPage());
 
-    pageCount = cats.length + 1;
+    pageCount = cats.length + 2;
     dotsEl.innerHTML = "";
     for (var i = 0; i < pageCount; i++) dotsEl.appendChild(document.createElement("i"));
 

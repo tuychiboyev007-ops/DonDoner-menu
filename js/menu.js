@@ -121,28 +121,6 @@
     return sec;
   }
 
-  function dishCard(item) {
-    var out = isOut(item);
-    var sized = item.variants && item.variants.length;
-    var html =
-      '<div class="dish__item' + (out ? " is-out" : "") + '">' +
-      '<img class="dish__img" src="' + esc(item.image) + '" alt="' + esc(item.name) +
-      '" loading="lazy" />' +
-      '<div class="dish__name">' + esc(item.name) + "</div>";
-
-    if (sized) {
-      html += sizesHtml(item, "dish__sizes");
-    } else {
-      html += '<div class="dish__price">' + money(Number(item.price));
-      if (item.oldPrice) {
-        html += '<span class="dish__old">' + money(Number(item.oldPrice)) + "</span>";
-      }
-      html += "</div>";
-    }
-    if (out) html += '<span class="outmark">' + esc(t("outOfStock")) + "</span>";
-    return html + "</div>";
-  }
-
   function plainRow(item) {
     var out = isOut(item);
     var sized = item.variants && item.variants.length;
@@ -158,39 +136,25 @@
     html += "</div>";
 
     if (!sized) {
-      html += '<div class="plain__price">' + money(Number(item.price)) + "</div>";
+      html += '<div class="plain__price">' + money(Number(item.price));
+      if (item.oldPrice) {
+        html += '<span class="plain__old">' + money(Number(item.oldPrice)) + "</span>";
+      }
+      html += "</div>";
     }
     return html + "</div>";
   }
 
-  function catPage(cat) {
-    var items = readyItems(cat);
-    var withImg = items.filter(function (it) {
-      return !!it.image;
-    });
-    // Bo'limdagi taomlarning yarmidan ko'pi rasmli bo'lsa — rasmli tartib,
-    // aks holda qog'oz menyudagidek nom/narx ro'yxati (bo'sh joy qolmasin)
-    var visual = withImg.length >= Math.ceil(items.length / 2);
+  // Har sahifaning pastidagi yozuv — bepul yetkazish, bo'lmasa shior
+  function footNote() {
+    var r = restaurant();
+    return r.delivery || r.tagline || "";
+  }
 
-    var body;
-    if (visual) {
-      body =
-        '<div class="dish">' +
-        items
-          .map(function (it) {
-            return it.image ? dishCard(it) : "";
-          })
-          .join("") +
-        "</div>";
-      var noImg = items.filter(function (it) {
-        return !it.image;
-      });
-      if (noImg.length) {
-        body += '<div class="plain">' + noImg.map(plainRow).join("") + "</div>";
-      }
-    } else {
-      body = '<div class="plain">' + items.map(plainRow).join("") + "</div>";
-    }
+  // Rasmsiz, qog'oz menyudagidek: nomi chapda, narxi o'ngda
+  function catPage(cat) {
+    var body =
+      '<div class="plain">' + readyItems(cat).map(plainRow).join("") + "</div>";
 
     var sec = document.createElement("section");
     sec.className = "pg";
@@ -203,7 +167,7 @@
       "</div>" +
       '<div class="pg__rule"></div>' +
       '<div class="pg__body">' + body + "</div>" +
-      '<div class="pg__foot">' + esc(t("photoNote")) + "</div>";
+      '<div class="pg__foot">' + esc(footNote()) + "</div>";
     return sec;
   }
 

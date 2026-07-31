@@ -400,7 +400,9 @@ button {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  font-size: 54px;
+  /* Surati yo'q taomda bo'lim emojisi turadi. Kvadrat katta bo'lgani
+     uchun kichik emoji kartochkani bo'sh ko'rsatadi — kattaroq olamiz. */
+  font-size: 68px;
   cursor: pointer;
 }
 

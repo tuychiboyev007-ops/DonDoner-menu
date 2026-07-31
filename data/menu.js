@@ -59,14 +59,14 @@ const MENU = {
           "name": "Сет с донером",
           "desc": "Донер, хлеб, пастуший салат, соленья, аджика, айран или кола",
           "price": 75000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/d22201346d7e.jpg"
+          "image": ""
         },
         {
           "id": "set-kofteli",
           "name": "Сет с кёфте",
           "desc": "Кёфте, хлеб, пастуший салат, соленья, аджика, айран или кола",
           "price": 75000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c9d4c6c1a310.jpg"
+          "image": ""
         },
         {
           "id": "set-burger",
@@ -74,7 +74,7 @@ const MENU = {
           "desc": "Бургер, картофель фри, кола 0,25 л",
           "price": 42000,
           "oldPrice": 55000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/22b8271fb700.jpg"
+          "image": ""
         },
         {
           "id": "set-dondoner",
@@ -82,14 +82,14 @@ const MENU = {
           "desc": "DonDoner, айран, симит",
           "price": 46000,
           "oldPrice": 56000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/b029a13d339d.jpg"
+          "image": ""
         },
         {
           "id": "set-lavash",
           "name": "Лаваш сет",
           "desc": "Лаваш, картофель фри, кола 0,25 л",
           "oldPrice": 57000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/44c1111cce25.jpg",
+          "image": "",
           "price": 48000
         },
         {
@@ -98,7 +98,7 @@ const MENU = {
           "desc": "Дюрюм, картофель фри, айран",
           "price": 55000,
           "oldPrice": 68000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/e3f15b809319.jpg"
+          "image": ""
         },
         {
           "id": "set-arkadash",
@@ -107,7 +107,7 @@ const MENU = {
           "price": 84000,
           "oldPrice": 99000,
           "badge": "Hit",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/93d595ce1640.jpg"
+          "image": ""
         },
         {
           "id": "set-abi",
@@ -115,7 +115,7 @@ const MENU = {
           "desc": "Донер, дюрюм, 2 колы 0,25 л, симит",
           "price": 82000,
           "oldPrice": 94000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/f1e6569aa7de.jpg"
+          "image": ""
         },
         {
           "id": "set-bebek",
@@ -123,7 +123,7 @@ const MENU = {
           "desc": "Мини донер, картофель фри, сок",
           "price": 37000,
           "oldPrice": 50000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/09375edab5dc.jpg"
+          "image": ""
         }
       ]
     },
@@ -522,13 +522,13 @@ const MENU = {
           "id": "longer",
           "name": "Лонгер",
           "price": 28000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/cc723bab7fa0.jpg"
+          "image": ""
         },
         {
           "id": "kfc-burger",
           "name": "KFC бургер",
           "price": 28000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/b5bb98aef54f.jpg"
+          "image": ""
         }
       ]
     },
@@ -541,7 +541,7 @@ const MENU = {
           "id": "sezar",
           "name": "Цезарь",
           "price": 27000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5fce521fb046.jpg"
+          "image": ""
         },
         {
           "id": "baqlajon",
@@ -566,7 +566,7 @@ const MENU = {
           "id": "derevenskiy",
           "name": "Деревенский",
           "price": 18000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/93999abbd21e.jpg"
+          "image": ""
         },
         {
           "id": "simit",
@@ -578,7 +578,7 @@ const MENU = {
           "id": "simit-nutella",
           "name": "Симит + Nutella",
           "price": 18000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/e4121f31201e.jpg"
+          "image": ""
         }
       ]
     },
@@ -592,21 +592,21 @@ const MENU = {
           "name": "Мерджимек чорба",
           "price": 25000,
           "desc": "Турецкий суп из красной чечевицы. Любой суп — 1 порция, добавка без ограничений",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5a416c14b648.jpg"
+          "image": ""
         },
         {
           "id": "corba-ezogelin",
           "name": "Эзогелин чорба",
           "price": 25000,
           "desc": "Чечевица с булгуром и мятой. Любой суп — 1 порция, добавка без ограничений",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/2299c11d8a95.jpg"
+          "image": ""
         },
         {
           "id": "corba-et",
           "name": "Эт чорба",
           "price": 25000,
           "desc": "Наваристый мясной суп. Любой суп — 1 порция, добавка без ограничений",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/97297102b490.jpg"
+          "image": ""
         }
       ]
     },
@@ -620,21 +620,21 @@ const MENU = {
           "name": "Сан Себастьян классический",
           "price": 35000,
           "desc": "Баскский чизкейк",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/2d88c25472fc.jpg"
+          "image": ""
         },
         {
           "id": "sansebastian-pistali",
           "name": "Сан Себастьян фисташковый",
           "price": 35000,
           "desc": "Баскский чизкейк с фисташкой",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/0d0aef174762.jpg"
+          "image": ""
         },
         {
           "id": "sansebastian-ananasli",
           "name": "Сан Себастьян ананасовый",
           "price": 35000,
           "desc": "Баскский чизкейк с ананасом",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/30b8ddc6b7db.jpg"
+          "image": ""
         },
         {
           "id": "sansebastian-qulupnayli",
@@ -642,14 +642,14 @@ const MENU = {
           "price": 45000,
           "desc": "Баскский чизкейк с клубникой",
           "badge": "Hit",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/2adbb757d660.jpg"
+          "image": ""
         },
         {
           "id": "sutlac",
           "name": "Сютлач",
           "price": 25000,
           "desc": "Турецкий молочный рисовый пудинг",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/a8060b827602.jpg"
+          "image": ""
         }
       ]
     },
@@ -663,56 +663,56 @@ const MENU = {
           "name": "Coca-Cola 0,5 л",
           "price": 8000,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c2116d2206bb.jpg"
+          "image": ""
         },
         {
           "id": "drink-cola-1",
           "name": "Coca-Cola 1 л",
           "price": 0,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/4fd9b595ccaa.jpg"
+          "image": ""
         },
         {
           "id": "drink-fanta-05",
           "name": "Fanta 0,5 л",
           "price": 0,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/65318747fe78.jpg"
+          "image": ""
         },
         {
           "id": "drink-sprite-05",
           "name": "Sprite 0,5 л",
           "price": 0,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/19a4be9b2df5.jpg"
+          "image": ""
         },
         {
           "id": "drink-ayran",
           "name": "Айран",
           "price": 0,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/ec2e20eb2fe0.jpg"
+          "image": ""
         },
         {
           "id": "drink-water",
           "name": "Вода 0,5 л",
           "price": 5000,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5450bf72959d.jpg"
+          "image": ""
         },
         {
           "id": "drink-tea",
           "name": "Чай",
           "price": 0,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c9a54a3ec1a1.jpg"
+          "image": ""
         },
         {
           "id": "drink-juice",
           "name": "Сок",
           "price": 0,
           "desc": "",
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/8f615352c950.jpg"
+          "image": ""
         }
       ]
     },
@@ -725,37 +725,37 @@ const MENU = {
           "id": "sauce-ketchup",
           "name": "Кетчуп",
           "price": 3000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/27703b9ef98c.jpg"
+          "image": ""
         },
         {
           "id": "sauce-mayo",
           "name": "Майонез",
           "price": 3000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/fa6198571dd0.jpg"
+          "image": ""
         },
         {
           "id": "sauce-garlic",
           "name": "Чесночный соус",
           "price": 4000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/cb5246098ee7.jpg"
+          "image": ""
         },
         {
           "id": "sauce-chili",
           "name": "Соус чили",
           "price": 4000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/e0a7290c91ae.jpg"
+          "image": ""
         },
         {
           "id": "sauce-bbq",
           "name": "Соус барбекю",
           "price": 4000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/6f403bbddda4.jpg"
+          "image": ""
         },
         {
           "id": "sauce-cheese",
           "name": "Сырный соус",
           "price": 5000,
-          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/251415762414.jpg"
+          "image": ""
         }
       ]
     }

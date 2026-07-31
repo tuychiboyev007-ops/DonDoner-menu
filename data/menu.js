@@ -1,370 +1,765 @@
 /*
- * DonDöner — menyu ma'lumotlari
+ * DonDöner — menyu ma'lumotlari (zaxira nusxa)
  * ------------------------------------------------------------
- * Bu yagona fayl orqali butun menyuni boshqarasiz.
+ * DIQQAT: kundalik menyu admin panel orqali boshqariladi va
+ * serverda (/api/menu) saqlanadi. Bu fayl faqat ZAXIRA — server
+ * javob bermay qolsa ilova shu ro'yxatni ko'rsatadi.
+ *
+ * Shuning uchun uni qo'lda tahrirlash shart emas: jonli menyu
+ * o'zgarganda shu yerga ko'chirib qo'yiladi.
  *
  * price     — so'mda (butun son)
- * oldPrice  — chegirmadan oldingi narx (ixtiyoriy, ustidan chizib ko'rsatiladi)
- * variants  — o'lcham/turlar: [{ label: "Katta", price: 80000 }, ...]
- *             variants bo'lsa, price o'rniga shular ishlatiladi
+ * oldPrice  — chegirmadan oldingi narx (ustidan chizib ko'rsatiladi)
+ * variants  — o'lcham/turlar: [{ label, price }, ...]
  * desc      — tarkibi
  * badge     — "Hit" | "Yangi" | "Achchiq"
- * image     — rasm manzili (images/...). Bo'sh bo'lsa emoji chiqadi.
+ * image     — rasm manzili. Bo'sh bo'lsa emoji chiqadi.
  */
 
 const MENU = {
-  restaurant: {
-    name: "DonDöner",
-    tagline: "Turkcha ishtaha — O'zbekona mehmondo'stlik",
-    botUsername: "DonDoner_bot",
-    currency: "so'm",
-    delivery: "🚗 Shahar bo'ylab yetkazib berish BEPUL",
-    // Ish vaqti (Toshkent). 08:00 dan tunki 02:00 gacha.
-    hours: { open: "08:00", close: "02:00" },
-    minOrder: 0, // minimal buyurtma yo'q
-    deliveryFee: 0, // yetkazish bepul
-    instagram: "dondoner.uz",
-    telegramChannel: "dondoner_uz",
-    branches: [
+  "restaurant": {
+    "name": "DonDöner",
+    "tagline": "Турецкий аппетит — узбекское гостеприимство",
+    "botUsername": "DonDoner_bot",
+    "currency": "сум",
+    "delivery": "🚗 Доставка по городу БЕСПЛАТНО",
+    "hours": {
+      "open": "08:00",
+      "close": "02:00"
+    },
+    "minOrder": 0,
+    "deliveryFee": 0,
+    "instagram": "dondoner.uz",
+    "telegramChannel": "dondoner_uz",
+    "branches": [
       {
-        label: "1-filial",
-        address: "Yangi Chorsu, 219-uy",
-        phone: "+998 90 053 25 25",
+        "label": "Филиал 1",
+        "address": "Янги Чорсу, дом 219",
+        "phone": "+998 90 053 25 25",
+        "id": "b1",
+        "chatId": ""
       },
       {
-        label: "2-filial",
-        address: "Charxiy Sportivniy ko'cha, 18-uy",
-        phone: "+998 95 864 25 25",
-      },
-    ],
+        "label": "Филиал 2",
+        "address": "улица Чархий Спортивный, дом 18",
+        "phone": "+998 95 864 25 25",
+        "id": "b2",
+        "chatId": ""
+      }
+    ]
   },
-
-  categories: [
-    /* ---------------- SETLAR ---------------- */
+  "categories": [
     {
-      id: "sets",
-      name: "Setlar",
-      icon: "🍱",
-      items: [
+      "id": "sets",
+      "name": "Сеты",
+      "icon": "🍱",
+      "items": [
         {
-          id: "set-donerli",
-          name: "Donerli SET",
-          desc: "Doner, ekmek, choban salat, tuzlama, adjika, ayron yoki cola",
-          price: 75000,
-          image: "",
+          "id": "set-donerli",
+          "name": "Сет с донером",
+          "desc": "Донер, хлеб, пастуший салат, соленья, аджика, айран или кола",
+          "price": 75000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/d22201346d7e.jpg"
         },
         {
-          id: "set-kofteli",
-          name: "Kofteli SET",
-          desc: "Kofte, ekmek, choban salat, tuzlama, adjika, ayron yoki cola",
-          price: 75000,
-          image: "",
+          "id": "set-kofteli",
+          "name": "Сет с кёфте",
+          "desc": "Кёфте, хлеб, пастуший салат, соленья, аджика, айран или кола",
+          "price": 75000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c9d4c6c1a310.jpg"
         },
         {
-          id: "set-burger",
-          name: "Burger SET",
-          desc: "Burger, fri, cola 0.25l",
-          price: 42000,
-          oldPrice: 55000,
-          image: "",
+          "id": "set-burger",
+          "name": "Бургер сет",
+          "desc": "Бургер, картофель фри, кола 0,25 л",
+          "price": 42000,
+          "oldPrice": 55000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/22b8271fb700.jpg"
         },
         {
-          id: "set-dondoner",
-          name: "DonDoner SET",
-          desc: "DonDoner, ayron, simit",
-          price: 46000,
-          oldPrice: 56000,
-          image: "",
+          "id": "set-dondoner",
+          "name": "DonDoner сет",
+          "desc": "DonDoner, айран, симит",
+          "price": 46000,
+          "oldPrice": 56000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/b029a13d339d.jpg"
         },
         {
-          id: "set-lavash",
-          name: "Lavash SET",
-          desc: "Lavash, fri, cola 0.25l",
-          price: 48000,
-          oldPrice: 57000,
-          image: "",
+          "id": "set-lavash",
+          "name": "Лаваш сет",
+          "desc": "Лаваш, картофель фри, кола 0,25 л",
+          "oldPrice": 57000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/44c1111cce25.jpg",
+          "price": 48000
         },
         {
-          id: "set-durum",
-          name: "Durum SET",
-          desc: "Durum, fri, ayron",
-          price: 55000,
-          oldPrice: 68000,
-          image: "",
+          "id": "set-durum",
+          "name": "Дюрюм сет",
+          "desc": "Дюрюм, картофель фри, айран",
+          "price": 55000,
+          "oldPrice": 68000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/e3f15b809319.jpg"
         },
         {
-          id: "set-arkadash",
-          name: "Arkadash SET",
-          desc: "DonBurger, durum, 2 ta cola 0.25l, fri",
-          price: 84000,
-          oldPrice: 99000,
-          badge: "Hit",
-          image: "",
+          "id": "set-arkadash",
+          "name": "Аркадаш сет",
+          "desc": "DonBurger, дюрюм, 2 колы 0,25 л, картофель фри",
+          "price": 84000,
+          "oldPrice": 99000,
+          "badge": "Hit",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/93d595ce1640.jpg"
         },
         {
-          id: "set-abi",
-          name: "Abi SET",
-          desc: "Doner, durum, 2 ta cola 0.25l, simit",
-          price: 82000,
-          oldPrice: 94000,
-          image: "",
+          "id": "set-abi",
+          "name": "Аби сет",
+          "desc": "Донер, дюрюм, 2 колы 0,25 л, симит",
+          "price": 82000,
+          "oldPrice": 94000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/f1e6569aa7de.jpg"
         },
         {
-          id: "set-bebek",
-          name: "Bebek SET",
-          desc: "Mini doner, fri, sok",
-          price: 37000,
-          oldPrice: 50000,
-          image: "",
-        },
-      ],
+          "id": "set-bebek",
+          "name": "Бебек сет",
+          "desc": "Мини донер, картофель фри, сок",
+          "price": 37000,
+          "oldPrice": 50000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/09375edab5dc.jpg"
+        }
+      ]
     },
-
-    /* ---------------- ASOSIY TAOMLAR ---------------- */
     {
-      id: "main",
-      name: "Asosiy taomlar",
-      icon: "🍽",
-      items: [
+      "id": "main",
+      "name": "Основные блюда",
+      "icon": "🍽",
+      "items": [
         {
-          id: "doner-plate",
-          name: "Doner",
-          desc: "Set tarkibi: choban salat, tuzlama, achchiq sous, ayron yoki cola 0,25L",
-          variants: [
-            { label: "Oddiy", price: 60000 },
-            { label: "Set", price: 75000 },
+          "id": "doner-plate",
+          "name": "Донер",
+          "desc": "В составе сета: пастуший салат, соленья, острый соус, айран или кола 0,25 л",
+          "variants": [
+            {
+              "label": "Обычный",
+              "price": 60000
+            },
+            {
+              "label": "Сет",
+              "price": 75000
+            }
           ],
-          image: "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/82cb46badc4c.jpg"
         },
         {
-          id: "kofte",
-          name: "Kofte",
-          desc: "Set tarkibi: choban salat, tuzlama, achchiq sous, ayron yoki cola 0,25L",
-          variants: [
-            { label: "Oddiy", price: 60000 },
-            { label: "Set", price: 75000 },
+          "id": "kofte",
+          "name": "Кёфте",
+          "desc": "В составе сета: пастуший салат, соленья, острый соус, айран или кола 0,25 л",
+          "variants": [
+            {
+              "label": "Обычный",
+              "price": 60000
+            },
+            {
+              "label": "Сет",
+              "price": 75000
+            }
           ],
-          badge: "Hit",
-          image: "",
+          "badge": "Hit",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/fdae1dccc5f1.jpg"
         },
         {
-          id: "iskender",
-          name: "Iskender Kebab",
-          desc: "Set tarkibi: choban salat, tuzlama, achchiq sous, ayron yoki cola 0,25L",
-          variants: [
-            { label: "Oddiy", price: 60000 },
-            { label: "Set", price: 75000 },
+          "id": "iskender",
+          "name": "Искендер кебаб",
+          "desc": "В составе сета: пастуший салат, соленья, острый соус, айран или кола 0,25 л",
+          "variants": [
+            {
+              "label": "Обычный",
+              "price": 60000
+            },
+            {
+              "label": "Сет",
+              "price": 75000
+            }
           ],
-          badge: "Yangi",
-          image: "",
-        },
-      ],
+          "badge": "Yangi",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/2fe0c2d0d514.jpg"
+        }
+      ]
     },
-
-    /* ---------------- DONERLAR ---------------- */
     {
-      id: "doner",
-      name: "Donerlar",
-      icon: "🥙",
-      items: [
-        { id: "dondoner-mini", name: "DonDoner mini", price: 27000, image: "" },
-        { id: "dondoner", name: "DonDoner", price: 38000, image: "" },
-        { id: "doner-cheese", name: "Doner cheese", price: 42000, image: "" },
-        { id: "doner-burger", name: "Doner burger", price: 35000, image: "" },
-      ],
+      "id": "doner",
+      "name": "Донеры",
+      "icon": "🥙",
+      "items": [
+        {
+          "id": "dondoner-mini",
+          "name": "DonDoner мини",
+          "price": 27000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/56cd197b8182.jpg"
+        },
+        {
+          "id": "dondoner",
+          "name": "DonDoner",
+          "price": 38000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/56cd197b8182.jpg"
+        },
+        {
+          "id": "doner-cheese",
+          "name": "Донер чиз",
+          "price": 42000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/56cd197b8182.jpg"
+        },
+        {
+          "id": "doner-burger",
+          "name": "Донер бургер",
+          "price": 35000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/56cd197b8182.jpg"
+        }
+      ]
     },
-
-    /* ---------------- PITSALAR ---------------- */
     {
-      id: "pizza",
-      name: "Pitsalar",
-      icon: "🍕",
-      items: [
+      "id": "pizza",
+      "name": "Пиццы",
+      "icon": "🍕",
+      "items": [
         {
-          id: "pizza-pepperoni",
-          name: "Pepperoni",
-          variants: [
-            { label: "Kichik", price: 60000 },
-            { label: "O'rta", price: 70000 },
-            { label: "Katta", price: 80000 },
+          "id": "pizza-pepperoni",
+          "name": "Пепперони",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 60000
+            },
+            {
+              "label": "Средняя",
+              "price": 70000
+            },
+            {
+              "label": "Большая",
+              "price": 80000
+            }
           ],
-          image: "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/cbea12b74230.jpg"
         },
         {
-          id: "pizza-qazili",
-          name: "Qazili",
-          variants: [
-            { label: "Kichik", price: 85000 },
-            { label: "O'rta", price: 105000 },
-            { label: "Katta", price: 120000 },
+          "id": "pizza-qazili",
+          "name": "С казы",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 85000
+            },
+            {
+              "label": "Средняя",
+              "price": 105000
+            },
+            {
+              "label": "Большая",
+              "price": 120000
+            }
           ],
-          image: "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/9cbe2b1e1485.jpg"
         },
         {
-          id: "pizza-barbeque",
-          name: "Barbeque",
-          variants: [
-            { label: "Kichik", price: 60000 },
-            { label: "O'rta", price: 80000 },
-            { label: "Katta", price: 100000 },
+          "id": "pizza-barbeque",
+          "name": "Барбекю",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 60000
+            },
+            {
+              "label": "Средняя",
+              "price": 80000
+            },
+            {
+              "label": "Большая",
+              "price": 100000
+            }
           ],
-          badge: "Hit",
-          image: "",
+          "badge": "Hit",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/61a149278de9.jpg"
         },
         {
-          id: "pizza-4sezon",
-          name: "4 sezon",
-          variants: [{ label: "Katta", price: 120000 }],
-          badge: "Hit",
-          image: "",
-        },
-        {
-          id: "pizza-cheese",
-          name: "Cheese",
-          variants: [
-            { label: "Kichik", price: 55000 },
-            { label: "O'rta", price: 65000 },
-            { label: "Katta", price: 75000 },
+          "id": "pizza-4sezon",
+          "name": "4 сезона",
+          "variants": [
+            {
+              "label": "Большая",
+              "price": 120000
+            }
           ],
-          image: "",
+          "badge": "Hit",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/fe0bee7af570.jpg"
         },
         {
-          id: "pizza-doner",
-          name: "Doner pitsa",
-          variants: [
-            { label: "Kichik", price: 65000 },
-            { label: "O'rta", price: 80000 },
-            { label: "Katta", price: 100000 },
+          "id": "pizza-cheese",
+          "name": "Чиз",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 55000
+            },
+            {
+              "label": "Средняя",
+              "price": 65000
+            },
+            {
+              "label": "Большая",
+              "price": 75000
+            }
           ],
-          image: "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/9d6811ffeaa9.jpg"
         },
         {
-          id: "pizza-assorti",
-          name: "Assorti",
-          variants: [
-            { label: "Kichik", price: 65000 },
-            { label: "O'rta", price: 85000 },
-            { label: "Katta", price: 100000 },
+          "id": "pizza-doner",
+          "name": "Донер пицца",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 65000
+            },
+            {
+              "label": "Средняя",
+              "price": 80000
+            },
+            {
+              "label": "Большая",
+              "price": 100000
+            }
           ],
-          image: "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/22ac4b6d7eb8.jpg"
         },
         {
-          id: "pizza-tovuqli",
-          name: "Tovuqli",
-          variants: [
-            { label: "Kichik", price: 50000 },
-            { label: "O'rta", price: 60000 },
-            { label: "Katta", price: 70000 },
+          "id": "pizza-assorti",
+          "name": "Ассорти",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 65000
+            },
+            {
+              "label": "Средняя",
+              "price": 85000
+            },
+            {
+              "label": "Большая",
+              "price": 100000
+            }
           ],
-          image: "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5192eb63f731.jpg"
         },
         {
-          id: "pizza-indeyka",
-          name: "Indeyka",
-          variants: [
-            { label: "Kichik", price: 65000 },
-            { label: "O'rta", price: 75000 },
-            { label: "Katta", price: 95000 },
+          "id": "pizza-tovuqli",
+          "name": "С курицей",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 50000
+            },
+            {
+              "label": "Средняя",
+              "price": 60000
+            },
+            {
+              "label": "Большая",
+              "price": 70000
+            }
           ],
-          image: "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c8c61f6f9878.jpg"
         },
-      ],
+        {
+          "id": "pizza-indeyka",
+          "name": "Индейка",
+          "variants": [
+            {
+              "label": "Маленькая",
+              "price": 65000
+            },
+            {
+              "label": "Средняя",
+              "price": 75000
+            },
+            {
+              "label": "Большая",
+              "price": 95000
+            }
+          ],
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/05cf73ba489a.jpg"
+        }
+      ]
     },
-
-    /* ---------------- BURGERLAR ---------------- */
     {
-      id: "burger",
-      name: "Burgerlar",
-      icon: "🍔",
-      items: [
-        { id: "gamburger", name: "Gamburger", price: 33000, image: "" },
-        { id: "cheese-burger", name: "Cheese burger", price: 35000, image: "" },
-        { id: "donburger", name: "DonBurger", price: 38000, image: "" },
-        { id: "double-burger", name: "Double burger", price: 40000, image: "" },
+      "id": "burger",
+      "name": "Бургеры",
+      "icon": "🍔",
+      "items": [
         {
-          id: "muhtasham-burger",
-          name: "Muhtasham Burger",
-          desc: "Doner go'shtidan burger, motsarella sir, qaymoqli slivka va sutli sous",
-          price: 50000,
-          badge: "Hit",
-          image: "",
+          "id": "gamburger",
+          "name": "Гамбургер",
+          "price": 33000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/101d41b66487.jpg"
         },
-      ],
+        {
+          "id": "cheese-burger",
+          "name": "Чизбургер",
+          "price": 35000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/f850b80964a7.jpg"
+        },
+        {
+          "id": "donburger",
+          "name": "DonBurger",
+          "price": 38000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/fd60de7cdec8.jpg"
+        },
+        {
+          "id": "double-burger",
+          "name": "Двойной бургер",
+          "price": 40000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/da6eb8acf6b1.jpg"
+        },
+        {
+          "id": "muhtasham-burger",
+          "name": "Мухташам бургер",
+          "desc": "Бургер из мяса донера, сыр моцарелла, сливки и молочный соус",
+          "price": 50000,
+          "badge": "Hit",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c8286d5e2b51.jpg"
+        }
+      ]
     },
-
-    /* ---------------- LAVASHLAR ---------------- */
     {
-      id: "lavash",
-      name: "Lavashlar",
-      icon: "🌯",
-      items: [
-        { id: "lavash", name: "Lavash", price: 35000, image: "" },
-        { id: "lavash-extra", name: "Extra lavash", price: 38000, image: "" },
-        { id: "lavash-cheese", name: "Lavash cheese", price: 38000, image: "" },
-        { id: "lavash-mini", name: "Lavash mini", price: 32000, image: "" },
-      ],
+      "id": "lavash",
+      "name": "Лаваши",
+      "icon": "🌯",
+      "items": [
+        {
+          "id": "lavash",
+          "name": "Лаваш",
+          "price": 35000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/272447e14cba.jpg"
+        },
+        {
+          "id": "lavash-extra",
+          "name": "Экстра лаваш",
+          "price": 38000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/272447e14cba.jpg"
+        },
+        {
+          "id": "lavash-cheese",
+          "name": "Лаваш чиз",
+          "price": 38000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/272447e14cba.jpg"
+        },
+        {
+          "id": "lavash-mini",
+          "name": "Лаваш мини",
+          "price": 32000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/272447e14cba.jpg"
+        }
+      ]
     },
-
-    /* ---------------- DURUM ---------------- */
     {
-      id: "durum",
-      name: "Durum",
-      icon: "🌮",
-      items: [
-        { id: "durum-adana", name: "Adana dürüm", price: 40000, image: "" },
-        { id: "durum-cheese", name: "Cheese dürüm", price: 45000, image: "" },
-      ],
+      "id": "durum",
+      "name": "Дюрюм",
+      "icon": "🌮",
+      "items": [
+        {
+          "id": "durum-adana",
+          "name": "Адана дюрюм",
+          "price": 40000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/4564df71d7b4.jpg"
+        },
+        {
+          "id": "durum-cheese",
+          "name": "Чиз дюрюм",
+          "price": 45000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/4564df71d7b4.jpg"
+        }
+      ]
     },
-
-    /* ---------------- HOT-DOGLAR ---------------- */
     {
-      id: "hotdog",
-      name: "Hot-Doglar",
-      icon: "🌭",
-      items: [
-        { id: "hotdog-kanada", name: "Hot-Dog kanada", price: 13000, image: "" },
-        { id: "hotdog-qovurilgan", name: "Hot-Dog qovurilgan", price: 15000, image: "" },
-        { id: "hotdog-barbeque", name: "Barbeque Hot-Dog", price: 24000, image: "" },
-      ],
+      "id": "hotdog",
+      "name": "Хот-доги",
+      "icon": "🌭",
+      "items": [
+        {
+          "id": "hotdog-kanada",
+          "name": "Хот-дог Канада",
+          "price": 13000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/8fb349f94867.jpg"
+        },
+        {
+          "id": "hotdog-qovurilgan",
+          "name": "Хот-дог жареный",
+          "price": 15000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/b273560d8e21.jpg"
+        },
+        {
+          "id": "hotdog-barbeque",
+          "name": "Хот-дог барбекю",
+          "price": 24000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/948ae281e8d6.jpg"
+        }
+      ]
     },
-
-    /* ---------------- TOVUQLI FAST FOOD ---------------- */
     {
-      id: "chicken",
-      name: "Tovuqli fast food",
-      icon: "🍗",
-      items: [
-        { id: "kfc-1", name: "KFC 1 porsiya", price: 28000, image: "" },
-        { id: "kfc-1kg", name: "KFC 1 kg", price: 100000, image: "" },
-        { id: "longer", name: "Longer", price: 28000, image: "" },
-        { id: "kfc-burger", name: "KFC Burger", price: 28000, image: "" },
-      ],
+      "id": "chicken",
+      "name": "Куриный фастфуд",
+      "icon": "🍗",
+      "items": [
+        {
+          "id": "kfc-1",
+          "name": "KFC 1 порция",
+          "price": 28000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/430607da2aa4.jpg"
+        },
+        {
+          "id": "kfc-1kg",
+          "name": "KFC 1 кг",
+          "price": 100000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/430607da2aa4.jpg"
+        },
+        {
+          "id": "longer",
+          "name": "Лонгер",
+          "price": 28000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/cc723bab7fa0.jpg"
+        },
+        {
+          "id": "kfc-burger",
+          "name": "KFC бургер",
+          "price": 28000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/b5bb98aef54f.jpg"
+        }
+      ]
     },
-
-    /* ---------------- SALATLAR ---------------- */
     {
-      id: "salad",
-      name: "Salatlar",
-      icon: "🥗",
-      items: [
-        { id: "sezar", name: "Sezar", price: 27000, image: "" },
-        { id: "baqlajon", name: "Qarsildoq baqlajon", price: 27000, image: "" },
-      ],
+      "id": "salad",
+      "name": "Салаты",
+      "icon": "🥗",
+      "items": [
+        {
+          "id": "sezar",
+          "name": "Цезарь",
+          "price": 27000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5fce521fb046.jpg"
+        },
+        {
+          "id": "baqlajon",
+          "name": "Хрустящие баклажаны",
+          "price": 27000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/16629b373608.jpg"
+        }
+      ]
     },
-
-    /* ---------------- SNEKLAR ---------------- */
     {
-      id: "snacks",
-      name: "Sneklar",
-      icon: "🍟",
-      items: [
-        { id: "fri-standart", name: "Fri standart", price: 18000, image: "" },
-        { id: "derevenskiy", name: "Derevenskiy", price: 18000, image: "" },
-        { id: "simit", name: "Simit", price: 8000, image: "" },
-        { id: "simit-nutella", name: "Simit + Nutella", price: 18000, image: "" },
-      ],
+      "id": "snacks",
+      "name": "Снеки",
+      "icon": "🍟",
+      "items": [
+        {
+          "id": "fri-standart",
+          "name": "Картофель фри стандарт",
+          "price": 18000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/9bb101888e50.jpg"
+        },
+        {
+          "id": "derevenskiy",
+          "name": "Деревенский",
+          "price": 18000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/93999abbd21e.jpg"
+        },
+        {
+          "id": "simit",
+          "name": "Симит",
+          "price": 8000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/90550afe4926.jpg"
+        },
+        {
+          "id": "simit-nutella",
+          "name": "Симит + Nutella",
+          "price": 18000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/e4121f31201e.jpg"
+        }
+      ]
     },
-  ],
+    {
+      "id": "soups",
+      "name": "Супы",
+      "icon": "🍲",
+      "items": [
+        {
+          "id": "corba-mercimek",
+          "name": "Мерджимек чорба",
+          "price": 25000,
+          "desc": "Турецкий суп из красной чечевицы. Любой суп — 1 порция, добавка без ограничений",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5a416c14b648.jpg"
+        },
+        {
+          "id": "corba-ezogelin",
+          "name": "Эзогелин чорба",
+          "price": 25000,
+          "desc": "Чечевица с булгуром и мятой. Любой суп — 1 порция, добавка без ограничений",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/2299c11d8a95.jpg"
+        },
+        {
+          "id": "corba-et",
+          "name": "Эт чорба",
+          "price": 25000,
+          "desc": "Наваристый мясной суп. Любой суп — 1 порция, добавка без ограничений",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/97297102b490.jpg"
+        }
+      ]
+    },
+    {
+      "id": "desserts",
+      "name": "Десерты",
+      "icon": "🍰",
+      "items": [
+        {
+          "id": "sansebastian-classic",
+          "name": "Сан Себастьян классический",
+          "price": 35000,
+          "desc": "Баскский чизкейк",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/2d88c25472fc.jpg"
+        },
+        {
+          "id": "sansebastian-pistali",
+          "name": "Сан Себастьян фисташковый",
+          "price": 35000,
+          "desc": "Баскский чизкейк с фисташкой",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/0d0aef174762.jpg"
+        },
+        {
+          "id": "sansebastian-ananasli",
+          "name": "Сан Себастьян ананасовый",
+          "price": 35000,
+          "desc": "Баскский чизкейк с ананасом",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/30b8ddc6b7db.jpg"
+        },
+        {
+          "id": "sansebastian-qulupnayli",
+          "name": "Сан Себастьян клубничный",
+          "price": 45000,
+          "desc": "Баскский чизкейк с клубникой",
+          "badge": "Hit",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/2adbb757d660.jpg"
+        },
+        {
+          "id": "sutlac",
+          "name": "Сютлач",
+          "price": 25000,
+          "desc": "Турецкий молочный рисовый пудинг",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/a8060b827602.jpg"
+        }
+      ]
+    },
+    {
+      "id": "drinks",
+      "name": "Напитки",
+      "icon": "🥤",
+      "items": [
+        {
+          "id": "drink-cola-05",
+          "name": "Coca-Cola 0,5 л",
+          "price": 8000,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c2116d2206bb.jpg"
+        },
+        {
+          "id": "drink-cola-1",
+          "name": "Coca-Cola 1 л",
+          "price": 0,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/4fd9b595ccaa.jpg"
+        },
+        {
+          "id": "drink-fanta-05",
+          "name": "Fanta 0,5 л",
+          "price": 0,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/65318747fe78.jpg"
+        },
+        {
+          "id": "drink-sprite-05",
+          "name": "Sprite 0,5 л",
+          "price": 0,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/19a4be9b2df5.jpg"
+        },
+        {
+          "id": "drink-ayran",
+          "name": "Айран",
+          "price": 0,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/ec2e20eb2fe0.jpg"
+        },
+        {
+          "id": "drink-water",
+          "name": "Вода 0,5 л",
+          "price": 5000,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/5450bf72959d.jpg"
+        },
+        {
+          "id": "drink-tea",
+          "name": "Чай",
+          "price": 0,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/c9a54a3ec1a1.jpg"
+        },
+        {
+          "id": "drink-juice",
+          "name": "Сок",
+          "price": 0,
+          "desc": "",
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/8f615352c950.jpg"
+        }
+      ]
+    },
+    {
+      "id": "sauces",
+      "name": "Соусы",
+      "icon": "🥫",
+      "items": [
+        {
+          "id": "sauce-ketchup",
+          "name": "Кетчуп",
+          "price": 3000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/27703b9ef98c.jpg"
+        },
+        {
+          "id": "sauce-mayo",
+          "name": "Майонез",
+          "price": 3000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/fa6198571dd0.jpg"
+        },
+        {
+          "id": "sauce-garlic",
+          "name": "Чесночный соус",
+          "price": 4000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/cb5246098ee7.jpg"
+        },
+        {
+          "id": "sauce-chili",
+          "name": "Соус чили",
+          "price": 4000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/e0a7290c91ae.jpg"
+        },
+        {
+          "id": "sauce-bbq",
+          "name": "Соус барбекю",
+          "price": 4000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/6f403bbddda4.jpg"
+        },
+        {
+          "id": "sauce-cheese",
+          "name": "Сырный соус",
+          "price": 5000,
+          "image": "https://hwxrbgo5myy6nllr.public.blob.vercel-storage.com/images/uploads/251415762414.jpg"
+        }
+      ]
+    }
+  ]
 };
 
 window.MENU = MENU;

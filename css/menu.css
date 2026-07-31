@@ -143,7 +143,7 @@ body {
   flex: 1;
   min-width: 0;
   background: var(--cream);
-  padding: 15px 34px 15px 22px;
+  padding: 14px 34px 14px 20px;
   /* O'ng cheti qiya kesilgan — plakatdagi lenta ko'rinishi */
   clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 100%, 0 100%);
   display: flex;
@@ -153,27 +153,35 @@ body {
 .pg__title {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 27px;
+  /* Ekran torayganda shrift ham kichrayadi — «Куриный фастфуд»
+     kabi uzun nom kesilib qolmasin */
+  font-size: clamp(19px, 6vw, 27px);
   font-weight: 700;
   letter-spacing: 0.3px;
-  line-height: 1.1;
+  line-height: 1.15;
   color: var(--deep);
-  white-space: nowrap;
+  /* Kerak bo'lsa ikki qatorga tushadi */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .pg__mark {
   flex: none;
   display: flex;
   align-items: center;
-  padding: 0 16px 0 4px;
-  font-family: Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--cream);
-  white-space: nowrap;
+  padding: 0 14px 0 2px;
+}
+
+.pg__mark img {
+  height: 20px;
+  /* Uzun bo'lim nomiga joy qolsin — logotip kengligi cheklanadi */
+  max-width: 118px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .pg__rule {

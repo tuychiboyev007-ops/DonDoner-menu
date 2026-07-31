@@ -166,9 +166,11 @@
     sec.innerHTML =
       '<div class="pg__head">' +
       '<div class="pg__ribbon"><h2 class="pg__title">' + esc(cat.name || "") + "</h2></div>" +
-      // Brend nomi matn ko'rinishida — logotip rasmi qora fonli bo'lgani
-      // uchun bordo lentada qora quti bo'lib ajralib turadi
-      '<div class="pg__mark">' + esc(restaurant().name || "DonDöner") + "</div>" +
+      // Haqiqiy logotip. images/logo-mark.png — qora foni olib
+      // tashlangan shaffof nusxasi, shuning uchun bordo lentada
+      // qora quti bo'lib ajralib turmaydi.
+      '<div class="pg__mark"><img src="images/logo-mark.png" alt="' +
+      esc(restaurant().name || "DonDöner") + '" /></div>' +
       "</div>" +
       '<div class="pg__rule"></div>' +
       '<div class="pg__body">' + body + "</div>" +

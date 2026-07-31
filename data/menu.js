@@ -668,28 +668,28 @@ const MENU = {
         {
           "id": "drink-cola-1",
           "name": "Coca-Cola 1 л",
-          "price": 0,
+          "price": 14000,
           "desc": "",
           "image": ""
         },
         {
           "id": "drink-fanta-05",
           "name": "Fanta 0,5 л",
-          "price": 0,
+          "price": 8000,
           "desc": "",
           "image": ""
         },
         {
           "id": "drink-sprite-05",
           "name": "Sprite 0,5 л",
-          "price": 0,
+          "price": 8000,
           "desc": "",
           "image": ""
         },
         {
           "id": "drink-ayran",
           "name": "Айран",
-          "price": 0,
+          "price": 8000,
           "desc": "",
           "image": ""
         },
@@ -703,14 +703,14 @@ const MENU = {
         {
           "id": "drink-tea",
           "name": "Чай",
-          "price": 0,
+          "price": 5000,
           "desc": "",
           "image": ""
         },
         {
           "id": "drink-juice",
           "name": "Сок",
-          "price": 0,
+          "price": 10000,
           "desc": "",
           "image": ""
         }

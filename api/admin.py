@@ -42,6 +42,8 @@ import _store  # noqa: E402
 
 ADMIN_PIN = os.environ.get("ADMIN_PIN", "").strip()
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
+# Buyurtmalar boti (sozlanmagan bo'lsa asosiy bot ishlatiladi)
+ORDERS_BOT_TOKEN = os.environ.get("ORDERS_BOT_TOKEN", "").strip() or BOT_TOKEN
 MAX_BODY = 8 * 1024 * 1024  # rasm base64 uchun ~8MB yetarli
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
@@ -120,6 +122,43 @@ def broadcast(text):
     return sent, failed
 
 
+def check_branch_chats():
+    """Har filialning buyurtma guruhi haqiqatan ulanganmi?
+
+    Guruh ID ini qo'lda ko'chirishda xatolik oson bo'ladi (minus tushib
+    qoladi, bot guruhdan chiqarib yuborilgan bo'ladi). Bu tekshiruv
+    Telegram'dan guruh nomini so'raydi — ya'ni buyurtma haqiqatan ham
+    yetib borishini oldindan bilib olamiz.
+    """
+    menu = _store.load_menu() or {}
+    branches = (menu.get("restaurant") or {}).get("branches") or []
+    out = []
+    for b in branches:
+        chat_id = str(b.get("chatId") or "").strip()
+        row = {"label": b.get("label") or "", "chatId": chat_id}
+        if not chat_id:
+            row["state"] = "empty"
+            out.append(row)
+            continue
+        try:
+            url = (f"https://api.telegram.org/bot{ORDERS_BOT_TOKEN}/getChat"
+                   f"?chat_id={urllib.parse.quote(chat_id)}")
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            if data.get("ok"):
+                res = data.get("result") or {}
+                row["state"] = "ok"
+                row["title"] = res.get("title") or res.get("first_name") or ""
+            else:
+                row["state"] = "error"
+                row["error"] = data.get("description") or "topilmadi"
+        except Exception as exc:  # noqa: BLE001
+            row["state"] = "error"
+            row["error"] = str(exc)
+        out.append(row)
+    return out
+
+
 class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
     def do_POST(self):  # noqa: N802
         pin = self.headers.get("X-Admin-Pin", "")
@@ -135,6 +174,9 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel talabi
             return self._send(400, {"ok": False, "error": "noto'g'ri so'rov"})
 
         action = payload.get("action")
+
+        if action == "check_branch_chats":
+            return self._send(200, {"ok": True, "branches": check_branch_chats()})
 
         if action == "get_menu":
             return self._send(200, {"ok": True, "menu": _store.load_menu()})

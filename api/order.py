@@ -192,9 +192,39 @@ def apply_promo(order):
     return order
 
 
+# Filialni bir qarashda ajratish uchun raqamli belgi
+BRANCH_MARKS = ["1\u20e3", "2\u20e3", "3\u20e3", "4\u20e3", "5\u20e3",
+                "6\u20e3", "7\u20e3", "8\u20e3", "9\u20e3"]
+
+
+def branch_head(order):
+    """Kartochkaning birinchi qatori — qaysi filial.
+
+    Filiallar alohida guruhga sozlanmagan bo'lsa, hamma buyurtma bitta
+    chatga tushadi. Shunda ham qaysi filialniki ekani bir qarashda
+    ko'rinib tursin: raqamli belgi + katta harflar bilan yozamiz.
+    """
+    br = order.get("branch") or {}
+    label = str(br.get("label") or "").strip()
+    if not label:
+        return ""
+    mark = ""
+    try:
+        idx = int(br.get("index"))
+        if 0 <= idx < len(BRANCH_MARKS):
+            mark = BRANCH_MARKS[idx] + " "
+    except (TypeError, ValueError):
+        pass
+    return f"{mark}\U0001f3ec <b>{esc(label.upper())}</b>"
+
+
 def build_card(order, user, number=None):
     """Buyurtma kartochkasi (reference ko'rinishida)."""
     L = []
+    head = branch_head(order)
+    if head:
+        L.append(head)
+        L.append("━━━━━━━━━━━━━━━")
     if order.get("preorder"):
         at = str(order.get("preorderAt") or "")
         L.append("⏰ <b>OLDINDAN BUYURTMA</b>" + (f" — {esc(at)} ga" if at else ""))
@@ -244,10 +274,6 @@ def build_card(order, user, number=None):
             L.append(f"📍 {esc(' · '.join(addr_bits))}")
         if parts.get("note"):
             L.append(f"🛵 {esc(parts['note'])}")
-
-    branch = order.get("branch") or {}
-    if branch.get("label"):
-        L.append(f"🏬 {esc(branch['label'])}")
 
     if order.get("note"):
         L.append(f"📝 {esc(order['note'])}")

@@ -1085,6 +1085,41 @@
       if (!b.id) { b.id = "b" + (i + 1); added = true; }
     });
     if (added) scheduleSave();
+
+    /* --- Guruhlar ulanganini tekshirish ---
+       Guruh ID ini qo'lda ko'chirishda xato qilish oson (minus tushib
+       qoladi, bot guruhdan chiqarilgan bo'ladi). Bu tugma Telegram'dan
+       guruh nomini so'raydi — buyurtma haqiqatan yetib borishini
+       oldindan bilib olamiz. */
+    var checkCard = el("div", "card");
+    var checkBtn = el("button", "btn", "🔌 Guruhlar ulanganini tekshirish");
+    var checkOut = el("div", "hint");
+    checkOut.style.marginTop = "10px";
+    checkBtn.addEventListener("click", function () {
+      checkBtn.disabled = true;
+      checkOut.innerHTML = "Tekshirilmoqda…";
+      api("check_branch_chats", null, function (err, res) {
+        checkBtn.disabled = false;
+        var data = (res && res.data) || null;
+        if (err || !data || !data.ok) { checkOut.innerHTML = "❌ Tekshirib bo'lmadi"; return; }
+        checkOut.innerHTML = (data.branches || []).map(function (b) {
+          var name = esc(b.label || "(nomsiz)");
+          if (b.state === "ok") {
+            return "✅ <b>" + name + "</b> → " + esc(b.title || "guruh") +
+                   "<br><span style='opacity:.75'>buyurtmalar shu guruhga tushadi</span>";
+          }
+          if (b.state === "empty") {
+            return "⚪️ <b>" + name + "</b> — guruh biriktirilmagan" +
+                   "<br><span style='opacity:.75'>buyurtmalari umumiy chatga tushadi</span>";
+          }
+          return "❌ <b>" + name + "</b> — " + esc(b.error || "xato");
+        }).join("<hr style='border:none;border-top:1px solid var(--line);margin:10px 0'>");
+      });
+    });
+    checkCard.appendChild(checkBtn);
+    checkCard.appendChild(checkOut);
+    box.appendChild(checkCard);
+
     list.forEach(function (b, i) {
       var card = el("div", "card");
       card.innerHTML =

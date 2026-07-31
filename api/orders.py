@@ -238,7 +238,15 @@ def build_report_text(day=None, branch_label=None):
     for r in records:
         o = r.get("order") or {}
         label = STATUS_LABELS.get(r.get("status", ""), ("🆕 Yangi",))[0]
-        lines.append(f"#{r.get('number')} · {money(o.get('total') or 0)} so'm · {label}")
+        # Umumiy chatda har qator qaysi filialniki ekani ko'rinib tursin
+        who = ""
+        if branch_label is None:
+            name = branch_of(r)
+            if name:
+                who = f" · {esc(name)}"
+        lines.append(
+            f"#{r.get('number')} · {money(o.get('total') or 0)} so'm · {label}{who}"
+        )
 
     count, total, top = summarize(records)
     lines.append("")

@@ -1,13 +1,15 @@
 /*
- * DonDöner — ELEKTRON MENYU
+ * DonDöner — ELEKTRON MENYU (varaqlanadigan)
  * ------------------------------------------------------------
  * Stol ustidagi QR kod shu sahifani ochadi:
  *     menu.html?b=b1
- * `b` — filial id'si. Har filial o'z «tugadi» belgilarini ko'rsatadi.
+ * `b` — filial id'si: «tugadi» belgilari o'sha filialniki.
  *
- * Bu sahifa ilovadan mustaqil: savat, buyurtma va Telegram kerak emas.
- * Menyu esa aynan bitta manbadan olinadi (/api/menu), shuning uchun
- * admin panelda o'zgartirilgan narx bu yerda ham darhol ko'rinadi.
+ * Tuzilishi menyu kitobiday: 1-sahifa muqova, keyin har bo'limga
+ * bittadan to'liq ekran sahifa. Surib yoki chetiga bosib varaqlanadi.
+ *
+ * Menyu ilova bilan bitta manbadan olinadi (/api/menu), shuning uchun
+ * admin panelda o'zgargan narx bu yerda ham darhol ko'rinadi.
  */
 (function () {
   "use strict";
@@ -17,8 +19,12 @@
   var branchId = params.get("b") || "";
   var lang = localStorage.getItem(LS_LANG) || "ru";
 
-  var bodyEl = document.getElementById("mBody");
-  var navEl = document.getElementById("mNav");
+  var book = document.getElementById("mBook");
+  var dotsEl = document.getElementById("mDots");
+  var countEl = document.getElementById("mCount");
+  var langBtn = document.getElementById("mLang");
+
+  var pageCount = 0;
 
   function t(key) {
     var pack = (window.I18N && window.I18N[lang]) || {};
@@ -38,7 +44,7 @@
     return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " " + t("currency");
   }
 
-  /* ---- Narx va mavjudlik ---- */
+  /* ---- Menyu ma'lumoti ---- */
 
   // Narxi kiritilmagan taom menyuda ko'rsatilmaydi
   function isReady(item) {
@@ -74,174 +80,193 @@
     return list[0];
   }
 
-  /* ---- Chizish ---- */
-
-  function paintHead() {
-    document.documentElement.lang = lang;
-    document.getElementById("mTagline").textContent = restaurant().tagline || "";
-    document.getElementById("mLang").textContent = lang === "ru" ? "UZ" : "RU";
-
-    var b = branch();
-    var h = restaurant().hours || {};
-    var rows = [];
-    if (b) {
-      rows.push("<b>" + esc(b.label) + "</b> · " + esc(b.address));
-      if (b.phone) {
-        rows.push(
-          '☎ <a href="tel:' + esc(b.phone.replace(/\s/g, "")) + '" style="color:inherit">' +
-            esc(b.phone) + "</a>"
+  // O'lchamlar har biri alohida qatorda: nomi chapda, narxi o'ngda
+  function sizesHtml(item, cls) {
+    var parts = (item.variants || [])
+      .filter(function (v) {
+        return Number(v.price) > 0;
+      })
+      .map(function (v) {
+        return (
+          '<span class="sz"><i>' + esc(v.label) + "</i><b>" +
+          money(Number(v.price)) + "</b></span>"
         );
-      }
-    }
-    if (h.open && h.close) rows.push("🕐 " + esc(h.open) + " – " + esc(h.close));
-    document.getElementById("mBranch").innerHTML = rows.join("<br />");
-  }
-
-  function paintNav(cats) {
-    navEl.innerHTML = "";
-    cats.forEach(function (cat) {
-      var a = document.createElement("button");
-      a.type = "button";
-      a.className = "mnav__link";
-      a.textContent = cat.name || "";
-      a.dataset.target = cat.id;
-      a.addEventListener("click", function () {
-        var s = document.getElementById("sec-" + cat.id);
-        if (s) s.scrollIntoView({ behavior: "smooth", block: "start" });
       });
-      navEl.appendChild(a);
-    });
+    return parts.length ? '<div class="' + cls + '">' + parts.join("") + "</div>" : "";
   }
 
-  function itemRow(item) {
+  /* ---- Sahifalar ---- */
+
+  function coverPage() {
+    var r = restaurant();
+    var b = branch();
+    var h = r.hours || {};
+
+    var lines = [];
+    if (b) {
+      lines.push("<b>" + esc(b.label) + "</b> · " + esc(b.address));
+      if (b.phone) lines.push(esc(b.phone));
+    }
+    if (h.open && h.close) lines.push(esc(h.open) + " – " + esc(h.close));
+
+    var sec = document.createElement("section");
+    sec.className = "pg cover";
+    sec.innerHTML =
+      '<img class="cover__logo" src="images/logo.jpg" alt="' + esc(r.name || "DonDöner") + '" />' +
+      '<h1 class="cover__name">' + esc(r.name || "DonDöner") + "</h1>" +
+      '<p class="cover__hi">' + esc(t("welcome")) + "</p>" +
+      '<p class="cover__tag">' + esc(r.tagline || "") + "</p>" +
+      '<div class="cover__hint">⇄ ' + esc(t("swipeHint")) + "</div>" +
+      '<div class="cover__branch">' + lines.join("<br />") + "</div>";
+    return sec;
+  }
+
+  function dishCard(item) {
     var out = isOut(item);
-    var row = document.createElement("div");
-    row.className = "mrow" + (out ? " mrow--out" : "");
-
-    var html = "";
-    if (item.image) {
-      html +=
-        '<img class="mrow__img" src="' + esc(item.image) + '" alt="' + esc(item.name) +
-        '" loading="lazy" />';
-    }
-
-    html += '<div class="mrow__body"><div class="mrow__name">' + esc(item.name) + "</div>";
-
-    var desc = item.desc || item.weight || "";
-    if (desc) html += '<div class="mrow__desc">' + esc(desc) + "</div>";
-
     var sized = item.variants && item.variants.length;
+    var html =
+      '<div class="dish__item' + (out ? " is-out" : "") + '">' +
+      '<img class="dish__img" src="' + esc(item.image) + '" alt="' + esc(item.name) +
+      '" loading="lazy" />' +
+      '<div class="dish__name">' + esc(item.name) + "</div>";
+
     if (sized) {
-      var parts = item.variants
-        .filter(function (v) {
-          return Number(v.price) > 0;
-        })
-        .map(function (v) {
-          return "<span>" + esc(v.label) + "<b>" + money(Number(v.price)) + "</b></span>";
-        });
-      html += '<div class="mrow__sizes">' + parts.join("") + "</div>";
-    }
-
-    if (out) html += '<span class="mrow__out">' + esc(t("outOfStock")) + "</span>";
-    html += "</div>";
-
-    // O'lchamsiz taomda narx o'ngda turadi
-    if (!sized) {
-      html += '<div class="mrow__price">' + money(Number(item.price));
+      html += sizesHtml(item, "dish__sizes");
+    } else {
+      html += '<div class="dish__price">' + money(Number(item.price));
       if (item.oldPrice) {
-        html += '<span class="mrow__old">' + money(Number(item.oldPrice)) + "</span>";
+        html += '<span class="dish__old">' + money(Number(item.oldPrice)) + "</span>";
       }
       html += "</div>";
     }
-
-    row.innerHTML = html;
-    return row;
+    if (out) html += '<span class="outmark">' + esc(t("outOfStock")) + "</span>";
+    return html + "</div>";
   }
 
-  function paintMenu() {
+  function plainRow(item) {
+    var out = isOut(item);
+    var sized = item.variants && item.variants.length;
+    var desc = item.desc || item.weight || "";
+
+    var html =
+      '<div class="plain__row' + (out ? " is-out" : "") + '">' +
+      '<div class="plain__lead">' +
+      '<div class="plain__name">' + esc(item.name) + "</div>";
+    if (desc) html += '<div class="plain__desc">' + esc(desc) + "</div>";
+    if (sized) html += sizesHtml(item, "plain__sizes");
+    if (out) html += '<span class="outmark">' + esc(t("outOfStock")) + "</span>";
+    html += "</div>";
+
+    if (!sized) {
+      html += '<div class="plain__price">' + money(Number(item.price)) + "</div>";
+    }
+    return html + "</div>";
+  }
+
+  function catPage(cat) {
+    var items = readyItems(cat);
+    var withImg = items.filter(function (it) {
+      return !!it.image;
+    });
+    // Bo'limdagi taomlarning yarmidan ko'pi rasmli bo'lsa — rasmli tartib,
+    // aks holda qog'oz menyudagidek nom/narx ro'yxati (bo'sh joy qolmasin)
+    var visual = withImg.length >= Math.ceil(items.length / 2);
+
+    var body;
+    if (visual) {
+      body =
+        '<div class="dish">' +
+        items
+          .map(function (it) {
+            return it.image ? dishCard(it) : "";
+          })
+          .join("") +
+        "</div>";
+      var noImg = items.filter(function (it) {
+        return !it.image;
+      });
+      if (noImg.length) {
+        body += '<div class="plain">' + noImg.map(plainRow).join("") + "</div>";
+      }
+    } else {
+      body = '<div class="plain">' + items.map(plainRow).join("") + "</div>";
+    }
+
+    var sec = document.createElement("section");
+    sec.className = "pg";
+    sec.innerHTML =
+      '<div class="pg__head">' +
+      '<div class="pg__ribbon"><h2 class="pg__title">' + esc(cat.name || "") + "</h2></div>" +
+      // Brend nomi matn ko'rinishida — logotip rasmi qora fonli bo'lgani
+      // uchun bordo lentada qora quti bo'lib ajralib turadi
+      '<div class="pg__mark">' + esc(restaurant().name || "DonDöner") + "</div>" +
+      "</div>" +
+      '<div class="pg__rule"></div>' +
+      '<div class="pg__body">' + body + "</div>" +
+      '<div class="pg__foot">' + esc(t("photoNote")) + "</div>";
+    return sec;
+  }
+
+  /* ---- Varaqlash ---- */
+
+  function goTo(i) {
+    i = Math.max(0, Math.min(pageCount - 1, i));
+    book.scrollTo({ left: i * book.clientWidth, behavior: "smooth" });
+  }
+
+  function currentPage() {
+    return Math.round(book.scrollLeft / Math.max(1, book.clientWidth));
+  }
+
+  function paintPosition() {
+    var i = currentPage();
+    countEl.textContent = i + 1 + " / " + pageCount;
+    var dots = dotsEl.children;
+    for (var k = 0; k < dots.length; k++) {
+      dots[k].classList.toggle("is-on", k === i);
+    }
+  }
+
+  function setupTaps() {
+    [["prev", -1], ["next", 1]].forEach(function (pair) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tapzone tapzone--" + pair[0];
+      btn.setAttribute("aria-label", pair[0]);
+      btn.addEventListener("click", function () {
+        goTo(currentPage() + pair[1]);
+      });
+      document.body.appendChild(btn);
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") goTo(currentPage() + 1);
+      if (e.key === "ArrowLeft") goTo(currentPage() - 1);
+    });
+  }
+
+  /* ---- Chizish ---- */
+
+  function render() {
+    document.documentElement.lang = lang;
+    langBtn.textContent = lang === "ru" ? "UZ" : "RU";
+
     var cats = (window.MENU.categories || []).filter(function (c) {
       return readyItems(c).length > 0;
     });
 
-    paintHead();
-    paintNav(cats);
-
-    bodyEl.innerHTML = "";
+    book.innerHTML = "";
+    book.appendChild(coverPage());
     cats.forEach(function (cat) {
-      var sec = document.createElement("section");
-      sec.id = "sec-" + cat.id;
-      sec.dataset.cat = cat.id;
-
-      var h2 = document.createElement("h2");
-      h2.className = "msec";
-      h2.textContent = cat.name || "";
-      sec.appendChild(h2);
-
-      readyItems(cat).forEach(function (item) {
-        sec.appendChild(itemRow(item));
-      });
-      bodyEl.appendChild(sec);
+      book.appendChild(catPage(cat));
     });
 
-    paintFoot();
-    setActive(cats.length ? cats[0].id : "");
-  }
+    pageCount = cats.length + 1;
+    dotsEl.innerHTML = "";
+    for (var i = 0; i < pageCount; i++) dotsEl.appendChild(document.createElement("i"));
 
-  function paintFoot() {
-    var r = restaurant();
-    var html = '<div class="mfoot__brand">' + esc(r.name || "DonDöner") + "</div>";
-    if (r.delivery) html += esc(r.delivery) + "<br />";
-    (r.branches || []).forEach(function (b) {
-      html += esc(b.label) + " · " + esc(b.address) + "<br />";
-    });
-    if (r.instagram) {
-      html +=
-        '<a href="https://instagram.com/' + esc(r.instagram) +
-        '" target="_blank" rel="noopener">@' + esc(r.instagram) + "</a>";
-    }
-    document.getElementById("mFoot").innerHTML = html;
-  }
-
-  /* Sahifa surilganda tasmadagi faol bo'lim o'zi almashadi */
-  function setActive(catId) {
-    var active = null;
-    var links = navEl.querySelectorAll(".mnav__link");
-    for (var i = 0; i < links.length; i++) {
-      var on = links[i].dataset.target === catId;
-      links[i].classList.toggle("is-active", on);
-      if (on) active = links[i];
-    }
-    if (!active) return;
-    // Bo'limlar ko'p — faol yozuv ekrandan chiqib ketmasin
-    var left = active.offsetLeft - (navEl.clientWidth - active.offsetWidth) / 2;
-    var max = navEl.scrollWidth - navEl.clientWidth;
-    left = Math.max(0, Math.min(max, left));
-    if (Math.abs(navEl.scrollLeft - left) > 4) {
-      navEl.scrollTo({ left: left, behavior: "smooth" });
-    }
-  }
-
-  function setupSpy() {
-    var ticking = false;
-    window.addEventListener(
-      "scroll",
-      function () {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(function () {
-          ticking = false;
-          var line = navEl.getBoundingClientRect().bottom + 10;
-          var current = null;
-          var secs = bodyEl.querySelectorAll("section");
-          for (var i = 0; i < secs.length; i++) {
-            if (secs[i].getBoundingClientRect().top <= line) current = secs[i].dataset.cat;
-          }
-          if (!current && secs.length) current = secs[0].dataset.cat;
-          if (current) setActive(current);
-        });
-      },
-      { passive: true }
-    );
+    book.scrollTo({ left: 0 });
+    paintPosition();
   }
 
   /* ---- Ishga tushirish ---- */
@@ -272,18 +297,41 @@
 
   function start() {
     if (!window.MENU) {
-      bodyEl.innerHTML = '<div class="mloading">Меню недоступно</div>';
+      book.innerHTML = '<section class="pg cover"><p class="cover__hi">Menyu topilmadi</p></section>';
       return;
     }
-    paintMenu();
-    setupSpy();
+    render();
+    setupTaps();
 
-    document.getElementById("mLang").addEventListener("click", function () {
+    var ticking = false;
+    book.addEventListener(
+      "scroll",
+      function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+          ticking = false;
+          paintPosition();
+        });
+      },
+      { passive: true }
+    );
+
+    langBtn.addEventListener("click", function () {
+      var at = currentPage();
       lang = lang === "ru" ? "uz" : "ru";
       try {
         localStorage.setItem(LS_LANG, lang);
       } catch (e) {}
-      paintMenu();
+      render();
+      // Til almashgach o'sha sahifada qolamiz
+      book.scrollTo({ left: at * book.clientWidth });
+      paintPosition();
+    });
+
+    // Ekran burilganda sahifa chetiga tekislanib qolsin
+    window.addEventListener("resize", function () {
+      goTo(currentPage());
     });
   }
 

@@ -19,18 +19,16 @@
   const LS_LANG = "dondoner_lang";
   const LS_PROFILE = "dondoner_profile";
 
-  /* ---- QR (elektron menyu) rejimi ----
-     Restoran stolidagi QR kod shu manzilga olib keladi:
-         index.html?qr=1&b=b1
-     Bu rejimda savat, buyurtma va yetkazish umuman ko'rinmaydi —
-     mijoz shunchaki menyuni ko'radi. Buyurtma faqat Telegram ichida
-     ishlaydi (server initData imzosini talab qiladi), shuning uchun
-     QR rejimida savatni ko'rsatish mijozni chalg'itadi.
-     `b` — filial id'si: har filialning QR kodi o'z narx va
-     «tugadi» belgilarini ko'rsatsin. */
-  const qrParams = new URLSearchParams(location.search);
-  const qrMode = qrParams.get("qr") === "1";
-  const qrBranch = qrParams.get("b") || "";
+  /* ---- Eski QR havolalari ----
+     Elektron menyu endi alohida sahifada (menu.html) — u ilovaga
+     o'xshamaydi. Chop etilgan eski QR kodlar ishlashda davom etsin
+     uchun bu yerda yo'naltiramiz. */
+  (function redirectOldQr() {
+    const p = new URLSearchParams(location.search);
+    if (p.get("qr") !== "1") return;
+    const b = p.get("b") || "";
+    location.replace("menu.html" + (b ? "?b=" + encodeURIComponent(b) : ""));
+  })();
 
   /* ============ Holat ============ */
   let cart = load(LS_CART, {}); // { itemId: qty }
@@ -1474,7 +1472,6 @@
     renderChips();
     renderMenu();
     renderHeader();
-    if (qrMode) paintQrHead();
     if (currentPage === "cart") renderCart();
     else if (currentPage === "orders") renderOrders();
     else if (currentPage === "profile") renderProfile();
@@ -2358,7 +2355,6 @@
     }
     initTelegram();
     buildIndex();
-    if (qrMode) applyQrMode();
     renderHeader();
     renderChips();
     renderMenu();
@@ -2373,53 +2369,6 @@
     applyStaticLabels();
     refreshCartUI();
     openOrderFromLink();
-  }
-
-  /* Elektron menyu rejimi: filialni QR'dan olamiz, savatni tozalaymiz
-     va sahifani «faqat ko'rish» holatiga o'tkazamiz. */
-  function applyQrMode() {
-    document.body.classList.add("is-qr");
-
-    if (qrBranch) {
-      const idx = branches().findIndex(function (b) {
-        return (b.id || "") === qrBranch;
-      });
-      if (idx >= 0) {
-        selectedBranch = idx;
-        localStorage.setItem(LS_BRANCH, String(idx));
-      }
-    }
-
-    // Savat ko'rinmaydi — ichida qolgan narsa chalkashlik keltirmasin
-    cart = {};
-    save(LS_CART, cart);
-
-    paintQrHead();
-  }
-
-  // Yetkazish qatori o'rniga: filial nomi, manzili va ish vaqti
-  function paintQrHead() {
-    const b = currentBranch();
-    const h = (window.MENU.restaurant || {}).hours || {};
-    const bar = document.querySelector(".delivery");
-    if (!bar) return;
-    const parts = [];
-    if (b) parts.push(escapeHtml(b.label) + " · " + escapeHtml(b.address));
-    if (h.open && h.close) parts.push("🕐 " + escapeHtml(h.open) + " – " + escapeHtml(h.close));
-    bar.innerHTML =
-      '<div class="qrhead">' +
-      '<div class="qrhead__title">' + escapeHtml(t("menuWord")) + "</div>" +
-      '<div class="qrhead__sub">' + parts.join(" · ") + "</div>" +
-      "</div>" +
-      '<button type="button" class="qrlang" id="qrLang">' +
-      (lang === "ru" ? "UZ" : "RU") +
-      "</button>";
-    const btn = document.getElementById("qrLang");
-    if (btn) {
-      btn.addEventListener("click", function () {
-        setLang(lang === "ru" ? "uz" : "ru");
-      });
-    }
   }
 
   document.addEventListener("DOMContentLoaded", init);

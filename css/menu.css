@@ -1,0 +1,313 @@
+/*
+ * DonDöner — ELEKTRON MENYU (stol ustidagi QR kod uchun)
+ * ------------------------------------------------------------
+ * Bu ilova emas — bu menyu. Shuning uchun ko'rinishi ham boshqacha:
+ * qora fon, qizil urg'u (plakatlardagi brend ranglari), taomlar
+ * kartochka emas, ro'yxat qatorlari ko'rinishida. Savat, tugma va
+ * pastki panel yo'q — mijoz shunchaki o'qiydi.
+ */
+
+:root {
+  --bg: #0d0e11;
+  --panel: #15171c;
+  --ink: #f5f2ec;
+  --muted: #8d909a;
+  --red: #e31e2d;
+  --line: rgba(255, 255, 255, 0.09);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Bo'limga o'tganda sarlavha yopishqoq panel ostida qolmasin */
+  scroll-padding-top: 96px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Sarlavha ---------- */
+.mhead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: calc(env(safe-area-inset-top) + 22px) 20px 18px;
+}
+
+.mhead__logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex: none;
+}
+
+.mhead__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.mhead__name {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.mhead__tag {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.mlang {
+  flex: none;
+  min-width: 46px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+/* ---------- Filial qatori ---------- */
+.mbranch {
+  margin: 0 20px 18px;
+  padding: 13px 16px;
+  background: var(--panel);
+  border-left: 3px solid var(--red);
+  border-radius: 4px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.mbranch b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ---------- Bo'limlar tasmasi ---------- */
+.mnav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 22px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 14px 20px 13px;
+  /* To'liq shaffofsiz: yarim shaffof bo'lsa, ostidan surilayotgan
+     logo va rasmlar ko'rinib qoladi */
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.mnav::-webkit-scrollbar {
+  display: none;
+}
+
+.mnav__link {
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  position: relative;
+  padding-bottom: 5px;
+}
+
+.mnav__link.is-active {
+  color: var(--ink);
+}
+
+.mnav__link.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--red);
+}
+
+/* ---------- Menyu ---------- */
+.mbody {
+  padding: 0 20px calc(env(safe-area-inset-bottom) + 30px);
+}
+
+.mloading {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.msec {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 34px 0 4px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.msec::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ---------- Taom qatori ---------- */
+.mrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.mrow:last-child {
+  border-bottom: none;
+}
+
+.mrow__img {
+  width: 66px;
+  height: 66px;
+  flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+  /* Suratlar oq fonli — to'q fonda ular oq kvadrat bo'lib turmasin */
+  background: #fff;
+}
+
+.mrow__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mrow__name {
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.mrow__desc {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* O'lchamli taom: narxlar tavsif ostida qatorga tiziladi */
+.mrow__sizes {
+  margin-top: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.mrow__sizes b {
+  color: var(--ink);
+  font-weight: 700;
+  margin-left: 5px;
+}
+
+.mrow__price {
+  flex: none;
+  padding-left: 6px;
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mrow__old {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* Tugagan taom — ko'rinadi, lekin so'nik */
+.mrow--out .mrow__img,
+.mrow--out .mrow__name,
+.mrow--out .mrow__price {
+  opacity: 0.4;
+}
+
+.mrow__out {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- Pastki qism ---------- */
+.mfoot {
+  margin-top: 34px;
+  padding: 24px 20px calc(env(safe-area-inset-bottom) + 30px);
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--muted);
+  text-align: center;
+}
+
+.mfoot a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.mfoot__brand {
+  color: var(--red);
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  font-size: 11.5px;
+  margin-bottom: 8px;
+}
+
+/* Kengroq ekranlarda menyu o'rtada qoladi — planshet/monitor uchun */
+@media (min-width: 720px) {
+  .mhead,
+  .mbranch,
+  .mnav,
+  .mbody,
+  .mfoot {
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

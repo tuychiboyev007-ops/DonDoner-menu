@@ -1621,60 +1621,6 @@ button {
   padding: 4px 16px calc(env(safe-area-inset-bottom) + 24px);
 }
 
-/* ---- QR (elektron menyu) rejimi ----
-   Stol ustidagi QR kod orqali ochilganda: faqat menyu ko'rinadi.
-   Buyurtma Telegram imzosini talab qilgani uchun bu yerda savat
-   va buyurtmaga oid hamma narsa olib tashlanadi. */
-.is-qr .tabbar,
-.is-qr .branchbar,
-.is-qr #bellBtn,
-.is-qr .product__add,
-.is-qr .sheet__add,
-.is-qr .upsell,
-.is-qr .footer {
-  display: none !important;
-}
-
-/* Pastki panel yo'q — menyu ostidagi bo'sh joy ham kerak emas */
-.is-qr .menu {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
-}
-
-.is-qr .product__body {
-  padding-bottom: 10px;
-}
-
-.qrhead {
-  flex: 1;
-  min-width: 0;
-}
-
-.qrhead__title {
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.qrhead__sub {
-  font-size: 12.5px;
-  color: var(--muted);
-  line-height: 1.4;
-  margin-top: 2px;
-}
-
-.qrlang {
-  flex: none;
-  min-width: 46px;
-  height: 36px;
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  background: var(--card);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
 /* ---- Kategoriyalar ekrani ---- */
 .catgrid {
   display: grid;

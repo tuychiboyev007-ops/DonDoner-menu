@@ -1,49 +1,21 @@
 /*
  * Qandil restaurant — ELEKTRON MENYU
  * ------------------------------------------------------------
- * Stol ustidagi QR kod shu sahifani ochadi: qandil.html
+ * Har bo'lim — bitta to'liq sahifa plakat. Taom nomi va narxi
+ * suratning o'zida yozilgan, shuning uchun bu yerda ro'yxat ham,
+ * kartochka ham chizilmaydi: sahifa faqat suratni ko'rsatadi.
  *
- * DonDöner menyusi bilan bir xil varaqlanadigan tuzilish, lekin
- * har taomning surati bor va brend ranglari yashil.
- *
- * Menyu ma'lumoti data/qandil.js faylida — bu restoran admin
- * panelga ulanmagan, shuning uchun serverga so'rov yuborilmaydi.
+ * Chapga/o'ngga surib yoki ekran chetiga bosib varaqlanadi.
+ * Suratni ikki marta bosib kattalashtirish mumkin.
  */
 (function () {
   "use strict";
 
-  var LS_LANG = "qandil_lang";
-  var lang = localStorage.getItem(LS_LANG) || "ru";
-
   var book = document.getElementById("qBook");
   var dotsEl = document.getElementById("qDots");
   var countEl = document.getElementById("qCount");
-  var langBtn = document.getElementById("qLang");
 
   var pageCount = 0;
-
-  var TEXT = {
-    ru: {
-      welcome: "Добро пожаловать!",
-      swipeHint: "Нажмите или проведите, чтобы листать",
-      pricesIn: "Цены указаны в сумах",
-      bonAppetit: "Приятного аппетита!",
-      thanks: "Спасибо, что выбрали нас",
-      soon: "Фото скоро",
-    },
-    uz: {
-      welcome: "Xush kelibsiz!",
-      swipeHint: "Varaqlash uchun bosing yoki suring",
-      pricesIn: "Narxlar so'mda",
-      bonAppetit: "Yoqimli ishtaha!",
-      thanks: "Bizni tanlaganingiz uchun rahmat",
-      soon: "Surat tez orada",
-    },
-  };
-
-  function t(key) {
-    return (TEXT[lang] || TEXT.ru)[key] || key;
-  }
 
   function esc(str) {
     return String(str === undefined || str === null ? "" : str)
@@ -53,21 +25,7 @@
       .replace(/"/g, "&quot;");
   }
 
-  // Menyuda valyuta har narxda takrorlanmaydi — sahifa boshida bir marta
-  function num(v) {
-    return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  }
-
   var R = (window.QANDIL && window.QANDIL.restaurant) || {};
-
-  // Ruscha va o'zbekcha nomlar bitta obyektda — tanlangan tilga qarab olamiz
-  function pick(obj, key) {
-    if (lang === "uz") {
-      var uz = obj[key + "Uz"];
-      if (uz) return uz;
-    }
-    return obj[key] || "";
-  }
 
   /* ---- Sahifalar ---- */
 
@@ -76,15 +34,16 @@
     sec.className = "pg cover";
     sec.innerHTML =
       '<div class="cover__inner">' +
-      '<img class="cover__logo' + (isEnd ? " cover__logo--sm" : "") +
-      '" src="images/qandil-logo.png" alt="' + esc(R.name || "Qandil") + '" />' +
+      '<img class="cover__logo" src="images/qandil-logo.png" alt="' +
+      esc(R.name || "Qandil") + '" />' +
       '<div class="orn"><i></i><b>❧</b><i></i></div>' +
-      '<p class="cover__hi">' + esc(t(isEnd ? "bonAppetit" : "welcome")) + "</p>" +
+      '<p class="cover__hi">' +
+      (isEnd ? "Приятного аппетита!" : "Добро пожаловать!") + "</p>" +
       '<p class="cover__tag">' +
-      esc(isEnd ? t("thanks") : pick(R, "tagline")) + "</p>" +
+      esc(isEnd ? "Спасибо, что выбрали нас" : R.tagline || "") + "</p>" +
       (isEnd
         ? ""
-        : '<div class="cover__hint">⇄ ' + esc(t("swipeHint")) + "</div>") +
+        : '<div class="cover__hint">⇄ Нажмите или проведите, чтобы листать</div>') +
       (R.instagram
         ? '<a class="cover__ig" href="https://instagram.com/' + esc(R.instagram) +
           '" target="_blank" rel="noopener">@' + esc(R.instagram) + "</a>"
@@ -93,54 +52,20 @@
     return sec;
   }
 
-  function sizesHtml(item) {
-    var parts = (item.variants || [])
-      .filter(function (v) {
-        return Number(v.price) > 0;
-      })
-      .map(function (v) {
-        return (
-          '<span class="sz"><i>' + esc(pick(v, "label")) + "</i>" +
-          '<span class="lead"></span><b>' + num(Number(v.price)) + "</b></span>"
-        );
-      });
-    return parts.length ? '<div class="dish__sizes">' + parts.join("") + "</div>" : "";
-  }
-
-  function dishCard(item) {
-    var name = pick(item, "name");
-    var media = item.image
-      ? '<img class="dish__img" src="' + esc(item.image) + '" alt="' + esc(name) +
-        '" loading="lazy" />'
-      : '<div class="dish__ph">' + esc(t("soon")) + "</div>";
-
-    var price = item.variants && item.variants.length
-      ? sizesHtml(item)
-      : '<div class="dish__price">' + num(Number(item.price)) + "</div>";
-
-    return (
-      '<div class="dish">' + media +
-      '<div class="dish__name">' + esc(name) + "</div>" + price +
-      "</div>"
-    );
-  }
-
-  function catPage(cat) {
+  function menuPage(page) {
     var sec = document.createElement("section");
     sec.className = "pg";
     sec.innerHTML =
-      '<div class="pg__head">' +
-      '<div class="pg__ribbon"><h2 class="pg__title">' +
-      esc(pick(cat, "name")) + "</h2></div>" +
-      '<div class="pg__mark"><img src="images/qandil-logo.png" alt="" /></div>' +
+      '<div class="sheet__head">' +
+      '<img class="sheet__logo" src="images/qandil-logo.png" alt="" />' +
+      '<h2 class="sheet__title">' + esc(page.title || "") + "</h2>" +
       "</div>" +
-      '<div class="pg__rule"></div>' +
-      '<div class="pg__body">' +
-      '<div class="sheetnote">' + esc(t("pricesIn")) + "</div>" +
-      '<div class="dishes">' + (cat.items || []).map(dishCard).join("") + "</div>" +
+      '<div class="sheet__body">' +
+      '<img class="sheet__img" src="' + esc(page.image) + '" alt="' +
+      esc(page.title || "") + '" loading="lazy" />' +
       "</div>" +
-      '<div class="pg__foot">' + esc(R.name || "Qandil") + " · " +
-      esc(pick(R, "tagline")) + "</div>";
+      // Narxlar suratda kichik — kattalashtirish mumkinligini aytamiz
+      '<div class="sheet__foot">Нажмите на фото, чтобы увеличить</div>';
     return sec;
   }
 
@@ -181,24 +106,35 @@
     });
   }
 
+  /* Suratni bosib kattalashtirish — narxni yaqindan ko'rish uchun */
+  function setupZoom() {
+    var box = document.getElementById("qZoom");
+    var img = document.getElementById("qZoomImg");
+    book.addEventListener("click", function (e) {
+      var t = e.target;
+      if (!t || !t.classList.contains("sheet__img")) return;
+      img.src = t.src;
+      box.hidden = false;
+    });
+    box.addEventListener("click", function () {
+      box.hidden = true;
+      img.src = "";
+    });
+  }
+
   /* ---- Chizish ---- */
 
   function render() {
-    document.documentElement.lang = lang;
-    langBtn.textContent = lang === "ru" ? "UZ" : "RU";
-
-    var cats = (window.QANDIL.categories || []).filter(function (c) {
-      return (c.items || []).length > 0;
-    });
+    var pages = window.QANDIL.pages || [];
 
     book.innerHTML = "";
     book.appendChild(coverPage(false));
-    cats.forEach(function (cat) {
-      book.appendChild(catPage(cat));
+    pages.forEach(function (p) {
+      book.appendChild(menuPage(p));
     });
     book.appendChild(coverPage(true));
 
-    pageCount = cats.length + 2;
+    pageCount = pages.length + 2;
     dotsEl.innerHTML = "";
     for (var i = 0; i < pageCount; i++) dotsEl.appendChild(document.createElement("i"));
 
@@ -208,11 +144,13 @@
 
   function start() {
     if (!window.QANDIL) {
-      book.innerHTML = '<section class="pg cover"><p class="cover__hi">Меню недоступно</p></section>';
+      book.innerHTML =
+        '<section class="pg cover"><p class="cover__hi">Меню недоступно</p></section>';
       return;
     }
     render();
     setupTaps();
+    setupZoom();
 
     var ticking = false;
     book.addEventListener(
@@ -227,17 +165,6 @@
       },
       { passive: true }
     );
-
-    langBtn.addEventListener("click", function () {
-      var at = currentPage();
-      lang = lang === "ru" ? "uz" : "ru";
-      try {
-        localStorage.setItem(LS_LANG, lang);
-      } catch (e) {}
-      render();
-      book.scrollTo({ left: at * book.clientWidth });
-      paintPosition();
-    });
 
     window.addEventListener("resize", function () {
       goTo(currentPage());

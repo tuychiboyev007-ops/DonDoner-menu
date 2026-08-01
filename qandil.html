@@ -5,22 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#12280f" />
   <title>Qandil restaurant — Электронное меню</title>
-  <meta name="description" content="Qandil restaurant — электронное меню: салаты, супы и горячие блюда." />
+  <meta name="description" content="Qandil restaurant — электронное меню: салаты, закуски и супы." />
   <!-- ?v= raqamini har yangilanishda oshiring -->
-  <link rel="stylesheet" href="css/qandil.css?v=1" />
+  <link rel="stylesheet" href="css/qandil.css?v=3" />
 </head>
 <body>
   <!-- Varaqlanadigan sahifalar shu yerga chiziladi -->
   <div class="book" id="qBook"></div>
 
-  <!-- Pastdagi qatlam: sahifa raqami · nuqtalar · til -->
+  <!-- Suratni kattalashtirib ko'rish -->
+  <div class="zoom" id="qZoom" hidden>
+    <img id="qZoomImg" alt="" />
+  </div>
+
+  <!-- Pastdagi qatlam: sahifa raqami va nuqtalar -->
   <div class="hud">
     <span class="hud__count" id="qCount"></span>
     <div class="dots" id="qDots"></div>
-    <button type="button" class="hud__lang" id="qLang">UZ</button>
   </div>
 
-  <script src="data/qandil.js?v=1"></script>
-  <script src="js/qandil.js?v=1"></script>
+  <script src="data/qandil.js?v=2"></script>
+  <script src="js/qandil.js?v=3"></script>
 </body>
 </html>

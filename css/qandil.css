@@ -154,194 +154,89 @@ body {
   text-decoration: none;
 }
 
-/* ---------- Bo'lim sahifasi ---------- */
-.pg__head {
-  flex: none;
-  display: flex;
-  align-items: stretch;
-  background: var(--deep);
-  padding-top: env(safe-area-inset-top);
-}
-
-.pg__ribbon {
-  flex: 1;
-  min-width: 0;
-  background: var(--cream);
-  padding: 14px 34px 14px 20px;
-  clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 100%, 0 100%);
-  display: flex;
-  align-items: center;
-}
-
-.pg__title {
-  margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(18px, 5.6vw, 26px);
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  line-height: 1.15;
-  color: var(--deep);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.pg__mark {
+/* ---------- Bo'lim sahifasi: to'liq surat ----------
+   Taom nomi va narxi suratning o'zida yozilgan, shuning uchun
+   bu yerda ro'yxat ham, kartochka ham yo'q. Tepada faqat
+   logotip va bo'lim nomi turadi. */
+.sheet__head {
   flex: none;
   display: flex;
   align-items: center;
-  padding: 6px 14px 6px 2px;
+  justify-content: center;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 12px) 18px 10px;
 }
 
-.pg__mark img {
-  height: 40px;
-  width: 40px;
+.sheet__logo {
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: block;
-}
-
-.pg__rule {
   flex: none;
-  height: 5px;
-  background: var(--deep);
-  border-top: 2px solid rgba(255, 255, 255, 0.14);
 }
 
-/* ---------- Sahifa maydoni ---------- */
-.pg__body {
+.sheet__title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(19px, 5.4vw, 25px);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet__body {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  background: linear-gradient(180deg, #fffdf7 0%, var(--paper) 42%, #f3eee0 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(40, 82, 35, 0.08),
-    inset 0 0 90px rgba(40, 82, 35, 0.05);
-  padding: 18px 16px 24px;
-}
-
-.sheetnote {
-  margin: 0 0 14px;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.sheetnote::before,
-.sheetnote::after {
-  content: "❧";
-  margin: 0 10px;
-  font-size: 11px;
-  color: var(--leaf);
-}
-
-/* ---------- Taom kartochkasi (surat bilan) ---------- */
-.dishes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 12px;
-}
-
-.dish {
-  display: flex;
-  flex-direction: column;
-}
-
-.dish__img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: 14px;
-  display: block;
-  background: #e7e2d3;
-}
-
-/* Surati yo'q taom — nomi bilan to'ldirilgan maydon */
-.dish__ph {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 14px;
   display: grid;
   place-items: center;
-  padding: 12px;
+  padding: 0 10px;
+}
+
+/* Surat ostidagi maslahat — pastdagi bo'sh joyni to'ldiradi */
+.sheet__foot {
+  flex: none;
   text-align: center;
-  background: repeating-linear-gradient(
-    45deg, #eee9da, #eee9da 10px, #e8e2d1 10px, #e8e2d1 20px);
+  font-size: 12.5px;
+  font-style: italic;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 15px;
-  color: var(--muted);
+  color: rgba(244, 239, 221, 0.6);
+  padding: 14px 16px calc(env(safe-area-inset-bottom) + 46px);
 }
 
-.dish__name {
-  margin-top: 9px;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 15.5px;
-  font-weight: 700;
-  line-height: 1.28;
-  color: var(--ink);
+.sheet__img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+  cursor: zoom-in;
 }
 
-.dish__price {
-  margin-top: 4px;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--deep);
-  font-variant-numeric: tabular-nums;
+/* Kattalashtirilgan surat — narxni yaqindan o'qish uchun */
+.zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(9, 20, 8, 0.96);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  cursor: zoom-out;
 }
 
-/* O'lchamli taom: har turi alohida qatorda */
-.dish__sizes {
-  margin-top: 5px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 13px;
+.zoom[hidden] {
+  display: none;
 }
 
-.sz {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.sz i {
-  flex: none;
-  font-style: normal;
-  color: var(--muted);
-}
-
-.sz .lead {
-  flex: 1;
-  min-width: 8px;
-  align-self: flex-end;
-  margin-bottom: 4px;
-  border-bottom: 2px dotted rgba(34, 48, 28, 0.26);
-}
-
-.sz b {
-  flex: none;
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 700;
-  color: var(--deep);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------- Pastki chiziq ---------- */
-.pg__foot {
-  flex: none;
-  background: var(--deep);
-  color: rgba(244, 239, 221, 0.85);
-  font-size: 11.5px;
-  text-align: center;
-  padding: 9px 16px calc(env(safe-area-inset-bottom) + 46px);
-  letter-spacing: 0.3px;
+.zoom img {
+  display: block;
+  width: 175%;
+  max-width: none;
+  margin: 0 auto;
 }
 
 /* ---------- Pastdagi qatlam ---------- */
@@ -417,15 +312,14 @@ body {
 .tapzone--prev { left: 0; }
 .tapzone--next { right: 0; }
 
-/* Planshet va monitorda uch ustun */
+/* Kattaroq ekranda surat cheksiz cho'zilmasin */
 @media (min-width: 700px) {
-  .dishes {
-    grid-template-columns: repeat(3, 1fr);
+  .sheet__img {
+    max-width: 560px;
   }
 
-  .pg__body {
-    max-width: 760px;
-    margin: 0 auto;
-    width: 100%;
+  .zoom img {
+    width: auto;
+    max-width: 900px;
   }
 }

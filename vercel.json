@@ -71,7 +71,7 @@
       }
     },
     {
-      "src": "{index.html,admin.html,menu.html,css/**,js/**,data/**,images/**,vendor/**}",
+      "src": "{index.html,admin.html,menu.html,qandil.html,css/**,js/**,data/**,images/**,vendor/**}",
       "use": "@vercel/static"
     }
   ],

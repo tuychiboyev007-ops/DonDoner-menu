@@ -22,6 +22,10 @@ const QANDIL = {
     { id: "salads-2", title: "Салаты", image: "images/qandil/page-2.jpg" },
     { id: "salads-3", title: "Салаты", image: "images/qandil/page-3.jpg" },
     { id: "soups", title: "Супы", image: "images/qandil/page-4.jpg" },
+    { id: "hot-1", title: "Горячие блюда", image: "images/qandil/page-5.jpg" },
+    { id: "hot-2", title: "Горячие блюда", image: "images/qandil/page-6.jpg" },
+    { id: "pizza-1", title: "Пиццы", image: "images/qandil/page-7.jpg" },
+    { id: "pizza-2", title: "Пиццы", image: "images/qandil/page-8.jpg" },
   ],
 };
 
